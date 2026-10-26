@@ -16,3 +16,11 @@ dashboard/dist/
 dashboard/.env
 *.db
 *.sqlite
+
+# Secrets
+sa-key.json
+*.key.json
+
+# Playwright
+dashboard/test-results/
+dashboard/playwright-report/

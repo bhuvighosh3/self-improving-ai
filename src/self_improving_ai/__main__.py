@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from pathlib import Path
 
-from google.adk import Runner, InMemorySessionService
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
+
+from google.adk import Runner
+from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from self_improving_ai.agents.orchestrator.agent import orchestrator
@@ -26,7 +32,11 @@ async def main(request_text: str) -> None:
         },
     )
 
-    runner = Runner(agent=orchestrator, session_service=session_service)
+    runner = Runner(
+        app_name=orchestrator.name,
+        agent=orchestrator,
+        session_service=session_service,
+    )
 
     content = types.Content(
         role="user",
