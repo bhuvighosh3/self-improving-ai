@@ -286,10 +286,6 @@ New intents never seen in training, plus a changed tool catalog mid-experiment: 
 
 Intent accuracy, tool-selection precision and recall against the reference plan, plan validity (steps in a runnable order), and end-to-end success when the plan is executed.
 
-### Fallback if Scope Is Tight
-
-If six people cannot support three agents, C shrinks to a thin router with no learning, and its pair joins A or B.
-
 ---
 
 ## Evaluation Plan
