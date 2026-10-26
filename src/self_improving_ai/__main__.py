@@ -29,6 +29,11 @@ async def main(request_text: str) -> None:
             "intent_corrections": "",
             "tool_notes": "",
             "plan_templates": "",
+            "advisor_corrections": "",
+            "context_preferences": "",
+            "relevant_lessons": "",
+            "skill_procedures": "",
+            "tool_preferences": "",
         },
     )
 
