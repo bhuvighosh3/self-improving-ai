@@ -1,0 +1,160 @@
+[
+  {
+    "client_id": "CLI-001",
+    "profile": {
+      "name": "Garcia Family",
+      "primary_contact": "Maria Garcia",
+      "risk_tolerance": "moderate",
+      "investment_horizon": "15 years",
+      "goals": ["retirement", "college_funding"],
+      "annual_income": 285000,
+      "tax_bracket": "32%",
+      "state": "CA"
+    },
+    "accounts": [
+      {
+        "account_id": "ACC-001A",
+        "type": "joint_brokerage",
+        "holdings": [
+          {"ticker": "VTSAX", "shares": 450, "market_value": 52200, "cost_basis": 38000},
+          {"ticker": "VTIAX", "shares": 200, "market_value": 12400, "cost_basis": 10800},
+          {"ticker": "BND", "shares": 300, "market_value": 21900, "cost_basis": 22500},
+          {"ticker": "AAPL", "shares": 100, "market_value": 17800, "cost_basis": 9200}
+        ]
+      },
+      {
+        "account_id": "ACC-001B",
+        "type": "ira",
+        "holdings": [
+          {"ticker": "VTSAX", "shares": 300, "market_value": 34800, "cost_basis": 28000},
+          {"ticker": "VTIP", "shares": 150, "market_value": 7650, "cost_basis": 7800}
+        ]
+      }
+    ],
+    "crm_notes": [
+      {"date": "2026-10-15", "author": "J. Smith", "text": "Maria called about RMD planning for 2027. Wants projections."},
+      {"date": "2026-09-20", "author": "J. Smith", "text": "Annual review. Discussed rebalancing — overweight US equities. Maria prefers gradual shift."},
+      {"date": "2026-08-05", "author": "K. Patel", "text": "College funding update: eldest starts in 2 years. Need 529 withdrawal plan."}
+    ]
+  },
+  {
+    "client_id": "CLI-002",
+    "profile": {
+      "name": "Thompson Trust",
+      "primary_contact": "Robert Thompson",
+      "risk_tolerance": "conservative",
+      "investment_horizon": "5 years",
+      "goals": ["income_generation", "capital_preservation"],
+      "annual_income": 95000,
+      "tax_bracket": "22%",
+      "state": "FL"
+    },
+    "accounts": [
+      {
+        "account_id": "ACC-002A",
+        "type": "trust",
+        "holdings": [
+          {"ticker": "BND", "shares": 800, "market_value": 58400, "cost_basis": 61000},
+          {"ticker": "VTIAX", "shares": 100, "market_value": 6200, "cost_basis": 5900},
+          {"ticker": "MUB", "shares": 500, "market_value": 53500, "cost_basis": 52000},
+          {"ticker": "VYM", "shares": 200, "market_value": 24600, "cost_basis": 20000}
+        ]
+      }
+    ],
+    "crm_notes": [
+      {"date": "2026-10-10", "author": "K. Patel", "text": "Robert concerned about rising rates impacting bond portfolio. Wants duration analysis."},
+      {"date": "2026-07-22", "author": "K. Patel", "text": "Discussed moving some MUB to shorter-duration munis. Robert wants to wait until after midterms."}
+    ]
+  },
+  {
+    "client_id": "CLI-003",
+    "profile": {
+      "name": "Chen Household",
+      "primary_contact": "Wei Chen",
+      "risk_tolerance": "aggressive",
+      "investment_horizon": "25 years",
+      "goals": ["growth", "early_retirement"],
+      "annual_income": 420000,
+      "tax_bracket": "35%",
+      "state": "WA"
+    },
+    "accounts": [
+      {
+        "account_id": "ACC-003A",
+        "type": "joint_brokerage",
+        "holdings": [
+          {"ticker": "QQQ", "shares": 300, "market_value": 141000, "cost_basis": 95000},
+          {"ticker": "ARKK", "shares": 500, "market_value": 27500, "cost_basis": 45000},
+          {"ticker": "TSLA", "shares": 150, "market_value": 39000, "cost_basis": 28000},
+          {"ticker": "VTSAX", "shares": 200, "market_value": 23200, "cost_basis": 18000}
+        ]
+      },
+      {
+        "account_id": "ACC-003B",
+        "type": "401k",
+        "holdings": [
+          {"ticker": "VTSAX", "shares": 600, "market_value": 69600, "cost_basis": 52000},
+          {"ticker": "VTIAX", "shares": 200, "market_value": 12400, "cost_basis": 11000}
+        ]
+      }
+    ],
+    "crm_notes": [
+      {"date": "2026-10-20", "author": "J. Smith", "text": "Wei wants to discuss tax-loss harvesting on ARKK position. Significant unrealized loss."},
+      {"date": "2026-09-01", "author": "J. Smith", "text": "Early retirement target: age 50 (8 years). Need updated Monte Carlo projection."}
+    ]
+  },
+  {
+    "client_id": "CLI-004",
+    "profile": {
+      "name": "Okafor Family",
+      "primary_contact": "Amara Okafor",
+      "risk_tolerance": "moderate",
+      "investment_horizon": "10 years",
+      "goals": ["home_purchase", "retirement"],
+      "annual_income": 175000,
+      "tax_bracket": "24%"
+    },
+    "accounts": [
+      {
+        "account_id": "ACC-004A",
+        "type": "individual_brokerage",
+        "holdings": [
+          {"ticker": "VTSAX", "shares": 150, "market_value": 17400, "cost_basis": 14000},
+          {"ticker": "BND", "shares": 200, "market_value": 14600, "cost_basis": 15000}
+        ]
+      }
+    ],
+    "crm_notes": [
+      {"date": "2026-10-01", "author": "K. Patel", "text": "Amara looking at homes in the $600K range. Needs to know how much to liquidate for down payment without excessive tax hit."}
+    ]
+  },
+  {
+    "client_id": "CLI-005",
+    "profile": {
+      "name": "Patel Retirement Account",
+      "primary_contact": "Priya Patel",
+      "risk_tolerance": "conservative",
+      "investment_horizon": "3 years",
+      "goals": ["income_generation"],
+      "annual_income": 62000,
+      "tax_bracket": "12%",
+      "state": "TX",
+      "notes": "Recently widowed. Dependent on portfolio income."
+    },
+    "accounts": [
+      {
+        "account_id": "ACC-005A",
+        "type": "ira",
+        "holdings": [
+          {"ticker": "BND", "shares": 600, "market_value": 43800, "cost_basis": 45000},
+          {"ticker": "VYM", "shares": 300, "market_value": 36900, "cost_basis": 30000},
+          {"ticker": "MUB", "shares": 200, "market_value": 21400, "cost_basis": 21000}
+        ]
+      }
+    ],
+    "crm_notes": [
+      {"date": "2026-10-18", "author": "J. Smith", "text": "Priya needs a sustainable withdrawal plan. Current spend ~$4,200/month from portfolio."},
+      {"date": "2026-09-10", "author": "J. Smith", "text": "Compliance flag: confirm RMD schedule is correct for inherited IRA portion."}
+    ]
+  }
+]

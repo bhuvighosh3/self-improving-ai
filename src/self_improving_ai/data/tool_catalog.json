@@ -1,0 +1,103 @@
+[
+  {
+    "name": "get_holdings",
+    "description": "Returns current holdings for a client account",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["client_id", "account_id"],
+    "returns": "Account holdings with market values"
+  },
+  {
+    "name": "get_holdings_v1",
+    "description": "Returns holdings with allocation as decimals (0.60 = 60%)",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["client_id"],
+    "returns": "Holdings with decimal allocations",
+    "caveat": "DEPRECATED: allocation values are decimals, not percentages"
+  },
+  {
+    "name": "get_price_history",
+    "description": "Returns price history for a given ticker and period",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["ticker", "period"],
+    "returns": "List of date/close price pairs"
+  },
+  {
+    "name": "get_stale_price",
+    "description": "Returns the last known price for a ticker",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["ticker"],
+    "returns": "Single price point",
+    "caveat": "WARNING: may return data up to 6 months old"
+  },
+  {
+    "name": "get_client_profile",
+    "description": "Returns client demographics, risk tolerance, goals",
+    "agent": "meeting_briefing_agent",
+    "parameters": ["client_id"],
+    "returns": "Client profile dictionary"
+  },
+  {
+    "name": "get_crm_notes",
+    "description": "Returns recent CRM interaction notes for a client",
+    "agent": "meeting_briefing_agent",
+    "parameters": ["client_id", "limit"],
+    "returns": "List of dated notes"
+  },
+  {
+    "name": "search_market_news",
+    "description": "Searches recent market news articles by query",
+    "agent": "meeting_briefing_agent",
+    "parameters": ["query", "max_results"],
+    "returns": "List of articles (may include irrelevant distractors)"
+  },
+  {
+    "name": "run_monte_carlo",
+    "description": "Runs a Monte Carlo simulation for portfolio projection",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["portfolio", "years", "num_simulations", "seed"],
+    "returns": "Simulation results with percentile outcomes",
+    "caveat": "May timeout for num_simulations > 10000"
+  },
+  {
+    "name": "get_capital_market_assumptions",
+    "description": "Returns expected returns and volatility by asset class",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [],
+    "returns": "Asset class assumptions table"
+  },
+  {
+    "name": "estimate_capital_gains",
+    "description": "Estimates capital gains tax from selling positions",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["client_id", "positions_to_sell"],
+    "returns": "Estimated tax liability"
+  },
+  {
+    "name": "calculate_withdrawal_rate",
+    "description": "Calculates sustainable withdrawal rate for retirement income",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["portfolio_value", "annual_expenses", "horizon_years"],
+    "returns": "Withdrawal rate analysis"
+  },
+  {
+    "name": "check_compliance_flags",
+    "description": "Checks for compliance issues on a client account",
+    "agent": "meeting_briefing_agent",
+    "parameters": ["client_id"],
+    "returns": "List of active compliance flags"
+  },
+  {
+    "name": "calculate_fee_drag",
+    "description": "Calculates cumulative impact of fees on portfolio returns",
+    "agent": "portfolio_estimation_agent",
+    "parameters": ["portfolio_value", "expense_ratios", "years"],
+    "returns": "Fee drag analysis"
+  },
+  {
+    "name": "search_tool_catalog",
+    "description": "Searches this tool catalog by keyword",
+    "agent": "request_orchestrator",
+    "parameters": ["query"],
+    "returns": "Matching tool entries"
+  }
+]

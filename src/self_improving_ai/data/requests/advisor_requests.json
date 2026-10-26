@@ -1,0 +1,82 @@
+[
+  {
+    "id": "REQ-001",
+    "request_text": "What's the projected portfolio value for the Garcia family in 10 years assuming 7% average annual return?",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-001",
+    "intent": "portfolio_projection",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-002",
+    "request_text": "Get me ready for my 2pm with the Garcias tomorrow",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-001",
+    "intent": "meeting_briefing",
+    "expected_agents": ["meeting_briefing_agent", "portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-003",
+    "request_text": "How much tax would the Garcias owe if we sold all their AAPL shares now?",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-001",
+    "intent": "tax_estimation",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-004",
+    "request_text": "Run a duration analysis on the Thompson Trust bond portfolio",
+    "advisor_id": "ADV-002",
+    "client_id": "CLI-002",
+    "intent": "risk_analysis",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-005",
+    "request_text": "What's a sustainable monthly withdrawal for Priya Patel given her current portfolio?",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-005",
+    "intent": "income_planning",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-006",
+    "request_text": "Prepare a meeting briefing for Wei Chen — focus on the ARKK tax-loss harvesting opportunity",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-003",
+    "intent": "meeting_briefing",
+    "expected_agents": ["meeting_briefing_agent", "portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-007",
+    "request_text": "How much can Amara Okafor liquidate for a home down payment with minimal tax impact?",
+    "advisor_id": "ADV-002",
+    "client_id": "CLI-004",
+    "intent": "tax_estimation",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-008",
+    "request_text": "Is the Garcia portfolio properly diversified? Check allocation vs their risk tolerance.",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-001",
+    "intent": "risk_analysis",
+    "expected_agents": ["portfolio_estimation_agent"]
+  },
+  {
+    "id": "REQ-009",
+    "request_text": "Give me a quick summary of the Thompson Trust — I have a call in 10 minutes",
+    "advisor_id": "ADV-002",
+    "client_id": "CLI-002",
+    "intent": "meeting_briefing",
+    "expected_agents": ["meeting_briefing_agent"]
+  },
+  {
+    "id": "REQ-010",
+    "request_text": "Check if Priya Patel's inherited IRA is compliant with the new 2027 RMD rules",
+    "advisor_id": "ADV-001",
+    "client_id": "CLI-005",
+    "intent": "compliance_check",
+    "expected_agents": ["meeting_briefing_agent"]
+  }
+]

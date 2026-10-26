@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(git commit *)",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "A git commit was just made. Check if the commit includes significant architectural changes that should be reflected in the README.md. Run `git diff HEAD~1 --stat` and `git diff HEAD~1` to see what changed. Significant changes include: new components or agents, changes to system architecture, new or modified evaluation approaches, changes to the improvement harness, new data sources or mock tools, changes to the orchestrator or workflow, and changes to the project structure. If the changes are only minor (typos, small bug fixes, formatting, comments, config tweaks), do NOT update the README. If the changes ARE significant, read the current README.md and update it to accurately reflect the new architecture, components, or approach. Keep the same style and structure. Do not add or remove sections unnecessarily — only update what changed. After updating, stage and commit the README change with the message 'docs: update README to reflect architectural changes'.",
+            "model": "claude-sonnet-5-5",
+            "timeout": 120,
+            "statusMessage": "Checking if README needs updating..."
+          }
+        ]
+      }
+    ]
+  }
+}
