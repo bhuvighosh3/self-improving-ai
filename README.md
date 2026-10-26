@@ -1,39 +1,126 @@
-# Scope for Self-Improving Agents
+# Self-Improving AI — Wealth Management Copilot
 
-## Project Overview
+A self-improving AI copilot for wealth management advisors, built with [Google ADK](https://google.github.io/adk-docs/) and Gemini. The system learns from execution errors and advisor feedback to improve planning, tool use, and task performance over time.
 
-### Objective
+## Quick Start
 
-Build a self-improving AI copilot for wealth management advisors that learns from execution errors and advisor feedback to improve planning, tool use, and task performance on new requests.
+### Prerequisites
 
-### Proposed System
+- Python 3.11+
+- Node.js 18+
+- A Gemini API key from [AI Studio](https://aistudio.google.com/apikey)
 
-Three connected components:
+### Setup
 
-- **Portfolio Estimation Agent**: Performs portfolio calculations (risk, projections, allocation drift) and improves tool selection and execution.
-- **Meeting Briefing Agent**: Prepares client briefs using CRM, portfolio, and market data, improving accuracy and context selection through feedback.
-- **Request Orchestrator**: Understands advisor requests, plans workflows, and coordinates agents and tools.
+```bash
+git clone https://github.com/bhuvighosh3/self-improving-ai.git
+cd self-improving-ai
+pip install -e .
+```
 
-All components share an improvement harness that records execution, collects feedback, tests changes to prompts, memory, skills, or tool preferences, and supports validation and rollback.
+Create a `.env` file in the project root:
 
-### Evaluation
+```
+GOOGLE_GENAI_USE_VERTEXAI=FALSE
+GOOGLE_API_KEY=your-api-key-here
+```
 
-Using synthetic clients and mock APIs, we will simulate realistic failures (missing information, outdated data, incorrect tool calls) and test whether the agents learn to handle similar unseen situations.
+### Run the Orchestrator (CLI)
 
-We will compare against static, manually tuned, and retrieval-only baselines, measuring accuracy, task completion, tool-use efficiency, cost, generalization, and regressions.
+```bash
+python -m self_improving_ai "Get me ready for my 2pm with the Garcias"
+```
 
-### Deliverables & Timeline
+### Run the Dashboard
 
-- **Week 3**: Working end-to-end MVP.
-- **Week 7**: Integrated prototype and dashboard demonstrating execution, feedback, validated improvements, and performance comparisons.
+Start both the FastAPI backend and React frontend:
 
-### Feasibility & Scope Confirmation
+```bash
+# Terminal 1 — Backend
+uvicorn self_improving_ai.dashboard.app:app --port 8000
 
-We would appreciate LPL's feedback on whether the proposed three-agent architecture is realistic within our timeline, particularly given the development and evaluation work involved.
+# Terminal 2 — Frontend
+cd dashboard
+npm install
+npx vite --port 5173
+```
 
-If the scope is too ambitious, we can prioritize the meeting preparation workflow and simplify or phase in the other components. We would also welcome guidance on which capabilities and failure scenarios matter most, so we can focus our efforts on a useful, well-tested MVP.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-The following sections provide the detailed architecture, methodology, evaluation plan, team responsibilities, and timeline.
+### Run Tests
+
+```bash
+cd dashboard
+npx playwright install
+npx playwright test
+```
+
+## Architecture
+
+Three agents connected via Google ADK's `AgentTool`:
+
+- **Request Orchestrator** (Component C) — parses advisor requests, plans workflows, and delegates to sub-agents
+- **Portfolio Estimation Agent** (Component A) — handles numeric portfolio questions (risk/return, projections, drift, tax impact)
+- **Meeting Briefing Agent** (Component B) — prepares client meeting briefings from CRM, portfolio, and market data
+
+```
+Advisor request
+      ↓
+┌─────────────────────┐
+│  Request Orchestrator│ ← Gemini 2.5 Flash
+│  (LlmAgent)         │
+└──┬──────────────┬───┘
+   │              │
+   ▼              ▼
+┌──────────┐  ┌──────────┐
+│ Portfolio │  │ Briefing │
+│ Agent     │  │ Agent    │
+└──────────┘  └──────────┘
+```
+
+The orchestrator uses `AgentTool` to call sub-agents. Each agent's instructions contain `{placeholder}` variables resolved from `session.state` at runtime, enabling learned knowledge injection without modifying agent definitions.
+
+## Self-Improvement Mechanisms
+
+Each agent improves through different strategies, all gated by the shared improvement harness (candidate testing, regression checks, safety checks, versioning):
+
+| Agent | Strategy | Session State Variable |
+|-------|----------|----------------------|
+| Portfolio | Reflective lessons | `relevant_lessons` |
+| Portfolio | Reusable skill library | `skill_procedures` |
+| Portfolio | Tool success/cost stats | `tool_preferences` |
+| Briefing | Prompt evolution (GEPA) | `context_preferences` |
+| Briefing | Advisor correction memory | `advisor_corrections` |
+| Orchestrator | Intent corrections | `intent_corrections` |
+| Orchestrator | Tool description notes | `tool_notes` |
+| Orchestrator | Saved plan templates | `plan_templates` |
+
+## Tech Stack
+
+- **Agent framework**: Google ADK v1.32.0 (`LlmAgent`, `AgentTool`, `Runner`)
+- **LLM**: Gemini 2.5 Flash via Developer API
+- **Backend**: FastAPI + Uvicorn
+- **Frontend**: React + Vite (light theme, DM Sans / JetBrains Mono)
+- **Testing**: Playwright (11 automated tests)
+- **Telemetry**: OpenTelemetry
+
+## Dashboard
+
+The dashboard provides 7 pages:
+
+- **Copilot** — chat interface with the orchestrator, suggestion chips, execution trace visualization
+- **Overview** — AUM, client count, intent breakdown
+- **Clients** — 5 synthetic households with detail views
+- **Requests** — request history table
+- **Tools** — mock tool catalog (14 tools with realistic traps)
+- **News** — market news feed
+- **Agents** — agent cards showing configuration and status
+
+---
+
+## Detailed Design
+
+The sections below describe the full system design, evaluation plan, and improvement harness.
 
 ---
 
