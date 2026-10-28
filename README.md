@@ -106,15 +106,45 @@ Each agent improves through different strategies, all gated by the shared improv
 
 ## Dashboard
 
-The dashboard provides 7 pages:
+The dashboard provides 8 pages:
 
 - **Copilot** — chat interface with the orchestrator, suggestion chips, execution trace visualization
+- **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, local advisor edits and review, and PDF export
 - **Overview** — AUM, client count, intent breakdown
 - **Clients** — 5 synthetic households with detail views
 - **Requests** — request history table
 - **Tools** — mock tool catalog (14 tools with realistic traps)
 - **News** — market news feed
 - **Agents** — agent cards showing configuration and status
+
+### Meeting Prep Demo
+
+Open **Meeting Prep**, or choose **Generate Meeting Brief** from a client detail page.
+Select a meeting date, time (New York), and focus, then generate the brief. The
+default Chen scenario highlights ARKK's $17,500 unrealized loss and ranks the
+matching tax-loss harvesting news first. Click a reference to inspect its original
+mock record. Edit the draft, finish editing, and mark the current revision as
+reviewed. Further edits reset the review status. The latest draft and review state
+are stored in the current browser. Changing meeting inputs requires regeneration
+before review or export.
+
+**Download PDF** exports the current draft with its review state and source index;
+**Print** uses the browser's print dialog. Standard briefs use a compact page
+layout; long advisor edits can continue onto additional pages.
+
+This workflow uses actual calls to the repository's mock CRM, holdings and news
+tools, with deterministic synthesis. It makes no LLM calls and is labeled as a
+synthetic demo. The separate ADK agent is not connected to this dashboard flow.
+Mock task ownership and snapshot dates are in `data/clients/meeting_context.json`.
+Meetings before the fixture cutoff (2026-10-27) are rejected because historical
+snapshots are unavailable. News is a synthetic fixture, not a source of current
+regulatory guidance.
+
+Run the meeting workflow checks with:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests/test_agents -p 'test_meeting_brief.py'
+```
 
 ---
 

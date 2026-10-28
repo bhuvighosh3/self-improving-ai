@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import MeetingPrep from "./MeetingPrep";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -24,7 +25,7 @@ const ic={
   send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
 };
 
-const PAGE_TITLE={copilot:"Copilot",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
+const PAGE_TITLE={copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
 function Copilot({clients}){
@@ -220,7 +221,7 @@ function Clients({clients,onSelect}){
 }
 
 /* ════ Client Detail ════ */
-function ClientDetail({client,onBack}){
+function ClientDetail({client,onBack,onPrepare}){
   const p=client.profile||{};
   const allH={};
   client.accounts?.forEach(a=>a.holdings?.forEach(h=>{allH[h.ticker]=(allH[h.ticker]||0)+h.market_value}));
@@ -235,7 +236,7 @@ function ClientDetail({client,onBack}){
           <div className="detail-name">{p.name}</div>
           <div className="detail-id">{client.client_id} &middot; {p.primary_contact}</div>
         </div>
-        <span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span>
+        <div className="meeting-actions"><span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span><button className="meeting-btn primary" onClick={()=>onPrepare(client)}>Generate Meeting Brief</button></div>
       </div>
 
       <div className="detail-grid">
@@ -415,6 +416,7 @@ export default function App(){
   const [tools,setTools]=useState([]);
   const [news,setNews]=useState([]);
   const [selClient,setSelClient]=useState(null);
+  const [meetingClient,setMeetingClient]=useState(null);
 
   useEffect(()=>{
     const f=(u,s)=>fetch(u).then(r=>r.json()).then(s).catch(()=>{});
@@ -426,10 +428,12 @@ export default function App(){
     f("/api/news",setNews);
   },[]);
 
-  const nav=(p)=>{setPage(p);setSelClient(null)};
+  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null)};
+  const prepareMeeting=(client)=>{setMeetingClient(client);setPage("meeting");setSelClient(null)};
 
   const menu=[
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
+    {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
     {id:"requests",ic:ic.inbox,label:"Requests"},
@@ -447,11 +451,11 @@ export default function App(){
         </div>
         <nav className="sidebar-nav">
           <div className="nav-group-label">Main</div>
-          {menu.slice(0,2).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(0,3).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
-          {menu.slice(2,6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(3,7).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
-          {menu.slice(6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(7).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
@@ -462,12 +466,14 @@ export default function App(){
       <div className="main">
         <div className="topbar">
           <div className="topbar-title">{PAGE_TITLE[page]}</div>
+          <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients}/>}
+          {page==="meeting"&&<MeetingPrep clients={clients} selectedClient={meetingClient}/>}
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}
           {page==="clients"&&!selClient&&<Clients clients={clients} onSelect={setSelClient}/>}
-          {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)}/>}
+          {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)} onPrepare={prepareMeeting}/>}
           {page==="requests"&&<Requests requests={requests}/>}
           {page==="tools"&&<Tools tools={tools}/>}
           {page==="news"&&<News news={news}/>}

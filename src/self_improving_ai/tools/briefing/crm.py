@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
 def _load_households() -> list[dict]:
@@ -42,6 +42,6 @@ def get_crm_notes(client_id: str, limit: int = 10) -> dict:
     """
     for household in _load_households():
         if household.get("client_id") == client_id:
-            notes = household.get("crm_notes", [])
+            notes = sorted(household.get("crm_notes", []), key=lambda n: n["date"], reverse=True)
             return {"client_id": client_id, "notes": notes[:limit]}
     return {"error": f"Client {client_id} not found"}

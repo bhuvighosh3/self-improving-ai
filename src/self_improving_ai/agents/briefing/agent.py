@@ -7,6 +7,7 @@ from google.adk import Agent
 from self_improving_ai.agents.briefing.instructions import BRIEFING_INSTRUCTION
 from self_improving_ai.tools.briefing.crm import get_client_profile, get_crm_notes
 from self_improving_ai.tools.briefing.news import search_market_news
+from self_improving_ai.tools.portfolio.holdings import get_holdings
 from self_improving_ai.config import settings
 
 
@@ -18,6 +19,7 @@ briefing_agent = Agent(
         get_client_profile,
         get_crm_notes,
         search_market_news,
+        get_holdings,
     ],
     output_key="briefing_result",
 )

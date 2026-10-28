@@ -9,11 +9,15 @@ import re
 import time
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from self_improving_ai.config import settings
+from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
+from self_improving_ai.agents.briefing.pdf import render_brief_pdf
+from self_improving_ai.agents.briefing.service import generate_meeting_brief
 
 app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0")
 
@@ -37,6 +41,27 @@ def _load(relpath: str):
 class ChatRequest(BaseModel):
     message: str
     client_id: str | None = None
+
+
+@app.post("/api/briefings")
+async def create_meeting_brief(req: MeetingBriefRequest):
+    try:
+        return generate_meeting_brief(req)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/briefings/export")
+async def export_meeting_brief(req: BriefExportRequest):
+    try:
+        pdf = render_brief_pdf(req)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(content=pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="meeting-brief-{req.brief.meeting_date}.pdf"',
+    })
 
 
 @app.get("/api/health")

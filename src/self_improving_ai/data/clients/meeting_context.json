@@ -1,0 +1,39 @@
+{
+  "data_as_of": "2026-10-27",
+  "holdings_as_of": "2026-10-24",
+  "households": {
+    "CLI-001": {
+      "previous_meeting": "2026-09-20",
+      "tasks": [
+        {"id": "TASK-001", "title": "Prepare retirement projections", "owner": "J. Smith", "due_date": "2026-10-28", "status": "open", "note_date": "2026-10-15"},
+        {"id": "TASK-002", "title": "Prepare the college withdrawal timeline", "owner": "K. Patel", "due_date": "2026-10-30", "status": "open", "note_date": "2026-08-05"}
+      ]
+    },
+    "CLI-002": {
+      "previous_meeting": "2026-07-22",
+      "tasks": [
+        {"id": "TASK-003", "title": "Prepare a bond duration comparison", "owner": "K. Patel", "due_date": "2026-10-28", "status": "open", "note_date": "2026-10-10"}
+      ]
+    },
+    "CLI-003": {
+      "previous_meeting": "2026-09-01",
+      "tasks": [
+        {"id": "TASK-004", "title": "Review ARKK tax-loss harvesting considerations", "owner": "J. Smith", "due_date": "2026-10-28", "status": "open", "note_date": "2026-10-20"},
+        {"id": "TASK-005", "title": "Update the early retirement projection", "owner": "J. Smith", "due_date": "2026-10-30", "status": "open", "note_date": "2026-09-01"}
+      ]
+    },
+    "CLI-004": {
+      "previous_meeting": "2026-10-01",
+      "tasks": [
+        {"id": "TASK-006", "title": "Confirm the down payment amount and purchase date", "owner": "K. Patel", "due_date": "2026-10-28", "status": "open", "note_date": "2026-10-01"}
+      ]
+    },
+    "CLI-005": {
+      "previous_meeting": "2026-09-10",
+      "tasks": [
+        {"id": "TASK-007", "title": "Confirm inherited IRA details and applicable distribution schedule", "owner": "J. Smith", "due_date": "2026-10-28", "status": "open", "note_date": "2026-09-10"},
+        {"id": "TASK-008", "title": "Review the monthly portfolio withdrawal need", "owner": "J. Smith", "due_date": "2026-10-30", "status": "open", "note_date": "2026-10-18"}
+      ]
+    }
+  }
+}
