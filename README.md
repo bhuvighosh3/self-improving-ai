@@ -163,6 +163,14 @@ node --test dashboard/checks/meeting-drafts.mjs
 
 The sections below describe the full system design, evaluation plan, and improvement harness.
 
+Component B's [Meeting Brief architecture and implementation audit](docs/meeting-brief/README.md)
+integrates the proposed meeting workflow, tool/skill responsibilities and current
+implementation boundaries. See its [preliminary evaluation design](docs/meeting-brief/evaluation.md)
+and [technical appendix](docs/meeting-brief/appendix.md) for evidence contracts,
+instructions and illustrative pseudocode. These are design proposals; this
+documentation update does not connect the dashboard to ADK, add an evaluator or
+change runtime behavior. Existing shared-system plans below remain unchanged.
+
 ---
 
 ## Project Details

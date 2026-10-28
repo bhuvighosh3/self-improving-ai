@@ -37,6 +37,11 @@ is outside the scope of this extension.
 
 ## Implementation boundaries
 
+The proposed next-stage [Meeting Brief architecture](docs/meeting-brief/README.md)
+and [evaluation design](docs/meeting-brief/evaluation.md) distinguish existing
+features from planned skills, temporal comparisons, independent checks and
+authenticated approval. They do not change the current demo boundaries below.
+
 The React/Vite dashboard uses FastAPI. Meeting Prep uses the same mock CRM, news
 and holdings tools as the Python agents, with a dedicated deterministic service.
 ReportLab renders the edited draft and source index as a PDF. No CRM writes,
