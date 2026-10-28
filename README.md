@@ -119,6 +119,13 @@ The dashboard provides 8 pages:
 
 ### Meeting Prep Demo
 
+Meeting Prep now offers an explicit **AI Agent** mode alongside the default
+**Offline demo**. The ADK briefing agent applies three business skills, records
+evidence and calculations, and the dashboard AI service performs independent
+quality review with bounded repairs. See [implementation and setup](docs/meeting-brief/implementation.md)
+for available features, local versioned review, evaluation commands and limitations.
+The deterministic behavior described below remains the default offline mode.
+
 Copilot meeting requests now open a confirmation form for the client, New York
 date/time and meeting focus. Recognized details are prefilled; missing or ambiguous
 details stay empty. After confirmation, Copilot uses the same generation service

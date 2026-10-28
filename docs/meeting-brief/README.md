@@ -1,6 +1,7 @@
 # Meeting Brief architecture and evaluation
 
-Status: design proposal, integrated 2026-10-29. No runtime changes are included.
+Status: design proposal and pre-implementation audit, integrated 2026-10-29.
+Executable work added later is documented in [implementation status](implementation.md).
 
 This document combines the supplied Meeting Prep workflow v0.5 and evaluation
 v0.1 with an implementation audit of this repository. It preserves Component B's

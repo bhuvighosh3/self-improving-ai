@@ -13,12 +13,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
 from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
+from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
+from self_improving_ai.agents.briefing.store import DraftStore
+from self_improving_ai.agents.briefing.review import check_draft
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0")
 
@@ -48,11 +54,67 @@ class ChatRequest(BaseModel):
 @app.post("/api/briefings")
 async def create_meeting_brief(req: MeetingBriefRequest):
     try:
-        return generate_meeting_brief(req)
+        if req.mode == "agent":
+            from self_improving_ai.agents.briefing.runtime import generate_agent_brief
+
+            brief = await asyncio.wait_for(generate_agent_brief(req), timeout=180)
+        else:
+            brief = await asyncio.to_thread(generate_meeting_brief, req)
+        await asyncio.to_thread(DraftStore().create, brief)
+        return brief
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Agent timed out; no approved brief was created.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
+
+
+@app.post("/api/briefings/check")
+async def check_meeting_draft(req: CheckRequest):
+    try:
+        original = DraftStore().get(req.brief["id"])["brief"]
+        return await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Quality reviewer unavailable; draft was not approved.") from exc
+
+
+@app.post("/api/briefings/review")
+async def review_meeting_draft(req: ReviewRequest):
+    try:
+        store = DraftStore()
+        original = store.get(req.brief["id"])["brief"]
+        report = await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
+        if req.decision == "approve" and report["verdict"] != "pass":
+            raise ValueError("Quality check requires revision before approval")
+        # Browser-provided workflow/sources can never replace the retained originals.
+        retained = {**original, "sections": req.brief["sections"]}
+        retained["workflow"] = {**original["workflow"], "quality": report}
+        return store.review(retained, req.revision, req.expected_revision,
+                            req.decision, req.feedback)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Review failed; no approval was recorded.") from exc
+
+
+@app.get("/api/briefings/{brief_id}/approved")
+async def get_approved_brief(brief_id: str):
+    try:
+        result = DraftStore().get(brief_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if result["status"] != "approve":
+        raise HTTPException(status_code=409, detail="This draft has not been approved")
+    return result
 
 
 @app.post("/api/briefings/export")

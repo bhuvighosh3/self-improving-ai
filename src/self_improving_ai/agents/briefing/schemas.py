@@ -4,6 +4,7 @@ from datetime import date, datetime, time
 import datetime as dt
 
 from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class BriefingRequest(BaseModel):
@@ -23,6 +24,8 @@ class MeetingBriefRequest(BaseModel):
     meeting_date: date
     meeting_time: time
     focus: str = Field(min_length=3, max_length=500)
+    meeting_type: Literal["quarterly_review", "annual_review", "goal_review"] = "quarterly_review"
+    mode: Literal["simulation", "agent"] = "simulation"
 
 
 class BriefItem(BaseModel):

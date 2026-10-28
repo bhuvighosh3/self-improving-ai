@@ -6,6 +6,12 @@ use synthetic households, holdings, CRM notes, tasks and market news.
 
 ## Meeting Prep extension
 
+An opt-in AI workflow now complements the default deterministic demo. See the
+[implementation status](docs/meeting-brief/implementation.md) for the three skills,
+evidence/quality pipeline, local versioned review and evaluation entry point.
+Descriptions below of no LLM calls refer to Offline demo mode; authenticated
+production approval and self-improvement are still outside this implementation.
+
 Part B helps an advisor prepare for a selected client meeting: specify the client,
 New York meeting date/time and focus; generate a structured brief; inspect evidence
 and relevant news; edit and review the draft; download a PDF or print it.
