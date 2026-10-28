@@ -65,6 +65,14 @@
 .meeting-sheet-footer { border-top: 1px solid var(--border-subtle); padding: 12px 24px; font-size: 10.5px; color: var(--text-3); }
 .meeting-print-status, .meeting-print-evidence { display: none; }
 .mobile-page-select { display: none; width: auto; max-width: 170px; }
+.co-meeting-form { border-top: 1px solid var(--border-subtle); margin-top: 14px; padding-top: 14px; }
+.co-meeting-form .meeting-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.co-meeting-form .meeting-fields > label:first-child,
+.co-meeting-form .meeting-focus, .co-meeting-form .meeting-fields > button { grid-column: 1 / -1; }
+.co-meeting-form :is(input, select, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.co-open-brief { margin-top: 12px; }
+.copilot .chip-amber { color: #865800; }
+.co-meeting-confirmed { margin-top: 10px; font-size: 12px; color: var(--text-3); }
 
 @media (min-width: 1500px) {
   .meeting-sections { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }

@@ -15,6 +15,12 @@ priorities, open actions and items to confirm. Calculated facts retain reference
 to the original mock records. Missing facts are explicit. The latest draft and its
 review status persist in the current browser; editing invalidates the review.
 
+Copilot offers a second entry to the same generation service. It asks the advisor
+to confirm the client, date, time and focus, then displays a summary and opens the
+same generated brief in Meeting Prep. Conversation history survives navigation
+during the current page session. Local drafts are restored by brief ID so reopening
+an older chat result retains its edits without loading another client's draft.
+
 The dashboard workflow is deterministic and explicitly labeled as a synthetic
 demo. It calls mock tools and makes no LLM or live market requests. The repository's
 separate Google ADK agent is not connected to this dashboard workflow. Self-improvement

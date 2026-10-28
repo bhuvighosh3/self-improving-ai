@@ -18,6 +18,7 @@ from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
+from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
 
 app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0")
 
@@ -41,6 +42,7 @@ def _load(relpath: str):
 class ChatRequest(BaseModel):
     message: str
     client_id: str | None = None
+    meeting: MeetingBriefRequest | None = None
 
 
 @app.post("/api/briefings")
@@ -262,8 +264,38 @@ def _build_briefing_response(client: dict) -> dict:
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
+    if req.meeting is not None:
+        # Both entry points use the same service and return the same brief object.
+        brief = await create_meeting_brief(req.meeting)
+        sections = {section["id"]: section for section in brief["sections"]}
+        highlights = sections["portfolio"]["items"]
+        response_text = (
+            f"**Meeting brief prepared: {brief['client_name']}**\n\n"
+            f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
+            f"**Focus:** {brief['focus']}\n\n"
+            f"**Portfolio:** {highlights[0]['text']}\n\n"
+            + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
+            + "**Discussion priorities:**\n"
+            + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
+            + "\n\nOpen this brief to inspect sources, edit, review, or export it."
+        )
+        return {
+            "response": response_text, "intent": "meeting_briefing",
+            "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
+            "agents_used": ["meeting_briefing_agent"],
+            "steps": [{"agent": "meeting_briefing_agent", "action": "build_briefing",
+                       "detail": f"Prepared six sections from {len(brief['sources'])} mock sources",
+                       "tools_called": brief["tools_called"]}],
+        }
+
     parsed = _detect_intent(req.message)
     intent = parsed["intent"]
+    if intent == "meeting_briefing":
+        return {
+            "response": "Confirm the client, date, time and meeting focus below, then generate your brief. Times are in New York.",
+            "intent": intent, "mode": "simulation", "agents_used": [], "steps": [],
+            "meeting_details": collect_meeting_details(req.message, _load("clients/households.json"), req.client_id),
+        }
     agents_used = parsed["agents"]
     client = parsed["client"]
 
@@ -349,23 +381,6 @@ async def chat(req: ChatRequest):
 def _generate_response_text(intent, client, portfolio, briefing):
     name = client["profile"]["name"]
     contact = client["profile"]["primary_contact"]
-
-    if intent == "meeting_briefing" and portfolio and briefing:
-        top3 = portfolio["holdings"][:3]
-        holdings_str = ", ".join(f"{h['ticker']} (${h['market_value']:,})" for h in top3)
-        notes_str = briefing["recent_notes"][0]["text"] if briefing["recent_notes"] else "No recent notes"
-        news_str = briefing["relevant_news"][0]["headline"] if briefing["relevant_news"] else "No relevant news"
-        return (
-            f"**Meeting Briefing: {name}**\n\n"
-            f"**Client:** {contact} | Risk: {client['profile']['risk_tolerance']} | "
-            f"Horizon: {client['profile'].get('investment_horizon', 'N/A')}\n\n"
-            f"**Portfolio Overview:** Total value ${portfolio['total_value']:,.0f} across "
-            f"{len(portfolio['holdings'])} positions. Top holdings: {holdings_str}.\n\n"
-            f"**Last CRM Note:** {notes_str}\n\n"
-            f"**Relevant News:** {news_str}\n\n"
-            f"**Key Discussion Points:**\n"
-            + "\n".join(f"- {t}" for t in briefing.get("key_topics", []))
-        )
 
     if intent == "tax_estimation" and portfolio:
         gains = [h for h in portfolio["holdings"] if h["gain_loss"] > 0]

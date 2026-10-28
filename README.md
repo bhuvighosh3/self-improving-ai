@@ -119,6 +119,15 @@ The dashboard provides 8 pages:
 
 ### Meeting Prep Demo
 
+Copilot meeting requests now open a confirmation form for the client, New York
+date/time and meeting focus. Recognized details are prefilled; missing or ambiguous
+details stay empty. After confirmation, Copilot uses the same generation service
+as Meeting Prep and shows a summary with **Open Meeting Brief**. That action opens
+the exact generated brief without a second generation request. Returning to Copilot
+retains the conversation during the current page session; reopening a brief restores
+its latest locally saved edits and review state by brief ID. A browser refresh resets
+the chat history, while saved briefs remain in browser storage.
+
 Open **Meeting Prep**, or choose **Generate Meeting Brief** from a client detail page.
 Select a meeting date, time (New York), and focus, then generate the brief. The
 default Chen scenario highlights ARKK's $17,500 unrealized loss and ranks the
@@ -144,6 +153,8 @@ Run the meeting workflow checks with:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests/test_agents -p 'test_meeting_brief.py'
+PYTHONPATH=src python -m unittest discover -s tests/test_agents -p 'test_copilot_meeting.py'
+node --test dashboard/checks/meeting-drafts.mjs
 ```
 
 ---

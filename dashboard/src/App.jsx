@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MeetingPrep from "./MeetingPrep";
+import CopilotMeetingForm from "./CopilotMeetingForm";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -28,11 +29,11 @@ const ic={
 const PAGE_TITLE={copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
-function Copilot({clients}){
+function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
   const [input,setInput]=useState("");
   const [cid,setCid]=useState("");
-  const [msgs,setMsgs]=useState([]);
-  const [busy,setBusy]=useState(false);
+  const conversationEnd=useRef(null);
+  useEffect(()=>{conversationEnd.current?.scrollIntoView({behavior:"smooth",block:"end"})},[msgs,busy]);
 
   const hints=[
     "Get me ready for my 2pm with the Garcias",
@@ -43,18 +44,19 @@ function Copilot({clients}){
     "Quick summary of the Thompson Trust",
   ];
 
-  async function send(txt){
+  async function send(txt,meeting=null,sourceIndex=null){
     const t=txt||input;
     if(!t.trim())return;
     setInput("");
     setMsgs(p=>[...p,{role:"user",text:t,time:ts()}]);
     setBusy(true);
     try{
-      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:cid||null})});
+      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:cid||null,meeting})});
       const d=await r.json();
-      setMsgs(p=>[...p,{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,time:ts()}]);
-    }catch{
-      setMsgs(p=>[...p,{role:"err",text:"Could not reach the server.",time:ts()}]);
+      if(!r.ok)throw new Error(typeof d.detail==="string"?d.detail:"Check the meeting details and try again.");
+      setMsgs(p=>[...p.map((m,index)=>index===sourceIndex&&d.brief?{...m,meetingCompleted:true}:m),{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,brief:d.brief,meetingDetails:d.meeting_details,time:ts()}]);
+    }catch(error){
+      setMsgs(p=>[...p,{role:"err",text:error.message==="Failed to fetch"?"Could not reach the server. Please try again.":error.message,time:ts()}]);
     }
     setBusy(false);
   }
@@ -63,7 +65,7 @@ function Copilot({clients}){
 
   return(
     <div className="copilot">
-      <div className="copilot-scroll">
+      <div className="copilot-scroll" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions">
         <div className="copilot-inner">
           {msgs.length===0&&(
             <div className="co-empty">
@@ -71,7 +73,7 @@ function Copilot({clients}){
               <h3>How can I help?</h3>
               <p>Ask about any client — portfolio projections, meeting prep, tax analysis, risk reviews. I'll route your request through the right agents.</p>
               <div className="co-chips">
-                {hints.map((h,i)=><button key={i} className="co-chip" onClick={()=>send(h)}>{h}</button>)}
+                {hints.map((h,i)=><button key={i} className="co-chip" disabled={busy} onClick={()=>send(h)}>{h}</button>)}
               </div>
             </div>
           )}
@@ -96,6 +98,9 @@ function Copilot({clients}){
                     </div>
                   )}
                   <div className="bubble-text" dangerouslySetInnerHTML={{__html:md(m.text)}}/>
+                  {m.meetingDetails&&!m.meetingCompleted&&<CopilotMeetingForm details={m.meetingDetails} clients={clients} busy={busy} onGenerate={details=>send(`Prepare the meeting brief for ${clients.find(client=>client.client_id===details.client_id)?.profile.name||details.client_id} on ${details.meeting_date} at ${details.meeting_time}. Focus: ${details.focus}`,details,i)}/>}
+                  {m.meetingCompleted&&<p className="co-meeting-confirmed">Meeting details confirmed.</p>}
+                  {m.brief&&<button className="meeting-btn primary co-open-brief" onClick={()=>onOpenBrief(m.brief)}>Open Meeting Brief</button>}
                   <div className="bubble-foot">
                     {m.intent&&<span className={`chip ${INTENT_CHIP[m.intent]||"chip-accent"}`}>{m.intent.replace(/_/g," ")}</span>}
                     {m.mode==="simulation"&&<span className="chip chip-amber">demo</span>}
@@ -108,6 +113,7 @@ function Copilot({clients}){
           ))}
 
           {busy&&<div className="msg msg-ai"><div className="bubble bubble-ai"><div className="dots"><div className="dot"/><div className="dot"/><div className="dot"/></div></div></div>}
+          <div ref={conversationEnd}/>
         </div>
       </div>
 
@@ -396,14 +402,23 @@ function humanAgent(id){return({request_orchestrator:"Orchestrator",portfolio_es
 function ts(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
 function md(t){
   if(!t)return"";
-  return t
+  const lines=t
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
     .replace(/\*(.+?)\*/g,"<em>$1</em>")
-    .replace(/^- (.+)$/gm,"<li>$1</li>")
-    .replace(/(<li>[\s\S]*?<\/li>)/,"<ul>$1</ul>")
-    .replace(/\n\n/g,"<br/><br/>")
-    .replace(/\n/g,"<br/>");
+    .split("\n");
+  let html="",inList=false;
+  for(const line of lines){
+    if(line.startsWith("- ")){
+      if(!inList)html+="<ul>";
+      inList=true;
+      html+=`<li>${line.slice(2)}</li>`;
+    }else{
+      if(inList){html+="</ul>";inList=false}
+      html+=`${line}<br/>`;
+    }
+  }
+  return html+(inList?"</ul>":"");
 }
 
 /* ════ App ════ */
@@ -417,6 +432,9 @@ export default function App(){
   const [news,setNews]=useState([]);
   const [selClient,setSelClient]=useState(null);
   const [meetingClient,setMeetingClient]=useState(null);
+  const [incomingBrief,setIncomingBrief]=useState(null);
+  const [chatMessages,setChatMessages]=useState([]);
+  const [chatBusy,setChatBusy]=useState(false);
 
   useEffect(()=>{
     const f=(u,s)=>fetch(u).then(r=>r.json()).then(s).catch(()=>{});
@@ -428,8 +446,9 @@ export default function App(){
     f("/api/news",setNews);
   },[]);
 
-  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null)};
-  const prepareMeeting=(client)=>{setMeetingClient(client);setPage("meeting");setSelClient(null)};
+  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null)};
+  const prepareMeeting=(client)=>{setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
+  const openMeetingBrief=(brief)=>{setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
@@ -469,8 +488,8 @@ export default function App(){
           <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
-          {page==="copilot"&&<Copilot clients={clients}/>}
-          {page==="meeting"&&<MeetingPrep clients={clients} selectedClient={meetingClient}/>}
+          {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
+          {page==="meeting"&&<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>}
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}
           {page==="clients"&&!selClient&&<Clients clients={clients} onSelect={setSelClient}/>}
           {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)} onPrepare={prepareMeeting}/>}

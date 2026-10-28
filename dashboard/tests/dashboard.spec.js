@@ -7,14 +7,17 @@ test("copilot page loads by default with suggestions", async ({ page }) => {
   await expect(chips.first()).toBeVisible();
 });
 
-test("copilot sends a message and gets agent response", async ({ page }) => {
+test("copilot confirms meeting details before generating a brief", async ({ page }) => {
   await page.goto("/");
   await page.fill(".co-textarea", "Get me ready for my 2pm with the Garcias");
   await page.click(".co-send");
   const bubble = page.locator(".bubble-ai");
   await expect(bubble.first()).toBeVisible({ timeout: 10000 });
   await expect(bubble.first()).toContainText("Garcia");
-  await expect(page.locator(".trace-step").first()).toBeVisible();
+  await expect(bubble.first().getByLabel("Client", { exact: true })).toHaveValue("CLI-001");
+  await expect(bubble.first().getByLabel("Time · New York")).toHaveValue("14:00");
+  await expect(bubble.first().getByLabel("Meeting date")).toHaveValue("");
+  await expect(page.locator(".trace-step")).toHaveCount(0);
 });
 
 test("copilot suggestion chip sends message", async ({ page }) => {

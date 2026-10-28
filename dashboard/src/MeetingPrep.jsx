@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./meeting-prep.css";
+import { loadMeetingDraft, saveMeetingDraft } from "./meetingDraftStore";
 
-const STORAGE_KEY = "sia-meeting-brief-v1";
 const FOCUS = {
   "CLI-001": "Retirement planning and upcoming college funding",
   "CLI-002": "Interest rates and bond portfolio duration",
@@ -10,22 +10,14 @@ const FOCUS = {
   "CLI-005": "Monthly withdrawals and inherited IRA distribution schedule",
 };
 
-function restoreDraft() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved?.brief?.sections?.length && saved.brief.sources?.length) return saved;
-  } catch { /* An unavailable or invalid browser cache should not block preparation. */ }
-  return null;
-}
-
 function tomorrow() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export default function MeetingPrep({ clients, selectedClient }) {
-  const [saved] = useState(restoreDraft);
+export default function MeetingPrep({ clients, selectedClient, incomingBrief }) {
+  const [saved] = useState(() => loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
   const [brief, setBrief] = useState(saved?.brief || null);
   const [clientId, setClientId] = useState(saved?.brief.client_id || "CLI-003");
   const [meetingDate, setMeetingDate] = useState(saved?.brief.meeting_date || tomorrow());
@@ -61,12 +53,8 @@ export default function MeetingPrep({ clients, selectedClient }) {
 
   useEffect(() => {
     if (!brief) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ brief, reviewedAt, revision, edited }));
-      setNotice("");
-    } catch {
-      setNotice("Browser storage is unavailable. Keep this page open or export your brief before leaving.");
-    }
+    const stored = saveMeetingDraft({ brief, reviewedAt, revision, edited });
+    setNotice(stored ? "" : "Browser storage is unavailable. Keep this page open or export your brief before leaving.");
   }, [brief, reviewedAt, revision, edited]);
 
   useEffect(() => {

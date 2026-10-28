@@ -96,6 +96,8 @@ Cards use a white fill, subtle border and standard card radius, with header/cont
 ### Navigation and entry
 
 Retain the incumbent sidebar structure, SVG icons and blue soft active state. Navigation text is (13px), medium weight, with a short (0.12s ease) state transition. Meeting Prep sits in the Main group and is also reached from the client-detail **Generate Meeting Brief** action, which carries the selected client into the form. Mobile uses the topbar page selector.
+
+Copilot adds an inline meeting confirmation form using the existing field and button vocabulary. Client and focus span the form width; New York date and time share a row. Missing or ambiguous details stay empty for advisor confirmation. The generated summary provides **Open Meeting Brief**, which opens the same brief object in Meeting Prep without regeneration. Conversation history survives navigation during the current page session, and the latest local edits/review state are restored by brief ID. New chat responses scroll into view and are announced in the conversation log.
 ### Meeting brief and evidence
 
 Keep six named sections: Client Overview, Recent Changes & Requests, Portfolio Highlights, Discussion Priorities, Open Actions, and Items to Confirm. Title, date/time, focus, data date and synthetic attribution form the brief header. Evidence and Relevant News share the same card grammar in the adjacent rail.
