@@ -70,7 +70,7 @@ test("tools page renders tool catalog", async ({ page }) => {
   await page.goto("/");
   await page.click('button:has-text("Tools")');
   const cards = page.locator(".tool-card");
-  await expect(cards).toHaveCount(14);
+  await expect(cards).toHaveCount(20);
 });
 
 test("news page renders articles", async ({ page }) => {

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
+from self_improving_ai.agents.portfolio.model_catalog import DEFAULT_MODEL
 
 _PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -16,6 +17,9 @@ class Settings(BaseSettings):
     google_cloud_location: str = "us-central1"
     agent_model: str = "gemini-2.5-flash"
     judge_model: str = "gemini-2.5-pro"
+
+    # Independent A selection; connection settings do not change B/C defaults.
+    portfolio_model: str = DEFAULT_MODEL
 
     # Paths
     data_dir: Path = _PROJECT_ROOT / "data"

@@ -1,0 +1,78 @@
+{
+  "sample_kind": "offline_mock_transport",
+  "not_live_data": true,
+  "note": "Fabricated prices and dates. These examples do not prove provider access.",
+  "quote": {
+    "status": "success",
+    "symbol": "AAPL",
+    "price": 123.45,
+    "currency": "USD",
+    "as_of": "2026-09-30",
+    "source": "twelve_data",
+    "price_type": "provider_quote_close",
+    "bar_date": "2026-09-30",
+    "last_quote_at_utc": "2026-09-30T13:00:00+00:00",
+    "is_market_open": false,
+    "timeliness": "unverified",
+    "retrieved_at_utc": "2026-10-31T00:11:22.689654+00:00",
+    "warnings": [
+      "Latest available provider quote; real-time or delayed status is unverified.",
+      "as_of is the exchange bar date, not the last trade time or fetch time."
+    ]
+  },
+  "history": {
+    "status": "success",
+    "symbol": "AAPL",
+    "currency": "USD",
+    "source": "twelve_data",
+    "start_date": "2026-09-01",
+    "end_date": "2026-09-30",
+    "interval": "1day",
+    "price_type": "split_adjusted_close",
+    "adjustment": "splits",
+    "prices": [
+      {
+        "date": "2026-09-01",
+        "close": 101.25
+      },
+      {
+        "date": "2026-09-02",
+        "close": 102.0
+      },
+      {
+        "date": "2026-09-03",
+        "close": 103.5
+      }
+    ],
+    "data_start": "2026-09-01",
+    "data_end": "2026-09-03",
+    "count": 3,
+    "retrieved_at_utc": "2026-10-31T00:11:22.690654+00:00",
+    "warnings": [
+      "Not dividend-adjusted total-return data.",
+      "Missing dates are not filled; full trading-calendar coverage is unverified.",
+      "A current-day daily bar may be incomplete until the exchange session ends."
+    ]
+  },
+  "rate_limited": {
+    "status": "error",
+    "source": "twelve_data",
+    "symbol": "AAPL",
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "The provider's API quota was reached.",
+      "retryable": true,
+      "provider_code": 429
+    }
+  },
+  "missing_key": {
+    "status": "error",
+    "source": "twelve_data",
+    "symbol": "AAPL",
+    "error": {
+      "code": "MISSING_API_KEY",
+      "message": "Set TWELVE_DATA_API_KEY before querying.",
+      "retryable": false
+    }
+  }
+}

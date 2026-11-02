@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "data_kind": "classification_of_synthetic_holdings",
+  "classification_level": "coarse_stock_bond",
+  "note": "Underlying exposure determines stock/bond, not the ETF or mutual-fund wrapper.",
+  "assets": {
+    "AAPL": {
+      "asset_class": "stock",
+      "instrument_type": "common_stock",
+      "description": "Apple"
+    },
+    "ARKK": {
+      "asset_class": "stock",
+      "instrument_type": "ETF",
+      "description": "Innovation equities"
+    },
+    "BND": {
+      "asset_class": "bond",
+      "instrument_type": "ETF",
+      "description": "US total bond market"
+    },
+    "MUB": {
+      "asset_class": "bond",
+      "instrument_type": "ETF",
+      "description": "Municipal bonds"
+    },
+    "QQQ": {
+      "asset_class": "stock",
+      "instrument_type": "ETF",
+      "description": "Nasdaq-100 equities"
+    },
+    "TSLA": {
+      "asset_class": "stock",
+      "instrument_type": "common_stock",
+      "description": "Tesla"
+    },
+    "VTIAX": {
+      "asset_class": "stock",
+      "instrument_type": "mutual_fund",
+      "description": "International stock market"
+    },
+    "VTIP": {
+      "asset_class": "bond",
+      "instrument_type": "ETF",
+      "description": "Short-term inflation-protected bonds"
+    },
+    "VTSAX": {
+      "asset_class": "stock",
+      "instrument_type": "mutual_fund",
+      "description": "US total stock market"
+    },
+    "VYM": {
+      "asset_class": "stock",
+      "instrument_type": "ETF",
+      "description": "Dividend equities"
+    }
+  }
+}

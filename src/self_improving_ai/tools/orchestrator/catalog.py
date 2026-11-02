@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
 def _load_catalog() -> list[dict]:
     path = _DATA_DIR / "tool_catalog.json"
     if path.exists():
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     return []
 
 
@@ -20,7 +20,8 @@ def search_tool_catalog(query: str) -> dict:
 
     The catalog may contain overlapping tools, deprecated entries, and tools
     with similar names but different units or behaviors. The orchestrator
-    must choose carefully.
+    must choose carefully. implementation_status distinguishes implemented tools,
+    isolated mock research tools, and planned entries that cannot be called.
 
     Args:
         query: Natural language description of what the tool should do.

@@ -11,7 +11,7 @@ _DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 def _load_households() -> list[dict]:
     path = _DATA_DIR / "clients" / "households.json"
     if path.exists():
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     return []
 
 

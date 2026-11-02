@@ -9,6 +9,14 @@ import re
 import time
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=False)
+
+from self_improving_ai.connection_store import restore_connections
+
+restore_connections()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -21,6 +29,14 @@ from self_improving_ai.agents.briefing.service import generate_meeting_brief
 from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
 
 app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0")
+
+from self_improving_ai.dashboard.portfolio import router as portfolio_router
+
+app.include_router(portfolio_router)
+
+from self_improving_ai.dashboard.connections import router as connections_router
+
+app.include_router(connections_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +51,7 @@ _DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 def _load(relpath: str):
     path = _DATA_DIR / relpath
     if path.exists():
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     return []
 
 

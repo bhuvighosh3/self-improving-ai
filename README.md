@@ -4,6 +4,25 @@ A self-improving AI copilot for wealth management advisors, built with [Google A
 
 ## Quick Start
 
+### Component A feature workflow
+
+The `feat/component-a-workflow` branch adds independent portfolio calculations,
+Gemini/ADK execution and **Main → Portfolio Analysis**. The original team workflows
+and project design below are retained. This branch is not a completed live
+three-agent integration or a demonstrated learning improvement.
+
+- [Component A overview](docs/component-a-overview.md)
+- [Setup and launch](docs/getting-started.md)
+- [Usage and connection settings](docs/usage.md)
+- [API contract](docs/integration.md)
+- [Branch integration notes](docs/reports/branch-integration.md)
+
+Local portfolio calculations need no key. A's Connections dialog configures its
+own Gemini Developer API model/key, without rewriting B/C model defaults or
+Vertex AI configuration. The team npm package definition and lock file are retained.
+
+---
+
 ### Prerequisites
 
 - Python 3.11+

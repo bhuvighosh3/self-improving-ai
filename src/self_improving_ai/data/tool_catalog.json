@@ -3,101 +3,224 @@
     "name": "get_holdings",
     "description": "Returns current holdings for a client account",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["client_id", "account_id"],
-    "returns": "Account holdings with market values"
+    "parameters": [
+      "client_id",
+      "account_id"
+    ],
+    "returns": "Account holdings with market values",
+    "implementation_status": "implemented"
   },
   {
     "name": "get_holdings_v1",
     "description": "Returns holdings with allocation as decimals (0.60 = 60%)",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["client_id"],
+    "parameters": [
+      "client_id"
+    ],
     "returns": "Holdings with decimal allocations",
-    "caveat": "DEPRECATED: allocation values are decimals, not percentages"
+    "caveat": "DEPRECATED: allocation values are decimals, not percentages",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "get_price_history",
     "description": "Returns price history for a given ticker and period",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["ticker", "period"],
-    "returns": "List of date/close price pairs"
+    "parameters": [
+      "ticker",
+      "period"
+    ],
+    "returns": "List of date/close price pairs",
+    "implementation_status": "mock_research_only"
   },
   {
     "name": "get_stale_price",
     "description": "Returns the last known price for a ticker",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["ticker"],
+    "parameters": [
+      "ticker"
+    ],
     "returns": "Single price point",
-    "caveat": "WARNING: may return data up to 6 months old"
+    "caveat": "WARNING: may return data up to 6 months old",
+    "implementation_status": "mock_research_only"
   },
   {
     "name": "get_client_profile",
     "description": "Returns client demographics, risk tolerance, goals",
     "agent": "meeting_briefing_agent",
-    "parameters": ["client_id"],
-    "returns": "Client profile dictionary"
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "Client profile dictionary",
+    "implementation_status": "implemented"
   },
   {
     "name": "get_crm_notes",
     "description": "Returns recent CRM interaction notes for a client",
     "agent": "meeting_briefing_agent",
-    "parameters": ["client_id", "limit"],
-    "returns": "List of dated notes"
+    "parameters": [
+      "client_id",
+      "limit"
+    ],
+    "returns": "List of dated notes",
+    "implementation_status": "implemented"
   },
   {
     "name": "search_market_news",
     "description": "Searches recent market news articles by query",
     "agent": "meeting_briefing_agent",
-    "parameters": ["query", "max_results"],
-    "returns": "List of articles (may include irrelevant distractors)"
+    "parameters": [
+      "query",
+      "max_results"
+    ],
+    "returns": "List of articles (may include irrelevant distractors)",
+    "implementation_status": "implemented"
   },
   {
     "name": "run_monte_carlo",
     "description": "Runs a Monte Carlo simulation for portfolio projection",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["portfolio", "years", "num_simulations", "seed"],
+    "parameters": [
+      "portfolio",
+      "years",
+      "num_simulations",
+      "seed"
+    ],
     "returns": "Simulation results with percentile outcomes",
-    "caveat": "May timeout for num_simulations > 10000"
+    "caveat": "May timeout for num_simulations > 10000",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "get_capital_market_assumptions",
     "description": "Returns expected returns and volatility by asset class",
     "agent": "portfolio_estimation_agent",
     "parameters": [],
-    "returns": "Asset class assumptions table"
+    "returns": "Asset class assumptions table",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "estimate_capital_gains",
     "description": "Estimates capital gains tax from selling positions",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["client_id", "positions_to_sell"],
-    "returns": "Estimated tax liability"
+    "parameters": [
+      "client_id",
+      "positions_to_sell"
+    ],
+    "returns": "Estimated tax liability",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "calculate_withdrawal_rate",
     "description": "Calculates sustainable withdrawal rate for retirement income",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["portfolio_value", "annual_expenses", "horizon_years"],
-    "returns": "Withdrawal rate analysis"
+    "parameters": [
+      "portfolio_value",
+      "annual_expenses",
+      "horizon_years"
+    ],
+    "returns": "Withdrawal rate analysis",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "check_compliance_flags",
     "description": "Checks for compliance issues on a client account",
     "agent": "meeting_briefing_agent",
-    "parameters": ["client_id"],
-    "returns": "List of active compliance flags"
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "List of active compliance flags",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "calculate_fee_drag",
     "description": "Calculates cumulative impact of fees on portfolio returns",
     "agent": "portfolio_estimation_agent",
-    "parameters": ["portfolio_value", "expense_ratios", "years"],
-    "returns": "Fee drag analysis"
+    "parameters": [
+      "portfolio_value",
+      "expense_ratios",
+      "years"
+    ],
+    "returns": "Fee drag analysis",
+    "implementation_status": "planned_not_implemented"
   },
   {
     "name": "search_tool_catalog",
     "description": "Searches this tool catalog by keyword",
     "agent": "request_orchestrator",
-    "parameters": ["query"],
-    "returns": "Matching tool entries"
+    "parameters": [
+      "query"
+    ],
+    "returns": "Matching tool entries",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "get_portfolio_scenarios",
+    "description": "Draft goals, target weights and synthetic market assumptions",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "calculate_allocation_drift",
+    "description": "Fixture stock/bond drift in percentage points and hypothetical class adjustments",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "client_id",
+      "account_id",
+      "target_stock_weight"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "estimate_portfolio_risk",
+    "description": "Annual return and volatility under draft stock/bond assumptions",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "client_id",
+      "account_id"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "project_financial_goal",
+    "description": "Nominal goal projection including annual contributions and withdrawals",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "client_id",
+      "num_simulations",
+      "seed",
+      "target_amount",
+      "years",
+      "annual_contribution",
+      "annual_withdrawal"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "get_market_quote",
+    "description": "Latest available external quote with unverified timeliness",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "symbol"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
+  },
+  {
+    "name": "get_external_price_history",
+    "description": "External daily split-adjusted closes; inclusive dates",
+    "agent": "portfolio_estimation_agent",
+    "parameters": [
+      "symbol",
+      "start_date",
+      "end_date"
+    ],
+    "returns": "Structured success or error result with provenance",
+    "implementation_status": "implemented"
   }
 ]
