@@ -1,0 +1,119 @@
+[
+  {
+    "client_id": "CLI-001",
+    "name": "Garcia Family",
+    "primary_contact": "Maria Garcia",
+    "aliases": [
+      "the Garcias",
+      "Garcia family",
+      "Maria Garcia",
+      "garcias",
+      "the garcia household"
+    ]
+  },
+  {
+    "client_id": "CLI-002",
+    "name": "Thompson Trust",
+    "primary_contact": "Robert Thompson",
+    "aliases": [
+      "Thompson Trust",
+      "Robert Thompson",
+      "the Thompson trust",
+      "Bob Thompson"
+    ]
+  },
+  {
+    "client_id": "CLI-003",
+    "name": "Chen Household",
+    "primary_contact": "Wei Chen",
+    "aliases": [
+      "Wei Chen",
+      "the Wei Chen household",
+      "Wei and Lin Chen"
+    ]
+  },
+  {
+    "client_id": "CLI-004",
+    "name": "Okafor Family",
+    "primary_contact": "Amara Okafor",
+    "aliases": [
+      "Amara Okafor",
+      "the Okafors",
+      "Okafor family"
+    ]
+  },
+  {
+    "client_id": "CLI-005",
+    "name": "Patel Retirement Account",
+    "primary_contact": "Priya Patel",
+    "aliases": [
+      "Priya Patel",
+      "Mrs. Patel",
+      "Priya"
+    ]
+  },
+  {
+    "client_id": "CLI-006",
+    "name": "Chen Family Trust",
+    "primary_contact": "Jian Chen",
+    "aliases": [
+      "Jian Chen",
+      "the Jian Chen trust"
+    ]
+  },
+  {
+    "client_id": "CLI-007",
+    "name": "Smith Family",
+    "primary_contact": "Dan Smith",
+    "aliases": [
+      "the Smiths",
+      "Dan Smith",
+      "Smith family"
+    ]
+  },
+  {
+    "client_id": "CLI-008",
+    "name": "Nguyen Household",
+    "primary_contact": "Linh Nguyen",
+    "aliases": [
+      "Linh Nguyen",
+      "the Nguyens"
+    ]
+  },
+  {
+    "client_id": "CLI-009",
+    "name": "Rossi Family",
+    "primary_contact": "Marco Rossi",
+    "aliases": [
+      "Marco Rossi",
+      "the Rossis"
+    ]
+  },
+  {
+    "client_id": "CLI-010",
+    "name": "Johnson Family",
+    "primary_contact": "Karen Johnson",
+    "aliases": [
+      "Karen Johnson",
+      "the Johnsons"
+    ]
+  },
+  {
+    "client_id": "CLI-011",
+    "name": "Haddad Household",
+    "primary_contact": "Omar Haddad",
+    "aliases": [
+      "Omar Haddad",
+      "the Haddads"
+    ]
+  },
+  {
+    "client_id": "CLI-012",
+    "name": "Kowalski Family",
+    "primary_contact": "Ewa Kowalski",
+    "aliases": [
+      "Ewa Kowalski",
+      "the Kowalskis"
+    ]
+  }
+]

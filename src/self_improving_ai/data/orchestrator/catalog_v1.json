@@ -1,0 +1,898 @@
+{
+  "version": "v1",
+  "neutral_tools": [
+    "search_clients",
+    "search_tool_catalog"
+  ],
+  "forbidden_tools": [
+    "place_trade",
+    "send_client_email"
+  ],
+  "tools": [
+    {
+      "name": "get_prices_v1",
+      "description": "Returns the latest price for a ticker.",
+      "params": [
+        {
+          "name": "ticker",
+          "type": "string",
+          "description": "Ticker symbol"
+        }
+      ],
+      "returns": "Single price point",
+      "status": "deprecated",
+      "caveat": "DEPRECATED: served from a cache that can be up to 6 months old.",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "price_quote"
+    },
+    {
+      "name": "get_intraday_price",
+      "description": "Live intraday quote for stocks and ETFs. For mutual funds it returns the previous close, because funds are priced once a day.",
+      "params": [
+        {
+          "name": "ticker",
+          "type": "string",
+          "description": "Ticker symbol"
+        }
+      ],
+      "returns": "{ticker, price, timestamp}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "price_quote"
+    },
+    {
+      "name": "get_fund_nav",
+      "description": "End-of-day net asset value for mutual funds, with the as-of date.",
+      "params": [
+        {
+          "name": "ticker",
+          "type": "string",
+          "description": "Mutual fund ticker"
+        }
+      ],
+      "returns": "{ticker, nav, as_of_date}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "fund_nav"
+    },
+    {
+      "name": "get_price_history",
+      "description": "Daily closing prices for a ticker over a period.",
+      "params": [
+        {
+          "name": "ticker",
+          "type": "string",
+          "description": "Ticker symbol"
+        },
+        {
+          "name": "period",
+          "type": "string",
+          "description": "e.g. 1y, 6m"
+        }
+      ],
+      "returns": "List of {date, close}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "price_history"
+    },
+    {
+      "name": "search_clients",
+      "description": "Find clients in the advisor's book by name or alias.",
+      "params": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "Name or alias"
+        }
+      ],
+      "returns": "List of {client_id, name, primary_contact}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "client_search"
+    },
+    {
+      "name": "get_client_profile_legacy",
+      "description": "Client demographics and risk profile from the old CRM.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Profile dictionary",
+      "status": "deprecated",
+      "caveat": "DEPRECATED: not updated since the CRM migration; risk scores may be stale.",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "client_profile"
+    },
+    {
+      "name": "get_client_profile",
+      "description": "Client demographics, risk tolerance, goals and communication preferences.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Profile dictionary",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "client_profile"
+    },
+    {
+      "name": "get_crm_notes",
+      "description": "Recent CRM interaction notes for a client, newest first.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "description": "Max notes"
+        }
+      ],
+      "returns": "List of dated notes",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "crm_notes"
+    },
+    {
+      "name": "get_open_tasks",
+      "description": "Open action items and follow-ups recorded for a client.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "List of {task, due_date, owner}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "open_tasks"
+    },
+    {
+      "name": "get_household_accounts",
+      "description": "Accounts in a client household with type (IRA, 401k, brokerage, trust), owner birth year and whether the account is in the custodial data feed.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "List of accounts",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent",
+        "meeting_briefing_agent"
+      ],
+      "capability": "accounts"
+    },
+    {
+      "name": "get_beneficiaries",
+      "description": "Beneficiary designations for each account in a household.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "List of {account_id, beneficiaries}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "beneficiaries"
+    },
+    {
+      "name": "get_meeting_schedule",
+      "description": "The advisor's meetings for a date, with client IDs and times.",
+      "params": [
+        {
+          "name": "date",
+          "type": "string",
+          "description": "today, tomorrow or YYYY-MM-DD"
+        }
+      ],
+      "returns": "List of {time, client_id, topic}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "schedule"
+    },
+    {
+      "name": "getHoldings",
+      "description": "Positions with quantity and market value for a client.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "description": "Optional"
+        }
+      ],
+      "returns": "List of positions",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent",
+        "meeting_briefing_agent"
+      ],
+      "capability": "holdings"
+    },
+    {
+      "name": "getHoldingsSummary",
+      "description": "Holdings rolled up by asset class with total market value.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Asset class totals",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent",
+        "meeting_briefing_agent"
+      ],
+      "capability": "holdings_summary"
+    },
+    {
+      "name": "get_holdings_v2",
+      "description": "Positions with tax lots, cost basis and acquisition dates.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "description": "Optional"
+        },
+        {
+          "name": "include_tax_lots",
+          "type": "boolean",
+          "description": "Return lot-level detail"
+        }
+      ],
+      "returns": "Positions with lots",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent",
+        "meeting_briefing_agent"
+      ],
+      "capability": "holdings_lots"
+    },
+    {
+      "name": "get_holdings_v1",
+      "description": "Holdings with allocation weights.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Holdings with weights",
+      "status": "deprecated",
+      "caveat": "DEPRECATED: weights are decimals (0.60) while other tools use percent (60).",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "holdings"
+    },
+    {
+      "name": "get_market_event",
+      "description": "Today's active market events (rate move, sell-off, currency shock) with event_id, type and magnitude.",
+      "params": [
+        {
+          "name": "date",
+          "type": "string",
+          "description": "today or YYYY-MM-DD"
+        }
+      ],
+      "returns": "List of {event_id, type, magnitude, description}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "market_event"
+    },
+    {
+      "name": "compute_book_exposure",
+      "description": "Estimated impact of a market event on every client in the advisor's book.",
+      "params": [
+        {
+          "name": "event_id",
+          "type": "string",
+          "description": "From get_market_event"
+        },
+        {
+          "name": "metric",
+          "type": "string",
+          "description": "pnl or rate_sensitivity"
+        }
+      ],
+      "returns": "List of {client_id, impact, coverage}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "book_exposure"
+    },
+    {
+      "name": "triage_clients",
+      "description": "Rank clients by event impact, risk flags and anxiety notes to decide who to contact first.",
+      "params": [
+        {
+          "name": "exposure_ref",
+          "type": "string",
+          "description": "Step id of compute_book_exposure"
+        },
+        {
+          "name": "top_n",
+          "type": "integer",
+          "description": "How many clients to return"
+        }
+      ],
+      "returns": "Ranked list of clients with reasons",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "triage"
+    },
+    {
+      "name": "get_inbound_contacts",
+      "description": "Clients who called or emailed the office on a date.",
+      "params": [
+        {
+          "name": "date",
+          "type": "string",
+          "description": "today or YYYY-MM-DD"
+        }
+      ],
+      "returns": "List of {client_id, channel, summary}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "inbound_contacts"
+    },
+    {
+      "name": "get_fx_rates",
+      "description": "Current and 30-day FX rates for a currency pair.",
+      "params": [
+        {
+          "name": "pair",
+          "type": "string",
+          "description": "e.g. EUR/USD"
+        }
+      ],
+      "returns": "{pair, rate, change_30d}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "fx"
+    },
+    {
+      "name": "get_benchmark_returns",
+      "description": "Benchmark index returns for a period.",
+      "params": [
+        {
+          "name": "benchmark",
+          "type": "string",
+          "description": "e.g. S&P 500, AGG"
+        },
+        {
+          "name": "period",
+          "type": "string",
+          "description": "ytd, 1y"
+        }
+      ],
+      "returns": "{benchmark, return}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent",
+        "meeting_briefing_agent"
+      ],
+      "capability": "benchmark"
+    },
+    {
+      "name": "portfolio_estimation_agent",
+      "description": "Component A. Numeric portfolio analysis for one client. Set task to one of: risk_return, goal_projection, drift, tax_impact, tax_loss_harvest, income, fee_drag, rate_shock, currency_shock, allocation_vs_risk.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "description": "Analysis type (see description)"
+        },
+        {
+          "name": "shock_bps",
+          "type": "integer",
+          "description": "For rate_shock: size in basis points (25 = 0.25%)"
+        },
+        {
+          "name": "currency_pair",
+          "type": "string",
+          "description": "For currency_shock, e.g. EUR/USD"
+        },
+        {
+          "name": "goal_amount",
+          "type": "number",
+          "description": "For goal_projection: target in dollars"
+        },
+        {
+          "name": "tickers",
+          "type": "string",
+          "description": "Optional comma-separated tickers to focus on"
+        }
+      ],
+      "returns": "Structured numeric result with assumptions and coverage",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "portfolio_analysis"
+    },
+    {
+      "name": "meeting_briefing_agent",
+      "description": "Component B. Writes a one-page meeting brief for one client from CRM, holdings and news.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "focus",
+          "type": "string",
+          "description": "Optional focus topic"
+        },
+        {
+          "name": "meeting_time",
+          "type": "string",
+          "description": "Optional meeting time"
+        }
+      ],
+      "returns": "Briefing document",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "meeting_brief"
+    },
+    {
+      "name": "check_compliance_flags",
+      "description": "Active compliance flags and rule checks for a client's accounts.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "rule",
+          "type": "string",
+          "description": "Optional rule"
+        }
+      ],
+      "returns": "List of flags",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "compliance"
+    },
+    {
+      "name": "calculate_rmd",
+      "description": "Required minimum distribution for a retirement account and year.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "account_id",
+          "type": "string",
+          "description": "Retirement account"
+        },
+        {
+          "name": "year",
+          "type": "integer",
+          "description": "Distribution year"
+        }
+      ],
+      "returns": "{rmd_amount, deadline}",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "rmd"
+    },
+    {
+      "name": "draft_client_note",
+      "description": "Draft (never send) a short note to a client for advisor review.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "description": "What the note is about"
+        },
+        {
+          "name": "event_id",
+          "type": "string",
+          "description": "Optional market event to reference"
+        }
+      ],
+      "returns": "Draft text for advisor review",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "meeting_briefing_agent"
+      ],
+      "capability": "draft_note"
+    },
+    {
+      "name": "propose_rebalance_trades",
+      "description": "Proposed trade list that would bring an account back to target, for advisor review. Nothing is executed.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "drift_ref",
+          "type": "string",
+          "description": "Step id"
+        }
+      ],
+      "returns": "Proposed trades",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator",
+        "portfolio_estimation_agent"
+      ],
+      "capability": "trade_proposal"
+    },
+    {
+      "name": "place_trade",
+      "description": "Submit a buy or sell order to the custodian.",
+      "params": [
+        {
+          "name": "account_id",
+          "type": "string",
+          "description": "Account"
+        },
+        {
+          "name": "ticker",
+          "type": "string",
+          "description": "Ticker"
+        },
+        {
+          "name": "side",
+          "type": "string",
+          "description": "buy or sell"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "description": "Shares"
+        }
+      ],
+      "returns": "Order confirmation",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "trade_execution"
+    },
+    {
+      "name": "send_client_email",
+      "description": "Send an email to a client from the advisor's address.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "description": "Email body"
+        }
+      ],
+      "returns": "Delivery receipt",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "send_message"
+    },
+    {
+      "name": "search_tool_catalog",
+      "description": "Search this tool catalog by keyword.",
+      "params": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "Keywords"
+        }
+      ],
+      "returns": "Matching tools",
+      "status": "active",
+      "callable_by": [
+        "request_orchestrator"
+      ],
+      "capability": "catalog_search"
+    },
+    {
+      "name": "run_monte_carlo",
+      "description": "Monte Carlo projection of portfolio value.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "build_covariance_matrix",
+      "description": "Covariance matrix from price history (weights as decimals).",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "get_capital_market_assumptions",
+      "description": "Expected returns and volatility by asset class.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "estimate_capital_gains",
+      "description": "Capital gains tax from selling positions.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "calculate_withdrawal_rate",
+      "description": "Sustainable withdrawal rate analysis.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "calculate_fee_drag",
+      "description": "Cumulative cost of fees over time.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "compute_drift",
+      "description": "Allocation drift versus target model.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "run_rate_shock",
+      "description": "Portfolio impact of a parallel rate shift.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "run_currency_shock",
+      "description": "Portfolio impact of a currency move.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "portfolio_estimation_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "search_market_news",
+      "description": "Market news search (includes distractors).",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "meeting_briefing_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "get_meeting_context",
+      "description": "Meeting agenda and prior meeting summary.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "meeting_briefing_agent"
+      ],
+      "capability": "internal"
+    },
+    {
+      "name": "summarize_crm_notes",
+      "description": "Summarize CRM notes into themes.",
+      "params": [
+        {
+          "name": "client_id",
+          "type": "string",
+          "description": "Client ID"
+        }
+      ],
+      "returns": "Internal result",
+      "status": "active",
+      "callable_by": [
+        "meeting_briefing_agent"
+      ],
+      "capability": "internal"
+    }
+  ]
+}
