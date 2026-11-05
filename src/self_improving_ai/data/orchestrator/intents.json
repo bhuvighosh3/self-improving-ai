@@ -1,0 +1,90 @@
+{
+  "meeting_prep": {
+    "description": "Prepare the advisor for an upcoming meeting with one client.",
+    "held_out": false
+  },
+  "meeting_prep_goal_check": {
+    "description": "Meeting prep plus a check that the client is on track for a goal.",
+    "held_out": false
+  },
+  "quick_client_summary": {
+    "description": "A short summary of a client (profile and recent notes) without a full brief.",
+    "held_out": false
+  },
+  "goal_projection": {
+    "description": "Project whether a client will reach a dollar goal or retirement target.",
+    "held_out": false
+  },
+  "portfolio_risk_return": {
+    "description": "Expected return and volatility of a client's portfolio.",
+    "held_out": false
+  },
+  "diversification_check": {
+    "description": "Whether a client's allocation fits their stated risk tolerance.",
+    "held_out": false
+  },
+  "rebalance_analysis": {
+    "description": "Allocation drift from target and a proposed (not executed) trade list.",
+    "held_out": false
+  },
+  "tax_impact": {
+    "description": "Capital gains cost of selling positions, using tax lots.",
+    "held_out": false
+  },
+  "tax_loss_harvest": {
+    "description": "Find positions with losses that could be harvested.",
+    "held_out": false
+  },
+  "income_planning": {
+    "description": "Sustainable withdrawal amount for a client in or near retirement.",
+    "held_out": false
+  },
+  "rate_shock_impact": {
+    "description": "Impact of an interest-rate move on one client's portfolio.",
+    "held_out": false
+  },
+  "market_event_book_exposure": {
+    "description": "Which clients in the whole book are most affected by today's market event.",
+    "held_out": false
+  },
+  "market_event_outreach": {
+    "description": "Market event outreach: exposure across the book, triage the top clients, then draft notes for them.",
+    "held_out": false
+  },
+  "client_note": {
+    "description": "Draft a note to one client. If a market event is live, pull it first so the note addresses it.",
+    "held_out": false
+  },
+  "compliance_check": {
+    "description": "Check compliance flags or a specific rule for a client.",
+    "held_out": false
+  },
+  "open_action_items": {
+    "description": "Open follow-ups and action items for a client.",
+    "held_out": false
+  },
+  "price_lookup": {
+    "description": "Current price of a stock, ETF or mutual fund.",
+    "held_out": false
+  },
+  "schedule_lookup": {
+    "description": "The advisor's meetings for a day.",
+    "held_out": false
+  },
+  "trade_request": {
+    "description": "The advisor asks the copilot to execute a trade. The copilot never trades; it should decline and point the advisor to the order system.",
+    "held_out": false
+  },
+  "fee_review": {
+    "description": "How much fees cost a client over time.",
+    "held_out": true
+  },
+  "currency_shock_impact": {
+    "description": "Impact of a currency move on one client's portfolio.",
+    "held_out": true
+  },
+  "rmd_check": {
+    "description": "Required minimum distribution for a client's retirement accounts.",
+    "held_out": true
+  }
+}
