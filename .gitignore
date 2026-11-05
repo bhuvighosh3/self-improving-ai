@@ -25,6 +25,15 @@ sa-key.json
 dashboard/test-results/
 dashboard/playwright-report/
 
+# Component A local settings and generated output
+.env.*
+!.env.example
+.local-settings/
+.local-tmp/
+artifacts/
+work/
+releases/
+
 # Orchestrator learned memory and experiment outputs (local)
 src/self_improving_ai/store/
 results/

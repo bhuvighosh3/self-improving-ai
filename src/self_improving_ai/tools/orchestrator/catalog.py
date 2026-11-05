@@ -83,7 +83,7 @@ class Catalog:
 @lru_cache(maxsize=4)
 def load_catalog(version: str = "v1") -> Catalog:
     path = _ORCH_DIR / f"catalog_{version}.json"
-    return Catalog(json.loads(path.read_text()))
+    return Catalog(json.loads(path.read_text(encoding="utf-8")))
 
 
 def search_tool_catalog(query: str) -> dict:

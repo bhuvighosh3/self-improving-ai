@@ -1,0 +1,343 @@
+{
+  "schema_version": 1,
+  "data_kind": "synthetic_evaluation_cases",
+  "note": "Executable tool specifications. Real Agent quality evaluation requires a configured model and separate scoring. CLI-999 is intentionally absent; SPY is a standalone lookup. All targets and assumptions remain draft synthetic scenarios.",
+  "demo_case_ids": [
+    "A-001",
+    "A-003",
+    "A-008"
+  ],
+  "cases": [
+    {
+      "case_id": "A-001",
+      "category": "holdings",
+      "question": "Show all accounts and holdings for the Garcia Family.",
+      "client_id": "CLI-001",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings"
+      ],
+      "required_data": [
+        "data/clients/households.json"
+      ],
+      "expected_information": [
+        "Client and account identifiers",
+        "Holdings and per-account fixture values",
+        "Total fixture market value",
+        "Label these holdings as synthetic and not live-valued"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-002",
+      "category": "holdings",
+      "question": "Show only account ACC-003A for the Chen Household.",
+      "client_id": "CLI-003",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings"
+      ],
+      "required_data": [
+        "data/clients/households.json"
+      ],
+      "expected_information": [
+        "Only ACC-003A is included",
+        "No holdings from ACC-003B",
+        "Synthetic valuation basis"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-003",
+      "category": "quote",
+      "question": "What is the latest available AAPL quote for Garcia's Apple holding?",
+      "client_id": "CLI-001",
+      "symbols": [
+        "AAPL"
+      ],
+      "expected_tools": [
+        "get_holdings",
+        "get_market_quote"
+      ],
+      "required_data": [
+        "data/clients/households.json"
+      ],
+      "expected_information": [
+        "Numeric price and currency",
+        "Provider and bar date",
+        "Provider quote timestamp if present",
+        "Explicitly unverified timeliness",
+        "Do not overwrite fixture portfolio values"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": true
+    },
+    {
+      "case_id": "A-004",
+      "category": "quote",
+      "question": "What is the latest available SPY quote?",
+      "client_id": null,
+      "symbols": [
+        "SPY"
+      ],
+      "expected_tools": [
+        "get_market_quote"
+      ],
+      "required_data": [],
+      "expected_information": [
+        "Price, currency, source and date",
+        "SPY is a standalone lookup, not a fixture holding",
+        "Do not claim real-time status"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": true
+    },
+    {
+      "case_id": "A-005",
+      "category": "history",
+      "question": "Show AAPL daily prices from 2026-09-01 through 2026-09-30.",
+      "client_id": "CLI-001",
+      "symbols": [
+        "AAPL"
+      ],
+      "expected_tools": [
+        "get_external_price_history"
+      ],
+      "required_data": [],
+      "expected_information": [
+        "Ascending dates within inclusive bounds",
+        "Numeric daily closes",
+        "Split adjustment disclosed",
+        "No fabricated missing dates",
+        "Report returned data range and count"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": true
+    },
+    {
+      "case_id": "A-006",
+      "category": "risk_return",
+      "question": "Estimate expected return and volatility for the Garcia Family.",
+      "client_id": "CLI-001",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "estimate_portfolio_risk"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/asset_class_map.json",
+        "data/portfolio/market_assumptions.json"
+      ],
+      "expected_information": [
+        "Owner-approved assumptions and units",
+        "Calculation result once available",
+        "Explain missing assumptions instead of inventing them"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-007",
+      "category": "risk_return",
+      "question": "Compare the Chen Household's stock concentration with Thompson Trust.",
+      "client_id": "CLI-003",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "calculate_allocation_drift"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/asset_class_map.json"
+      ],
+      "expected_information": [
+        "Retrieve both CLI-003 and CLI-002",
+        "Stock/bond weights based on fixture market values",
+        "Concentration is not a volatility estimate"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false,
+      "setup": {
+        "comparison_client_id": "CLI-002"
+      }
+    },
+    {
+      "case_id": "A-008",
+      "category": "allocation_drift",
+      "question": "How far is the Garcia Family from a 60/40 stock/bond target?",
+      "client_id": "CLI-001",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "calculate_allocation_drift"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/asset_class_map.json",
+        "data/portfolio/target_allocations.json"
+      ],
+      "expected_information": [
+        "Current stock/bond weights",
+        "Target is an illustrative scenario",
+        "Drift in percentage points",
+        "Hypothetical adjustments only; no trade execution"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-009",
+      "category": "allocation_drift",
+      "question": "Compare Thompson Trust with its demo 30/70 stock/bond target.",
+      "client_id": "CLI-002",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "calculate_allocation_drift"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/asset_class_map.json",
+        "data/portfolio/target_allocations.json"
+      ],
+      "expected_information": [
+        "Current and target weights",
+        "Drift by asset class",
+        "Simulation assumption label"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-010",
+      "category": "goal_projection",
+      "question": "Under the demo assumptions, can Garcia reach $2M in 15 years?",
+      "client_id": "CLI-001",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "project_financial_goal"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/financial_goals.json",
+        "data/portfolio/market_assumptions.json"
+      ],
+      "expected_information": [
+        "Starting fixture value and explicit demo goal parameters",
+        "End-of-year contributions",
+        "Any simulation probability must be labeled as conditional on the unapproved draft model, not final advice",
+        "Missing assumptions disclosed"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-011",
+      "category": "goal_projection",
+      "question": "Project Chen's demo $2M early-retirement goal in 8 years.",
+      "client_id": "CLI-003",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings",
+        "project_financial_goal"
+      ],
+      "required_data": [
+        "data/clients/households.json",
+        "data/portfolio/financial_goals.json",
+        "data/portfolio/market_assumptions.json"
+      ],
+      "expected_information": [
+        "Use explicit 8-year scenario",
+        "Mention conflicting 25-year profile horizon",
+        "Target and contribution are invented demo inputs",
+        "Ask for confirmation before final advice"
+      ],
+      "execution_status": "ready_with_draft_assumptions",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-012",
+      "category": "invalid_client",
+      "question": "Show the portfolio for CLI-999.",
+      "client_id": "CLI-999",
+      "symbols": [],
+      "expected_tools": [
+        "get_holdings"
+      ],
+      "required_data": [
+        "data/clients/households.json"
+      ],
+      "expected_information": [
+        "Client not found",
+        "Do not substitute another client's data"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-013",
+      "category": "invalid_symbol",
+      "question": "Get the quote for AAPL,SPY in one symbol field.",
+      "client_id": null,
+      "symbols": [
+        "AAPL,SPY"
+      ],
+      "expected_tools": [
+        "get_market_quote"
+      ],
+      "required_data": [],
+      "expected_information": [
+        "INVALID_SYMBOL",
+        "No outbound request"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-014",
+      "category": "invalid_date",
+      "question": "Get AAPL history from 2026-09-30 to 2026-09-01.",
+      "client_id": null,
+      "symbols": [
+        "AAPL"
+      ],
+      "expected_tools": [
+        "get_external_price_history"
+      ],
+      "required_data": [],
+      "expected_information": [
+        "INVALID_DATE_RANGE",
+        "No outbound request"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false
+    },
+    {
+      "case_id": "A-015",
+      "category": "missing_key",
+      "question": "Get an AAPL quote when no market-data key is configured.",
+      "client_id": null,
+      "symbols": [
+        "AAPL"
+      ],
+      "expected_tools": [
+        "get_market_quote"
+      ],
+      "required_data": [],
+      "expected_information": [
+        "MISSING_API_KEY",
+        "No fallback to synthetic prices",
+        "No outbound request"
+      ],
+      "execution_status": "ready",
+      "requires_live_api": false,
+      "setup": {
+        "TWELVE_DATA_API_KEY": "unset"
+      }
+    }
+  ]
+}

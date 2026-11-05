@@ -1,0 +1,18 @@
+{
+  "status": "success",
+  "symbol": "AAPL",
+  "price": 344.63,
+  "currency": "USD",
+  "as_of": "2026-10-30",
+  "source": "twelve_data",
+  "price_type": "provider_quote_close",
+  "bar_date": "2026-10-30",
+  "last_quote_at_utc": "2026-10-30T19:59:00+00:00",
+  "is_market_open": false,
+  "timeliness": "unverified",
+  "retrieved_at_utc": "2026-10-31T00:31:08.265804+00:00",
+  "warnings": [
+    "Latest available provider quote; real-time or delayed status is unverified.",
+    "as_of is the exchange bar date, not the last trade time or fetch time."
+  ]
+}

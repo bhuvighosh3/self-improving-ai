@@ -1,0 +1,13 @@
+{
+  "status": "success",
+  "client_count": 5,
+  "ticker_count": 10,
+  "case_count": 15,
+  "errors": [],
+  "warnings": [
+    "target_allocations: demo parameters still require owner confirmation.",
+    "financial_goals: demo parameters still require owner confirmation.",
+    "CLI-005: projection must account for annual withdrawals.",
+    "Market return/volatility assumptions and calculation tools are pending the owner."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "data_kind": "synthetic_scenario",
+  "review_status": "draft_pending_owner_confirmation",
+  "scope": "client_all_accounts",
+  "weight_unit": "decimal",
+  "note": "Illustrative targets chosen for testing, not inferred facts or investment recommendations.",
+  "allocations": [
+    {
+      "client_id": "CLI-001",
+      "weights": {
+        "stock": 0.6,
+        "bond": 0.4
+      },
+      "assumption": "Illustrative demo target; confirm with the Component A owner."
+    },
+    {
+      "client_id": "CLI-002",
+      "weights": {
+        "stock": 0.3,
+        "bond": 0.7
+      },
+      "assumption": "Illustrative demo target; confirm with the Component A owner."
+    },
+    {
+      "client_id": "CLI-003",
+      "weights": {
+        "stock": 0.9,
+        "bond": 0.1
+      },
+      "assumption": "Illustrative demo target; confirm with the Component A owner."
+    },
+    {
+      "client_id": "CLI-004",
+      "weights": {
+        "stock": 0.6,
+        "bond": 0.4
+      },
+      "assumption": "Illustrative demo target; confirm with the Component A owner."
+    },
+    {
+      "client_id": "CLI-005",
+      "weights": {
+        "stock": 0.3,
+        "bond": 0.7
+      },
+      "assumption": "Illustrative demo target; confirm with the Component A owner."
+    }
+  ]
+}

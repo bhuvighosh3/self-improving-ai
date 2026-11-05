@@ -6,6 +6,12 @@ use synthetic households, holdings, CRM notes, tasks and market news.
 
 ## Meeting Prep extension
 
+An opt-in AI workflow now complements the default deterministic demo. See the
+[implementation status](docs/meeting-brief/implementation.md) for the three skills,
+evidence/quality pipeline, local versioned review and evaluation entry point.
+Descriptions below of no LLM calls refer to Offline demo mode; authenticated
+production approval and self-improvement are still outside this implementation.
+
 Part B helps an advisor prepare for a selected client meeting: specify the client,
 New York meeting date/time and focus; generate a structured brief; inspect evidence
 and relevant news; edit and review the draft; download a PDF or print it.
@@ -36,6 +42,11 @@ is outside the scope of this extension.
 - Clearly distinguish synthetic data and advisor edits from original source records.
 
 ## Implementation boundaries
+
+The proposed next-stage [Meeting Brief architecture](docs/meeting-brief/README.md)
+and [evaluation design](docs/meeting-brief/evaluation.md) distinguish existing
+features from planned skills, temporal comparisons, independent checks and
+authenticated approval. They do not change the current demo boundaries below.
 
 The React/Vite dashboard uses FastAPI. Meeting Prep uses the same mock CRM, news
 and holdings tools as the Python agents, with a dedicated deterministic service.

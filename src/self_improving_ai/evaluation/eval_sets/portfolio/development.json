@@ -1,0 +1,887 @@
+{
+  "split": "development",
+  "reference_method": "Independent stdlib arithmetic and 60000-path random.Random(9017) projection references; never calls production tools.",
+  "note": "Public checks, not hidden tasks or evidence of learning. Market responses are fictional offline provider packets.",
+  "cases": [
+    {
+      "id": "A-001",
+      "split": "development",
+      "question": "Show all accounts and holdings for the Garcia Family.",
+      "steps": [
+        {
+          "task": "holdings",
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-001"
+          },
+          "checks": [
+            {
+              "path": [
+                "total_market_value"
+              ],
+              "value": 146750,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-002",
+      "split": "development",
+      "question": "Show only account ACC-003A for the Chen Household.",
+      "steps": [
+        {
+          "task": "holdings",
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-003",
+            "account_id": "ACC-003A"
+          },
+          "checks": [
+            {
+              "path": [
+                "total_market_value"
+              ],
+              "value": 230700,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-003",
+      "split": "development",
+      "question": "What is the latest available AAPL quote for Garcia's Apple holding?",
+      "steps": [
+        {
+          "task": "holdings",
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-001"
+          },
+          "checks": [
+            {
+              "path": [
+                "total_market_value"
+              ],
+              "value": 146750,
+              "tolerance": 1e-08
+            }
+          ]
+        },
+        {
+          "task": "quote",
+          "tool": "get_market_quote",
+          "arguments": {
+            "symbol": "AAPL"
+          },
+          "checks": [
+            {
+              "path": [
+                "price"
+              ],
+              "value": 123.45,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "as_of"
+              ],
+              "value": "2026-09-30",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "timeliness"
+              ],
+              "value": "unverified",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "twelve_data",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "provider_fixture": "quote"
+    },
+    {
+      "id": "A-004",
+      "split": "development",
+      "question": "What is the latest available SPY quote?",
+      "steps": [
+        {
+          "task": "quote",
+          "tool": "get_market_quote",
+          "arguments": {
+            "symbol": "SPY"
+          },
+          "checks": [
+            {
+              "path": [
+                "price"
+              ],
+              "value": 123.45,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "as_of"
+              ],
+              "value": "2026-09-30",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "timeliness"
+              ],
+              "value": "unverified",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "twelve_data",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "provider_fixture": "quote"
+    },
+    {
+      "id": "A-005",
+      "split": "development",
+      "question": "Show AAPL daily prices from 2026-09-01 through 2026-09-30.",
+      "steps": [
+        {
+          "task": "history",
+          "tool": "get_external_price_history",
+          "arguments": {
+            "symbol": "AAPL",
+            "start_date": "2026-09-01",
+            "end_date": "2026-09-30"
+          },
+          "checks": [
+            {
+              "path": [
+                "count"
+              ],
+              "value": 3,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "price_type"
+              ],
+              "value": "split_adjusted_close",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "provider_fixture": "history"
+    },
+    {
+      "id": "A-006",
+      "split": "development",
+      "question": "Estimate expected return and volatility for the Garcia Family.",
+      "steps": [
+        {
+          "task": "risk",
+          "tool": "estimate_portfolio_risk",
+          "arguments": {
+            "client_id": "CLI-001"
+          },
+          "checks": [
+            {
+              "path": [
+                "annual_expected_return"
+              ],
+              "value": 0.052952299829642245,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "annual_volatility"
+              ],
+              "value": 0.14546044437586608,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "return_unit"
+              ],
+              "value": "decimal_arithmetic_annual",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "volatility_unit"
+              ],
+              "value": "decimal_annual",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-001"
+          }
+        }
+      ],
+      "max_calls": 2
+    },
+    {
+      "id": "A-007",
+      "split": "development",
+      "question": "Compare the Chen Household's stock concentration with Thompson Trust.",
+      "steps": [
+        {
+          "task": "allocation",
+          "tool": "calculate_allocation_drift",
+          "arguments": {
+            "client_id": "CLI-003"
+          },
+          "checks": [
+            {
+              "path": [
+                "client_id"
+              ],
+              "value": "CLI-003",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "current_weight"
+              ],
+              "value": 1.0,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ]
+        },
+        {
+          "task": "allocation",
+          "tool": "calculate_allocation_drift",
+          "arguments": {
+            "client_id": "CLI-002"
+          },
+          "checks": [
+            {
+              "path": [
+                "client_id"
+              ],
+              "value": "CLI-002",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "current_weight"
+              ],
+              "value": 0.2158374211632796,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "answer_checks": [
+        {
+          "path": [
+            "results",
+            0,
+            "client_id"
+          ],
+          "value": "CLI-003",
+          "tolerance": 1e-08
+        },
+        {
+          "path": [
+            "results",
+            0,
+            "asset_classes",
+            "stock",
+            "current_weight"
+          ],
+          "value": 1.0,
+          "tolerance": 1e-08
+        },
+        {
+          "path": [
+            "results",
+            0,
+            "source"
+          ],
+          "value": "synthetic_portfolio",
+          "tolerance": 1e-08
+        },
+        {
+          "path": [
+            "results",
+            1,
+            "client_id"
+          ],
+          "value": "CLI-002",
+          "tolerance": 1e-08
+        },
+        {
+          "path": [
+            "results",
+            1,
+            "asset_classes",
+            "stock",
+            "current_weight"
+          ],
+          "value": 0.2158374211632796,
+          "tolerance": 1e-08
+        },
+        {
+          "path": [
+            "results",
+            1,
+            "source"
+          ],
+          "value": "synthetic_portfolio",
+          "tolerance": 1e-08
+        }
+      ],
+      "answer_shape": "results_array",
+      "steps_ordered": false,
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-003"
+          }
+        },
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-002"
+          }
+        }
+      ],
+      "max_calls": 4
+    },
+    {
+      "id": "A-008",
+      "split": "development",
+      "question": "How far is the Garcia Family from a 60/40 stock/bond target?",
+      "steps": [
+        {
+          "task": "allocation",
+          "tool": "calculate_allocation_drift",
+          "arguments": {
+            "client_id": "CLI-001"
+          },
+          "checks": [
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "drift_percentage_points"
+              ],
+              "value": 19.863713798977855,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "hypothetical_adjustment_usd"
+              ],
+              "value": -29150,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ],
+          "argument_variants": [
+            {
+              "client_id": "CLI-001",
+              "target_stock_weight": 0.6
+            }
+          ]
+        }
+      ],
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-001"
+          }
+        }
+      ],
+      "max_calls": 2
+    },
+    {
+      "id": "A-009",
+      "split": "development",
+      "question": "Compare Thompson Trust with its demo 30/70 stock/bond target.",
+      "steps": [
+        {
+          "task": "allocation",
+          "tool": "calculate_allocation_drift",
+          "arguments": {
+            "client_id": "CLI-002"
+          },
+          "checks": [
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "drift_percentage_points"
+              ],
+              "value": -8.416257883672037,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "asset_classes",
+                "stock",
+                "hypothetical_adjustment_usd"
+              ],
+              "value": 12010,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ],
+          "argument_variants": [
+            {
+              "client_id": "CLI-002",
+              "target_stock_weight": 0.3
+            }
+          ]
+        }
+      ],
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-002"
+          }
+        }
+      ],
+      "max_calls": 2
+    },
+    {
+      "id": "A-010",
+      "split": "development",
+      "question": "Under the demo assumptions, can Garcia reach $2M in 15 years?",
+      "steps": [
+        {
+          "task": "projection",
+          "tool": "project_financial_goal",
+          "arguments": {
+            "client_id": "CLI-001"
+          },
+          "checks": [
+            {
+              "path": [
+                "initial_value"
+              ],
+              "value": 146750,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "years"
+              ],
+              "value": 15,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "target_amount"
+              ],
+              "value": 2000000,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "annual_contribution"
+              ],
+              "value": 18000,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "cash_flow_timing"
+              ],
+              "value": "end_of_year",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "ending_value_median"
+              ],
+              "value": 652811.7898350249,
+              "tolerance": 26112.471593400995
+            },
+            {
+              "path": [
+                "success_probability"
+              ],
+              "value": 0.00385,
+              "tolerance": 0.015
+            },
+            {
+              "path": [
+                "review_status"
+              ],
+              "value": "draft_pending_owner_confirmation",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ],
+          "argument_variants": [
+            {
+              "client_id": "CLI-001",
+              "years": 15
+            },
+            {
+              "client_id": "CLI-001",
+              "target_amount": 2000000
+            },
+            {
+              "client_id": "CLI-001",
+              "years": 15,
+              "target_amount": 2000000
+            }
+          ]
+        }
+      ],
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-001"
+          }
+        }
+      ],
+      "max_calls": 2
+    },
+    {
+      "id": "A-011",
+      "split": "development",
+      "question": "Project Chen's demo $2M early-retirement goal in 8 years.",
+      "steps": [
+        {
+          "task": "projection",
+          "tool": "project_financial_goal",
+          "arguments": {
+            "client_id": "CLI-003"
+          },
+          "checks": [
+            {
+              "path": [
+                "initial_value"
+              ],
+              "value": 312700,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "years"
+              ],
+              "value": 8,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "target_amount"
+              ],
+              "value": 2000000,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "goal",
+                "annual_contribution"
+              ],
+              "value": 30000,
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "cash_flow_timing"
+              ],
+              "value": "end_of_year",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "ending_value_median"
+              ],
+              "value": 731106.6613528581,
+              "tolerance": 29244.266454114324
+            },
+            {
+              "path": [
+                "success_probability"
+              ],
+              "value": 0.005966666666666667,
+              "tolerance": 0.015
+            },
+            {
+              "path": [
+                "review_status"
+              ],
+              "value": "draft_pending_owner_confirmation",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "currency"
+              ],
+              "value": "USD",
+              "tolerance": 1e-08
+            },
+            {
+              "path": [
+                "source"
+              ],
+              "value": "synthetic_portfolio",
+              "tolerance": 1e-08
+            }
+          ],
+          "argument_variants": [
+            {
+              "client_id": "CLI-003",
+              "years": 8
+            },
+            {
+              "client_id": "CLI-003",
+              "target_amount": 2000000
+            },
+            {
+              "client_id": "CLI-003",
+              "years": 8,
+              "target_amount": 2000000
+            }
+          ]
+        }
+      ],
+      "optional_calls": [
+        {
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-003"
+          }
+        }
+      ],
+      "max_calls": 2
+    },
+    {
+      "id": "A-012",
+      "split": "development",
+      "question": "Show the portfolio for CLI-999.",
+      "steps": [
+        {
+          "task": "holdings",
+          "tool": "get_holdings",
+          "arguments": {
+            "client_id": "CLI-999"
+          },
+          "checks": [
+            {
+              "path": [
+                "error",
+                "code"
+              ],
+              "value": "CLIENT_NOT_FOUND",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-013",
+      "split": "development",
+      "question": "Get the quote for AAPL,SPY in one symbol field.",
+      "steps": [
+        {
+          "task": "quote",
+          "tool": "get_market_quote",
+          "arguments": {
+            "symbol": "AAPL,SPY"
+          },
+          "checks": [
+            {
+              "path": [
+                "error",
+                "code"
+              ],
+              "value": "INVALID_SYMBOL",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-014",
+      "split": "development",
+      "question": "Get AAPL history from 2026-09-30 to 2026-09-01.",
+      "steps": [
+        {
+          "task": "history",
+          "tool": "get_external_price_history",
+          "arguments": {
+            "symbol": "AAPL",
+            "start_date": "2026-09-30",
+            "end_date": "2026-09-01"
+          },
+          "checks": [
+            {
+              "path": [
+                "error",
+                "code"
+              ],
+              "value": "INVALID_DATE_RANGE",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-015",
+      "split": "development",
+      "question": "Get an AAPL quote when no market-data key is configured.",
+      "steps": [
+        {
+          "task": "quote",
+          "tool": "get_market_quote",
+          "arguments": {
+            "symbol": "AAPL"
+          },
+          "checks": [
+            {
+              "path": [
+                "error",
+                "code"
+              ],
+              "value": "MISSING_API_KEY",
+              "tolerance": 1e-08
+            }
+          ]
+        }
+      ],
+      "missing_market_key": true
+    }
+  ]
+}

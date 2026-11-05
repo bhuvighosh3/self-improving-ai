@@ -4,6 +4,25 @@ A self-improving AI copilot for wealth management advisors, built with [Google A
 
 ## Quick Start
 
+### Component A feature workflow
+
+The `feat/component-a-workflow` branch adds independent portfolio calculations,
+Gemini/ADK execution and **Main → Portfolio Analysis**. The original team workflows
+and project design below are retained. This branch is not a completed live
+three-agent integration or a demonstrated learning improvement.
+
+- [Component A overview](docs/component-a-overview.md)
+- [Setup and launch](docs/getting-started.md)
+- [Usage and connection settings](docs/usage.md)
+- [API contract](docs/integration.md)
+- [Branch integration notes](docs/reports/branch-integration.md)
+
+Local portfolio calculations need no key. A's Connections dialog configures its
+own Gemini Developer API model/key, without rewriting B/C model defaults or
+Vertex AI configuration. The team npm package definition and lock file are retained.
+
+---
+
 ### Prerequisites
 
 - Python 3.11+
@@ -127,6 +146,13 @@ allows 5 requests per minute; the UI surfaces a message when this limit is hit.
 
 ### Meeting Prep Demo
 
+Meeting Prep now offers an explicit **AI Agent** mode alongside the default
+**Offline demo**. The ADK briefing agent applies three business skills, records
+evidence and calculations, and the dashboard AI service performs independent
+quality review with bounded repairs. See [implementation and setup](docs/meeting-brief/implementation.md)
+for available features, local versioned review, evaluation commands and limitations.
+The deterministic behavior described below remains the default offline mode.
+
 Open **Meeting Prep**, or choose **Generate Meeting Brief** from a client detail page.
 Select a meeting date, time (New York), and focus, then generate the brief. The
 default Chen scenario highlights ARKK's $17,500 unrealized loss and ranks the
@@ -160,6 +186,14 @@ node --test dashboard/checks/meeting-drafts.mjs
 ## Detailed Design
 
 The sections below describe the full system design, evaluation plan, and improvement harness.
+
+Component B's [Meeting Brief architecture and implementation audit](docs/meeting-brief/README.md)
+integrates the proposed meeting workflow, tool/skill responsibilities and current
+implementation boundaries. See its [preliminary evaluation design](docs/meeting-brief/evaluation.md)
+and [technical appendix](docs/meeting-brief/appendix.md) for evidence contracts,
+instructions and illustrative pseudocode. These are design proposals; this
+documentation update does not connect the dashboard to ADK, add an evaluator or
+change runtime behavior. Existing shared-system plans below remain unchanged.
 
 ---
 

@@ -1,0 +1,52 @@
+.portfolio-panel {max-width:1100px; margin:0 auto; color:var(--text);}
+.portfolio-panel h2 {font-size:22px; margin:0 0 8px;}
+.portfolio-panel p {line-height:1.6; color:var(--text-2); margin:12px 0;}
+.portfolio-form,.portfolio-results {background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; margin:20px 0;}
+.portfolio-form {display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; align-items:end;}
+.portfolio-form label {display:flex; flex-direction:column; gap:8px; font-size:12px; font-weight:600;}
+.portfolio-form select,.portfolio-form input,.portfolio-form textarea {font:inherit; padding:10px; background:white; border:1px solid var(--border); border-radius:6px; width:100%; color:var(--text);}
+.portfolio-form textarea {min-height:90px; resize:vertical;}
+.portfolio-wide {grid-column:1/-1;}
+.portfolio-form button {min-height:38px; border:0; border-radius:6px; background:var(--accent); color:white; cursor:pointer;}
+.portfolio-form button:disabled {opacity:.6; cursor:wait;}
+.portfolio-panel :focus-visible {outline:2px solid var(--accent); outline-offset:3px;}
+.portfolio-table {overflow:auto;}
+.portfolio-panel table {width:100%; border-collapse:collapse; font-size:13px;}
+.portfolio-panel td,.portfolio-panel th {text-align:left; padding:12px 8px; border-bottom:1px solid var(--border); white-space:nowrap;}
+.portfolio-panel .portfolio-error {color:#b91c1c; background:#fef2f2; padding:12px; border-radius:6px;}
+.portfolio-panel .portfolio-warning {font-size:12px; color:#865800;}
+.portfolio-answer {white-space:pre-wrap;}
+.portfolio-panel details {margin-top:20px; font-size:12px;}
+.portfolio-panel summary {cursor:pointer;}
+.portfolio-panel pre {max-height:340px; overflow:auto; background:var(--bg); padding:12px; border-radius:6px;}
+@media(max-width:768px) {.portfolio-form {grid-template-columns:1fr;} .portfolio-form,.portfolio-results {padding:16px;}}
+
+.portfolio-heading {display:flex; align-items:center; justify-content:space-between; gap:16px;}
+.portfolio-heading h2 {margin:0;}
+.portfolio-connections-button,.connection-content button {font:inherit; font-size:13px; padding:9px 14px; background:white; color:var(--text); border:1px solid var(--border); border-radius:6px; cursor:pointer;}
+.portfolio-configure-link {display:block; border:0; background:transparent; color:var(--accent); font:inherit; text-decoration:underline; cursor:pointer; padding:8px 0 0;}
+.connection-dialog {width:580px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--border); border-radius:12px; color:var(--text); background:var(--surface); box-shadow:0 20px 60px #18213733; margin:auto;}
+.connection-dialog::backdrop {background:#11182766;}
+.connection-content {padding:24px;}
+.connection-heading {display:flex; align-items:flex-start; gap:16px; justify-content:space-between;}
+.connection-heading h2 {font-size:21px; margin:0;}
+.connection-heading p,.connection-content p {font-size:13px; line-height:1.6; color:var(--text-2); margin:10px 0;}
+.connection-content .connection-close {border:0; padding:0 5px; font-size:26px; line-height:1;}
+.connection-tabs {display:flex; gap:8px; margin:18px 0; padding-bottom:12px; border-bottom:1px solid var(--border);}
+.connection-tabs [aria-selected="true"] {color:var(--accent); background:var(--accent-light,#eff4ff); border-color:var(--accent);}
+.connection-content fieldset {border:0; padding:0; margin:0; min-width:0;}
+.connection-content label {display:block; font-size:12px; font-weight:600; margin:14px 0 8px;}
+.connection-content input,.connection-content select {display:block; width:100%; font:inherit; font-size:13px; border:1px solid var(--border); border-radius:6px; padding:11px; background:white; color:var(--text); margin-top:8px; min-width:0;}
+.connection-content .connection-description {font-size:12px; color:var(--text-3);}
+.connection-content .connection-state {display:inline-block; border-radius:6px; padding:5px 8px; font-size:12px; background:var(--bg);}
+.connection-state.is-configured {color:#166534; background:#f0fdf4;}
+.connection-key-row {display:flex; gap:8px; align-items:stretch;}
+.connection-key-row input {flex:1; margin-top:0;}
+.connection-actions {display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;}
+.connection-content .connection-primary {background:var(--accent); border-color:var(--accent); color:white;}
+.connection-content .connection-remove {color:#b91c1c;}
+.connection-content .connection-notice,.connection-test-result {color:#166534; background:#f0fdf4; border-radius:6px; padding:10px;}
+.connection-test-result p {color:inherit;}
+.connection-content button:disabled {opacity:.5; cursor:default;}
+.connection-footer {display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);}
+@media(max-width:500px) {.connection-content {padding:18px;} .connection-heading p {max-width:240px;} .connection-actions button {flex:1;} }

@@ -1,0 +1,60 @@
+Offline verification only. No authenticated API calls by this test suite.
+UTC run time: 2026-10-31T00:39:33.992474+00:00
+Python: 3.12.14
+Scope: tests/test_tools. Full project and dashboard tests were not run.
+Includes exclusive provider datetime-cutoff regression after end-day correction.
+
+test_existing_price_tool_returns_packaged_aapl_rows (test_local_pricing.LocalPricingTests.test_existing_price_tool_returns_packaged_aapl_rows) ... ok
+test_holdings_fixture_is_read_as_utf8_on_windows (test_local_pricing.LocalPricingTests.test_holdings_fixture_is_read_as_utf8_on_windows) ... ok
+test_bad_prices_rejected (test_market_data_api.MarketDataTests.test_bad_prices_rejected) ... ok
+test_conflicting_duplicate_dates_rejected (test_market_data_api.MarketDataTests.test_conflicting_duplicate_dates_rejected) ... ok
+test_exchange_end_day_is_included_with_provider_datetime_cutoff (test_market_data_api.MarketDataTests.test_exchange_end_day_is_included_with_provider_datetime_cutoff) ... ok
+test_history_bounds_are_inclusive_and_outliers_filtered (test_market_data_api.MarketDataTests.test_history_bounds_are_inclusive_and_outliers_filtered) ... ok
+test_history_requires_currency_and_matching_symbol (test_market_data_api.MarketDataTests.test_history_requires_currency_and_matching_symbol) ... ok
+test_history_sorted_numeric_and_adjusted (test_market_data_api.MarketDataTests.test_history_sorted_numeric_and_adjusted) ... ok
+test_http_error_with_invalid_body (test_market_data_api.MarketDataTests.test_http_error_with_invalid_body) ... ok
+test_http_errors_and_retryability (test_market_data_api.MarketDataTests.test_http_errors_and_retryability) ... ok
+test_identical_duplicate_dates_are_deduplicated (test_market_data_api.MarketDataTests.test_identical_duplicate_dates_are_deduplicated) ... ok
+test_incomplete_network_response (test_market_data_api.MarketDataTests.test_incomplete_network_response) ... ok
+test_invalid_dates_do_not_query (test_market_data_api.MarketDataTests.test_invalid_dates_do_not_query) ... ok
+test_invalid_key_header_characters (test_market_data_api.MarketDataTests.test_invalid_key_header_characters) ... ok
+test_invalid_local_symbols_do_not_query (test_market_data_api.MarketDataTests.test_invalid_local_symbols_do_not_query) ... ok
+test_malformed_history_rows (test_market_data_api.MarketDataTests.test_malformed_history_rows) ... ok
+test_malformed_json_and_wrong_response_types (test_market_data_api.MarketDataTests.test_malformed_json_and_wrong_response_types) ... ok
+test_missing_dates_are_not_filled (test_market_data_api.MarketDataTests.test_missing_dates_are_not_filled) ... ok
+test_missing_key_does_not_query_or_fallback (test_market_data_api.MarketDataTests.test_missing_key_does_not_query_or_fallback) ... ok
+test_missing_or_mismatched_metadata (test_market_data_api.MarketDataTests.test_missing_or_mismatched_metadata) ... ok
+test_missing_quote_timestamp_is_not_invented (test_market_data_api.MarketDataTests.test_missing_quote_timestamp_is_not_invented) ... ok
+test_network_failure (test_market_data_api.MarketDataTests.test_network_failure) ... ok
+test_network_timeout (test_market_data_api.MarketDataTests.test_network_timeout) ... ok
+test_no_data (test_market_data_api.MarketDataTests.test_no_data) ... ok
+test_no_rows_in_requested_dates (test_market_data_api.MarketDataTests.test_no_rows_in_requested_dates) ... ok
+test_oversize_date_range_does_not_query (test_market_data_api.MarketDataTests.test_oversize_date_range_does_not_query) ... ok
+test_provider_error_codes_in_response_body (test_market_data_api.MarketDataTests.test_provider_error_codes_in_response_body) ... ok
+test_provider_symbol_error_even_on_http_200 (test_market_data_api.MarketDataTests.test_provider_symbol_error_even_on_http_200) ... ok
+test_quote_normalization_and_secret_not_in_url (test_market_data_api.MarketDataTests.test_quote_normalization_and_secret_not_in_url) ... ok
+test_reversed_dates_do_not_query (test_market_data_api.MarketDataTests.test_reversed_dates_do_not_query) ... ok
+test_stock_and_etf_quotes (test_market_data_api.MarketDataTests.test_stock_and_etf_quotes) ... ok
+test_boolean_weight_is_not_numeric (test_portfolio_data.PortfolioDataTests.test_boolean_weight_is_not_numeric) ... ok
+test_demo_needs_external_api_case (test_portfolio_data.PortfolioDataTests.test_demo_needs_external_api_case) ... ok
+test_duplicate_case_id (test_portfolio_data.PortfolioDataTests.test_duplicate_case_id) ... ok
+test_duplicate_client (test_portfolio_data.PortfolioDataTests.test_duplicate_client) ... ok
+test_duplicate_json_key (test_portfolio_data.PortfolioDataTests.test_duplicate_json_key) ... ok
+test_fractional_horizon (test_portfolio_data.PortfolioDataTests.test_fractional_horizon) ... ok
+test_invalid_asset_class (test_portfolio_data.PortfolioDataTests.test_invalid_asset_class) ... ok
+test_invalid_demo_reference (test_portfolio_data.PortfolioDataTests.test_invalid_demo_reference) ... ok
+test_missing_asset (test_portfolio_data.PortfolioDataTests.test_missing_asset) ... ok
+test_missing_file (test_portfolio_data.PortfolioDataTests.test_missing_file) ... ok
+test_missing_units (test_portfolio_data.PortfolioDataTests.test_missing_units) ... ok
+test_negative_contribution (test_portfolio_data.PortfolioDataTests.test_negative_contribution) ... ok
+test_non_finite_json (test_portfolio_data.PortfolioDataTests.test_non_finite_json) ... ok
+test_original_data_covers_five_clients_ten_assets_fifteen_cases (test_portfolio_data.PortfolioDataTests.test_original_data_covers_five_clients_ten_assets_fifteen_cases) ... ok
+test_percent_instead_of_decimal (test_portfolio_data.PortfolioDataTests.test_percent_instead_of_decimal) ... ok
+test_unknown_case_client (test_portfolio_data.PortfolioDataTests.test_unknown_case_client) ... ok
+test_unknown_client (test_portfolio_data.PortfolioDataTests.test_unknown_client) ... ok
+test_wrong_weight_sum (test_portfolio_data.PortfolioDataTests.test_wrong_weight_sum) ... ok
+
+----------------------------------------------------------------------
+Ran 49 tests in 0.332s
+
+OK

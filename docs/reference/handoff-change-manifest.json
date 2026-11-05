@@ -1,0 +1,137 @@
+{
+  "verification_date": "2026-10-30",
+  "offline_tests_passed": 49,
+  "live_provider_access_verified": true,
+  "original_source_unchanged": true,
+  "shared_dependency_file_unchanged": true,
+  "changes": [
+    {
+      "path": ".gitignore",
+      "change": "modified"
+    },
+    {
+      "path": "examples/history_before_end_date_fix/live_aapl_history.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/history_before_end_date_fix/live_spy_history.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/live_aapl_history.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/live_spy_history.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/live_spy_quote.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/offline_contract_examples.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/offline_test_report.txt",
+      "change": "added"
+    },
+    {
+      "path": "examples/offline_validation_report.json",
+      "change": "added"
+    },
+    {
+      "path": "examples/reported_aapl_quote_20261030T195900Z.json",
+      "change": "added"
+    },
+    {
+      "path": "LIVE_VERIFICATION.md",
+      "change": "added"
+    },
+    {
+      "path": "market_data.env.example",
+      "change": "added"
+    },
+    {
+      "path": "README_market_data.md",
+      "change": "added"
+    },
+    {
+      "path": "scripts/check_market_data.py",
+      "change": "added"
+    },
+    {
+      "path": "scripts/validate_portfolio_data.py",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/data/portfolio/asset_class_map.json",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/data/portfolio/financial_goals.json",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/data/portfolio/portfolio_advisor_cases.json",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/data/portfolio/target_allocations.json",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/tools/portfolio/holdings.py",
+      "change": "modified"
+    },
+    {
+      "path": "src/self_improving_ai/tools/portfolio/market_data_api.py",
+      "change": "added"
+    },
+    {
+      "path": "src/self_improving_ai/tools/portfolio/pricing.py",
+      "change": "modified"
+    },
+    {
+      "path": "tests/test_tools/test_local_pricing.py",
+      "change": "added"
+    },
+    {
+      "path": "tests/test_tools/test_market_data_api.py",
+      "change": "added"
+    },
+    {
+      "path": "tests/test_tools/test_portfolio_data.py",
+      "change": "added"
+    }
+  ],
+  "note": "This manifest excludes itself and caches. Financial calculations/Agent integration pending.",
+  "live_verification_status": "all_four_basic_queries_passed_user_cli_and_saved_files",
+  "live_verification_scope": {
+    "AAPL_quote": "success_user_provided_cli_output",
+    "SPY_quote": "success_saved_result_inspected",
+    "AAPL_history": "success_saved_21_rows_2026-09-01_through_2026-09-30",
+    "SPY_history": "success_saved_21_rows_2026-09-01_through_2026-09-30",
+    "timeliness": "unverified",
+    "account_plan": "unknown",
+    "authenticated_requests_made_by_assistant": false
+  },
+  "basic_live_checks_passed": 4,
+  "live_history_checks": [
+    {
+      "symbol": "AAPL",
+      "count": 21,
+      "start": "2026-09-01",
+      "end": "2026-09-30",
+      "retrieved_at_utc": "2026-10-31T00:40:35.088986+00:00"
+    },
+    {
+      "symbol": "SPY",
+      "count": 21,
+      "start": "2026-09-01",
+      "end": "2026-09-30",
+      "retrieved_at_utc": "2026-10-31T00:42:58.143767+00:00"
+    }
+  ]
+}

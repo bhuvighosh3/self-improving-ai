@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import MeetingPrep from "./MeetingPrep";
 import CopilotMeetingForm from "./CopilotMeetingForm";
+import PortfolioPanel from "./PortfolioPanel";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -26,7 +27,7 @@ const ic={
   send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
 };
 
-const PAGE_TITLE={copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
+const PAGE_TITLE={portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
 function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
@@ -453,6 +454,7 @@ export default function App(){
   const menu=[
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
+    {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
     {id:"requests",ic:ic.inbox,label:"Requests"},
@@ -470,11 +472,11 @@ export default function App(){
         </div>
         <nav className="sidebar-nav">
           <div className="nav-group-label">Main</div>
-          {menu.slice(0,3).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(0,4).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
-          {menu.slice(3,7).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(4,8).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
-          {menu.slice(7).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(8).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
@@ -497,6 +499,7 @@ export default function App(){
           {page==="tools"&&<Tools tools={tools}/>}
           {page==="news"&&<News news={news}/>}
           {page==="agents"&&<Agents stats={stats}/>}
+          {page==="portfolio"&&<PortfolioPanel clients={clients}/>}
         </div>
       </div>
     </div>
