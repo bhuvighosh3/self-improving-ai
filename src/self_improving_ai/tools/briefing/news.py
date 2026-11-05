@@ -21,7 +21,7 @@ def search_market_news(query: str, max_results: int = 10) -> dict:
     """
     path = _DATA_DIR / "news" / "market_news.json"
     if path.exists():
-        articles = json.loads(path.read_text())
+        articles = json.loads(path.read_text(encoding="utf-8"))
     else:
         articles = []
 

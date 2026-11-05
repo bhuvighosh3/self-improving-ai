@@ -34,7 +34,7 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     if "error" in profile:
         raise LookupError("Client not found. Select a client from the list.")
 
-    context = json.loads((DATA_DIR / "clients/meeting_context.json").read_text())
+    context = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
     data_as_of = date.fromisoformat(context["data_as_of"])
     if request.meeting_date < data_as_of:
         raise ValueError(f"This demo supports meetings on or after {data_as_of}. Historical snapshots are not available.")
@@ -70,7 +70,7 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     if tickers & {"bnd", "mub", "vtip"}:
         context_sectors |= {"macro", "fixed_income"}
     goals = " ".join(profile.get("goals", []))
-    security_universe = set(json.loads((DATA_DIR / "prices/price_history.json").read_text()))
+    security_universe = set(json.loads((DATA_DIR / "prices/price_history.json").read_text(encoding="utf-8")))
     security_universe = {ticker.lower() for ticker in security_universe}
     if "home" in goals:
         context_sectors.add("real_estate")

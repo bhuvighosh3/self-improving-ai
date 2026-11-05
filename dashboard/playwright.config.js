@@ -1,23 +1,29 @@
 import { defineConfig } from "@playwright/test";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("../", import.meta.url));
+const python = fileURLToPath(new URL(process.platform === "win32" ? "../.venv/Scripts/python.exe" : "../.venv/bin/python", import.meta.url));
 
 export default defineConfig({
   testDir: "./tests",
   timeout: 30000,
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://127.0.0.1:5174",
     headless: true,
-    channel: process.env.PLAYWRIGHT_CHANNEL,
+    channel: process.env.PLAYWRIGHT_CHANNEL || (process.platform === "win32" ? "chrome" : undefined),
   },
   webServer: [
     {
-      command: "cd .. && python3 -m uvicorn self_improving_ai.dashboard.app:app --port 8000",
-      port: 8000,
-      reuseExistingServer: true,
+      command: `"${python}" -m uvicorn self_improving_ai.dashboard.app:app --host 127.0.0.1 --port 8002`,
+      env: {PYTHONPATH: `${root}/src`, PYTHONUTF8: "1"},
+      url: "http://127.0.0.1:8002/api/health",
+      reuseExistingServer: false,
     },
     {
-      command: "npm run dev",
-      port: 5173,
-      reuseExistingServer: true,
+      command: `"${process.execPath}" node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5174 --strictPort`,
+      env: {COMPONENT_A_API_TARGET:"http://127.0.0.1:8002"},
+      url: "http://127.0.0.1:5174",
+      reuseExistingServer: false,
     },
   ],
 });

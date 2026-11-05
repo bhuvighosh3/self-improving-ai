@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
 def _load_prices() -> dict:
     path = _DATA_DIR / "prices" / "price_history.json"
     if path.exists():
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     return {}
 
 
@@ -30,7 +30,10 @@ def get_price_history(
     """
     prices = _load_prices()
     series = prices.get(ticker, [])
-    return {"ticker": ticker, "period": period, "prices": series}
+    return {"ticker": ticker, "period": period, "prices": series,
+            "source": "synthetic_fixture", "period_applied": False,
+            "warnings": ["Five-point illustrative fixture; period is not applied.",
+                         "Not suitable for estimating annual covariance or market returns."]}
 
 
 def get_stale_price(ticker: str) -> dict:

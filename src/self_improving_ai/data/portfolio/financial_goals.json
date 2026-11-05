@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "data_kind": "synthetic_scenario",
+  "review_status": "draft_pending_owner_confirmation",
+  "currency": "USD",
+  "amount_unit": "USD",
+  "horizon_unit": "years",
+  "cash_flow_unit": "USD_per_year",
+  "contribution_timing": "end_of_year",
+  "withdrawal_timing": "end_of_year",
+  "inflation_basis": "nominal",
+  "starting_value_basis": "sum_of_fixture_market_value",
+  "note": "Returns, volatility, covariance and inflation assumptions are deliberately not supplied; the calculation owner must agree them. Goals are unapproved demo scenarios.",
+  "goals": [
+    {
+      "client_id": "CLI-001",
+      "goal_type": "retirement",
+      "target_amount": 2000000,
+      "years": 15,
+      "annual_contribution": 18000,
+      "annual_withdrawal": 0,
+      "assumption": "15 years comes from the profile; target and annual contribution are invented demo inputs."
+    },
+    {
+      "client_id": "CLI-002",
+      "goal_type": "capital_preservation",
+      "target_amount": 300000,
+      "years": 5,
+      "annual_contribution": 6000,
+      "annual_withdrawal": 0,
+      "assumption": "5 years comes from the profile; target and annual contribution are invented demo inputs."
+    },
+    {
+      "client_id": "CLI-003",
+      "goal_type": "early_retirement",
+      "target_amount": 2000000,
+      "years": 8,
+      "annual_contribution": 30000,
+      "annual_withdrawal": 0,
+      "assumption": "Uses the CRM's 8-year early-retirement goal, not the profile's 25-year general horizon; owner confirmation required. Target and contribution are invented demo inputs."
+    },
+    {
+      "client_id": "CLI-004",
+      "goal_type": "home_down_payment",
+      "target_amount": 120000,
+      "years": 3,
+      "annual_contribution": 12000,
+      "annual_withdrawal": 0,
+      "assumption": "Target assumes 20% of the CRM's $600000 home price; 3-year deadline and contribution are invented demo inputs, not the profile's 10-year general horizon."
+    },
+    {
+      "client_id": "CLI-005",
+      "goal_type": "capital_preservation",
+      "target_amount": 100000,
+      "years": 3,
+      "annual_contribution": 0,
+      "annual_withdrawal": 50400,
+      "assumption": "3 years comes from the profile; withdrawal is the CRM's $4200/month times 12. Target is invented. Do not use a projection that ignores withdrawals."
+    }
+  ]
+}
