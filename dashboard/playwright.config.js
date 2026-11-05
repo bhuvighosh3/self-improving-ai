@@ -6,6 +6,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     headless: true,
+    channel: process.env.PLAYWRIGHT_CHANNEL,
   },
   webServer: [
     {

@@ -189,12 +189,12 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
 
     actions = []
     for task in client_context.get("tasks", []):
-        if task["status"] != "open":
+        if task["status"] not in {"open", "in_progress"} or task.get("recorded_at", task["note_date"])[:10] > data_as_of.isoformat():
             continue
         sources.append({"id": task["id"], "kind": "CRM task", "title": task["title"],
                         "date": task["note_date"], "author": task["owner"], "content": json.dumps(task, indent=2)})
         actions.append(_item(task["id"], task["title"],
-                             f"Owner: {task['owner']}. Due: {task['due_date']}. Status: open.", [task["id"]]))
+                             f"Owner: {task['owner']}. Due: {task['due_date']}. Status: {task['status']}.", [task["id"]]))
 
     confirmations = [_item("freshness", "Refresh account information",
         f"Holdings are dated {context['holdings_as_of']}. Confirm balances and transactions before making decisions.", ["HOLDINGS"])]
@@ -227,7 +227,7 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     source_ids = {source["id"] for source in sources}
     if any(ref not in source_ids for section in sections for item in section["items"] for ref in item["source_ids"]):
         raise ValueError("The brief contains an unresolved evidence reference.")
-    return {
+    brief = {
         "id": str(uuid4()), "client_id": request.client_id, "client_name": profile["name"],
         "contact": profile["primary_contact"], "meeting_date": request.meeting_date.isoformat(),
         "meeting_time": request.meeting_time.strftime("%H:%M"), "timezone": "America/New_York",
@@ -236,3 +236,6 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
         "mode": "simulation", "sections": sections, "news": selected_news, "sources": sources,
         "tools_called": ["get_client_profile", "get_crm_notes", "get_holdings", "search_market_news"],
     }
+    from self_improving_ai.agents.briefing.demo_workflow import enrich_demo
+
+    return enrich_demo(brief, request.meeting_type)

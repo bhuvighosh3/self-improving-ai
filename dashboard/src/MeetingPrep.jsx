@@ -26,6 +26,10 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
   const [reviewedAt, setReviewedAt] = useState(saved?.reviewedAt || null);
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
+  const [mode, setMode] = useState(saved?.brief.mode || "simulation");
+  const [meetingType, setMeetingType] = useState(saved?.brief.meeting_type || "quarterly_review");
+  const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
+  const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -35,7 +39,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
   const requestRef = useRef(null);
-  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus);
+  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus || mode !== brief.mode || meetingType !== (brief.meeting_type || "quarterly_review"));
 
   useEffect(() => {
     if (selectedClient) {
@@ -53,9 +57,9 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
 
   useEffect(() => {
     if (!brief) return;
-    const stored = saveMeetingDraft({ brief, reviewedAt, revision, edited });
+    const stored = saveMeetingDraft({ brief, reviewedAt, revision, edited, serverRevision });
     setNotice(stored ? "" : "Browser storage is unavailable. Keep this page open or export your brief before leaving.");
-  }, [brief, reviewedAt, revision, edited]);
+  }, [brief, reviewedAt, revision, edited, serverRevision]);
 
   useEffect(() => {
     const afterPrint = () => document.body.classList.remove("printing-meeting");
@@ -77,12 +81,14 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
       const response = await fetch("/api/briefings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId, meeting_date: meetingDate, meeting_time: meetingTime, focus: focus.trim() }),
+        body: JSON.stringify({ client_id: clientId, meeting_date: meetingDate, meeting_time: meetingTime, focus: focus.trim(), mode, meeting_type: meetingType }),
         signal: controller.signal,
       });
       const result = await response.json();
       if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Check the client, meeting date, time and focus, then try again.");
       setBrief(result);
+      setQuality(result.workflow?.quality || null);
+      setServerRevision(1);
       setReviewedAt(null);
       setRevision(1);
       setEdited(false);
@@ -100,6 +106,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
       ...section, items: section.items.map(item => item.id === itemId ? { ...item, [field]: value } : item),
     }) }));
     setReviewedAt(null);
+    setQuality(null);
     setEdited(true);
     setRevision(current => current + 1);
   }
@@ -110,6 +117,22 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
       evidenceHeadingRef.current?.focus({ preventScroll: true });
       evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+  }
+
+  async function checkOrReview(approve = false) {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/briefings/${approve ? "review" : "check"}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(approve ? { brief, revision, expected_revision: serverRevision, decision: "approve" } : { brief }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Review failed.");
+      if (approve) { setReviewedAt(result.reviewed_at); setServerRevision(result.revision); }
+      else setQuality(result);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
   }
 
   function printBrief() {
@@ -141,7 +164,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
   }
 
   const source = brief?.sources.find(item => item.id === selectedSource);
-  const hasEmptyFields = brief?.sections.some(section => section.items.some(item => !item.title.trim() || !item.text.trim() || (item.question !== undefined && (!item.question.trim() || !item.why.trim()))));
+  const hasEmptyFields = brief?.sections.some(section => section.items.some(item => !item.title.trim() || !item.text.trim() || (section.id === "priorities" && (!item.question?.trim() || !item.why?.trim()))));
 
   return (
     <div className="meeting-prep">
@@ -152,7 +175,9 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
 
       <form className="card meeting-form no-meeting-print" onSubmit={generate}>
         <div className="card-body meeting-fields">
-          <label>Client<select value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Quarterly portfolio and goals review"); }} disabled={busy} required>
+          <label>Generation mode<select value={mode} onChange={event => setMode(event.target.value)} disabled={busy}><option value="simulation">Offline demo · No LLM</option><option value="agent">AI Agent · Gemini</option></select></label>
+          <label>Meeting type<select value={meetingType} onChange={event => setMeetingType(event.target.value)} disabled={busy}><option value="quarterly_review">Quarterly review</option><option value="annual_review">Annual review</option><option value="goal_review">Goal review</option></select></label>
+          <label>Client<select aria-label="Client" value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Quarterly portfolio and goals review"); }} disabled={busy} required>
             {!clients.length && <option value="">Loading clients…</option>}
             {clients.map(client => <option value={client.client_id} key={client.client_id}>{client.profile.name}</option>)}
           </select></label>
@@ -177,13 +202,23 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
           <div aria-live="polite"><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft · Needs review"}</span><span className="meeting-muted">Revision {revision}{edited ? " · Advisor edited" : ""}</span></div>
           <div className="meeting-actions">
             <button className="meeting-btn" onClick={() => setEditing(!editing)} disabled={busy}>{editing ? "Done editing" : "Edit draft"}</button>
-            <button className="meeting-btn" onClick={() => { setReviewedAt(new Date().toISOString()); setEditing(false); }} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields}>Mark as reviewed</button>
+            <button className="meeting-btn" onClick={() => checkOrReview(false)} disabled={busy || stale || editing || hasEmptyFields}>Check draft</button>
+            <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields}>Mark as reviewed</button>
             <button className="meeting-btn" onClick={printBrief} disabled={busy || stale || editing || hasEmptyFields}>Print</button>
             <button className="meeting-btn primary" onClick={downloadPdf} disabled={busy || exporting || stale || editing || hasEmptyFields}>{exporting ? "Exporting…" : "Download PDF"}</button>
           </div>
         </div>
         {stale && <p className="meeting-message no-meeting-print" role="status">Meeting inputs changed. Generate a new brief to review or export these inputs. The previous draft is shown below.</p>}
         {editing && <p className="meeting-message no-meeting-print">Edits are saved in this browser and reset the review status. References stay attached to their original records; verify that they support your edited text.</p>}
+        {brief.workflow && <details className="card no-meeting-print" style={{ padding: 16, marginBottom: 16 }}>
+          <summary>Preparation process · {brief.workflow.work.change_status.replaceAll("_", " ")} · {quality ? `Check: ${quality.verdict}` : "Edited: recheck required"}</summary>
+          <p>{brief.mode === "agent" ? "Gemini agent with an independent model reviewer." : "Deterministic demonstration; not model-reviewed."} Review records are local demo records, without authenticated advisor identity.</p>
+          <p>{brief.workflow.work.context_summary}</p>
+          <ul>{Object.entries(brief.workflow.evidence.coverage).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")}: {value}</li>)}</ul>
+          {brief.workflow.work.findings.map(finding => <div key={finding.id}><strong>{finding.claim}</strong><p>{finding.rationale} Uncertainty: {finding.uncertainty}</p></div>)}
+          {quality?.findings?.map((finding, index) => <p key={index}>{finding.severity}: {finding.reason}</p>)}
+          <details><summary>Recorded tools and evidence</summary><pre style={{ whiteSpace: "pre-wrap", maxHeight: 300, overflow: "auto" }}>{JSON.stringify(brief.workflow.trace, null, 2)}</pre></details>
+        </details>}
 
         <div className="meeting-workspace">
           <article className="card meeting-sheet" aria-label="Meeting briefing">

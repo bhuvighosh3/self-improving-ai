@@ -6,7 +6,7 @@ export default function CopilotMeetingForm({ details, clients, busy, onGenerate 
   return (
     <form className="co-meeting-form" onSubmit={event => { event.preventDefault(); onGenerate(fields); }}>
       <div className="meeting-fields">
-        <label>Client<select required value={fields.client_id} disabled={busy} onChange={event => update("client_id", event.target.value)}>
+        <label>Client<select aria-label="Client" required value={fields.client_id} disabled={busy} onChange={event => update("client_id", event.target.value)}>
           <option value="">Select a client</option>
           {clients.map(client => <option key={client.client_id} value={client.client_id}>{client.profile.name}</option>)}
         </select></label>

@@ -1,0 +1,35 @@
+[
+  {
+    "id": "MINUTES-004", "client_id": "CLI-004", "kind": "minutes", "version": "v1",
+    "event_at": "2026-10-01T10:00:00-04:00", "recorded_at": "2026-10-01T12:00:00-04:00",
+    "title": "Synthetic prior home-purchase review",
+    "text": "The household was considering a home purchase in approximately 18 months with a USD 60000 down payment. The advisor agreed to confirm the funding sources. This is a new synthetic workflow fixture."
+  },
+  {
+    "id": "EMAIL-004", "client_id": "CLI-004", "kind": "email", "version": "v1",
+    "event_at": "2026-10-25T10:00:00-04:00", "recorded_at": "2026-10-25T10:01:00-04:00",
+    "title": "Synthetic update: possible earlier home purchase",
+    "text": "We may buy in six months rather than 18 months. We now expect a USD 85000 down payment rather than USD 60000. We have savings outside the managed accounts but still need to confirm the balance. Please discuss funding at our meeting.",
+    "comparison": {"field": "Home purchase intention", "old": "Approximately 18 months; USD 60000 down payment", "new": "Possibly six months; expected USD 85000 down payment", "baseline_source_id": "MINUTES-004", "certainty": "tentative"}
+  },
+  {
+    "id": "SERVICE-002", "client_id": "CLI-002", "kind": "service_update", "version": "v1",
+    "event_at": "2026-10-26T10:00:00-04:00", "recorded_at": "2026-10-26T11:00:00-04:00",
+    "title": "Synthetic service progress update",
+    "text": "The bond duration comparison remains outstanding. The advisor should confirm the delivery date. This service update does not establish that the client's goals or investment circumstances are unchanged."
+  }
+  ,{
+    "id": "MINUTES-002", "client_id": "CLI-002", "kind": "minutes", "version": "v1",
+    "event_at": "2026-07-22T10:00:00-04:00", "recorded_at": "2026-07-22T12:00:00-04:00",
+    "title": "Synthetic prior trust review",
+    "text": "Income generation and capital preservation remain the goals. Robert preferred to wait before changing municipal bond duration. The advisor promised a duration comparison."
+  },
+  {
+    "id": "CONFIRM-002", "client_id": "CLI-002", "kind": "review_confirmation", "version": "v1",
+    "event_at": "2026-10-27T10:00:00-04:00", "recorded_at": "2026-10-27T11:00:00-04:00",
+    "title": "Synthetic scoped no-significant-change review",
+    "text": "For this synthetic case, the advisor checked client circumstances, managed investments and service progress since July 22 through October 27. No significant goal, funding or plan changes were confirmed. The existing duration comparison remains outstanding and should stay on the routine agenda. This statement covers only the supplied synthetic case.",
+    "covers_from": "2026-07-22", "covers_through": "2026-10-27",
+    "domains": ["client", "investment", "service"]
+  }
+]
