@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
@@ -21,13 +23,14 @@ from pydantic import BaseModel
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+from google.genai.errors import APIError
 
 from self_improving_ai.agents.orchestrator.agent import orchestrator
 from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
-from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
+from self_improving_ai.dashboard.meeting_requests import collect_meeting_details, is_meeting_request
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
 from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.agents.briefing.review import check_draft
@@ -36,7 +39,23 @@ load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 log = logging.getLogger(__name__)
 
-app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    from self_improving_ai.dashboard.calendar import CalendarSimulation
+
+    app.state.calendar = CalendarSimulation(settings.db_path, create_meeting_brief)
+    worker = asyncio.create_task(app.state.calendar.serve())
+    try:
+        yield
+    finally:
+        worker.cancel()
+        await asyncio.gather(worker, return_exceptions=True)
+
+
+app = FastAPI(title="Self-Improving AI Dashboard", version="0.1.0", lifespan=lifespan)
+
+from self_improving_ai.dashboard.calendar import router as calendar_router
+app.include_router(calendar_router)
 
 from self_improving_ai.dashboard.portfolio import router as portfolio_router
 
@@ -97,6 +116,17 @@ class ChatRequest(BaseModel):
     meeting: MeetingBriefRequest | None = None
 
 
+def _generation_error(exc: BaseException, status: int, detail: str) -> HTTPException:
+    owner = exc if getattr(exc, "briefing_run_id", None) else exc.__cause__
+    run_id = getattr(owner, "briefing_run_id", None)
+    if run_id:
+        detail += (" Progress is saved. Retry the same meeting details to continue."
+                   if getattr(owner, "briefing_run_resumable", False)
+                   else " Draft progress and quality findings were saved for inspection.")
+    return HTTPException(status_code=status, detail=detail,
+                         headers={"X-Briefing-Run-ID": run_id} if run_id else None)
+
+
 @app.post("/api/briefings")
 async def create_meeting_brief(req: MeetingBriefRequest):
     try:
@@ -111,11 +141,19 @@ async def create_meeting_brief(req: MeetingBriefRequest):
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise _generation_error(exc, 422, str(exc)) from exc
     except TimeoutError as exc:
-        raise HTTPException(status_code=504, detail="Agent timed out; no approved brief was created.") from exc
+        raise _generation_error(exc, 504, "Agent timed out; no approved brief was created.") from exc
+    except APIError as exc:
+        if exc.code == 503:
+            raise _generation_error(exc, 503, "Gemini is temporarily busy. Please retry later; no approved brief was created.") from exc
+        if exc.code == 429:
+            raise _generation_error(exc, 429, "Gemini quota or rate limit reached. Check your project's usage limits before retrying.") from exc
+        if exc.code == 404:
+            raise _generation_error(exc, 502, "The configured Gemini model is unavailable for this account. Update SIA_AGENT_MODEL in the backend configuration.") from exc
+        raise _generation_error(exc, 502, "Gemini rejected the request. Check backend configuration and account access.") from exc
     except Exception as exc:
-        raise HTTPException(status_code=502, detail="Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
+        raise _generation_error(exc, 502, "Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
 
 
 @app.post("/api/briefings/check")
@@ -129,6 +167,16 @@ async def check_meeting_draft(req: CheckRequest):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Quality reviewer unavailable; draft was not approved.") from exc
+
+
+@app.get("/api/briefings/runs/{run_id}")
+async def get_briefing_run(run_id: str):
+    from self_improving_ai.agents.briefing.runs import BriefRunStore
+
+    try:
+        return await asyncio.to_thread(BriefRunStore().get, run_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/briefings/review")
@@ -278,7 +326,7 @@ async def chat(req: ChatRequest):
             f"**Meeting brief prepared: {brief['client_name']}**\n\n"
             f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
             f"**Focus:** {brief['focus']}\n\n"
-            f"**Portfolio:** {highlights[0]['text']}\n\n"
+            f"**Portfolio:** {highlights[0]['text'] if highlights else 'See the full brief for portfolio context.'}\n\n"
             + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
             + "**Discussion priorities:**\n"
             + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
@@ -289,8 +337,16 @@ async def chat(req: ChatRequest):
             "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
             "agents_used": ["meeting_briefing_agent"],
             "steps": [{"agent": "meeting_briefing_agent", "action": "build_briefing",
-                       "detail": f"Prepared six sections from {len(brief['sources'])} mock sources",
+                       "detail": f"Prepared six sections from {len(brief['sources'])} retained sources",
                        "tools_called": brief["tools_called"]}],
+        }
+
+    if is_meeting_request(req.message):
+        details = collect_meeting_details(req.message, _load("clients/households.json"), req.client_id)
+        return {
+            "response": "Confirm the client, New York meeting time and focus, then choose how to prepare the brief.",
+            "intent": "meeting_briefing", "client_id": details["client_id"] or None,
+            "meeting_details": details, "agents_used": [], "steps": [], "mode": "confirmation",
         }
 
     user_id = "advisor-001"

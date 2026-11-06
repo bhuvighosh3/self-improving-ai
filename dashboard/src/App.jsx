@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import MeetingPrep from "./MeetingPrep";
 import CopilotMeetingForm from "./CopilotMeetingForm";
 import PortfolioPanel from "./PortfolioPanel";
+import CalendarPrep from "./CalendarPrep";
+import MeetingPrepWorkspace from "./MeetingPrepWorkspace";
+import MeetingReadyDialog from "./MeetingReadyDialog";
+import { CalendarSymbol } from "./calendarFormat";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -16,6 +20,7 @@ function pct(v,t){return t?((v/t)*100).toFixed(1):0}
 function Ic({d,s=16}){return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{__html:d}}/>}
 
 const ic={
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
   copilot:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   dash:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   people:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -27,7 +32,7 @@ const ic={
   send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
 };
 
-const PAGE_TITLE={portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
+const PAGE_TITLE={calendar:"Calendar",portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
 function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
@@ -424,7 +429,7 @@ function md(t){
 
 /* ════ App ════ */
 export default function App(){
-  const [page,setPage]=useState("copilot");
+  const [page,setPage]=useState("calendar");
   const [health,setHealth]=useState(null);
   const [stats,setStats]=useState(null);
   const [clients,setClients]=useState([]);
@@ -436,6 +441,44 @@ export default function App(){
   const [incomingBrief,setIncomingBrief]=useState(null);
   const [chatMessages,setChatMessages]=useState([]);
   const [chatBusy,setChatBusy]=useState(false);
+  const [calendarMeeting,setCalendarMeeting]=useState(null);
+  const autoNoticeShown=useRef(false);
+  const [calendarEvents,setCalendarEvents]=useState([]);
+  const [activePreparation,setActivePreparation]=useState(null);
+  const [readyPreparations,setReadyPreparations]=useState([]);
+  const [seenPreparations,setSeenPreparations]=useState(()=>{
+    try { return new Set(JSON.parse(localStorage.getItem("sia-seen-preparations")||"[]")); }
+    catch { return new Set(); }
+  });
+
+  useEffect(()=>{
+    const controller=new AbortController();
+    const load=()=>fetch("/api/calendar",{signal:controller.signal}).then(r=>r.ok?r.json():null)
+      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.preparations.filter(job=>job.status==="ready"&&job.mode===state.mode&&state.events.some(event=>event.id===job.event_id&&event.version===job.version&&new Date(event.starts_at)>new Date(state.now))).sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
+    load(); const timer=setInterval(load,1500);
+    return()=>{controller.abort();clearInterval(timer);};
+  },[]);
+
+  function acknowledgePreparations(briefId=null){
+    setSeenPreparations(current=>{
+      const next=new Set(current);
+      readyPreparations.filter(job=>!briefId||job.brief_id===briefId).forEach(job=>next.add(job.id));
+      return next;
+    });
+  }
+  const unseenPreparations=readyPreparations.filter(job=>!seenPreparations.has(job.id));
+  const firstUnseenId=unseenPreparations[0]?.id;
+  const activeEvent=activePreparation&&calendarEvents.find(event=>event.id===activePreparation.event_id&&event.version===activePreparation.version);
+  useEffect(()=>{
+    if(page!=="calendar"||activePreparation||!firstUnseenId||autoNoticeShown.current)return;
+    const timer=setTimeout(()=>{if(document.querySelector("dialog[open]"))return;autoNoticeShown.current=true;setActivePreparation(unseenPreparations[0]);},1200);
+    return()=>clearTimeout(timer);
+  },[page,activePreparation,firstUnseenId]);
+  function markPreparationSeen(id){setSeenPreparations(current=>new Set([...current,id]));}
+  function dismissPreparation(){if(activePreparation)markPreparationSeen(activePreparation.id);setActivePreparation(null);}
+  useEffect(()=>{
+    try {localStorage.setItem("sia-seen-preparations",JSON.stringify([...seenPreparations]));}catch{}
+  },[seenPreparations]);
 
   useEffect(()=>{
     const f=(u,s)=>fetch(u).then(r=>r.json()).then(s).catch(()=>{});
@@ -447,11 +490,13 @@ export default function App(){
     f("/api/news",setNews);
   },[]);
 
-  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null)};
-  const prepareMeeting=(client)=>{setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
-  const openMeetingBrief=(brief)=>{setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
+  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null);if(p!=="calendar")setCalendarMeeting(null)};
+  const prepareMeeting=(client)=>{setCalendarMeeting(null);setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
+  const openMeetingBrief=(brief)=>{setCalendarMeeting(null);acknowledgePreparations(brief.id);setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
+  const openCalendarMeeting=(event)=>{readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
+    {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
@@ -472,11 +517,11 @@ export default function App(){
         </div>
         <nav className="sidebar-nav">
           <div className="nav-group-label">Main</div>
-          {menu.slice(0,4).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(0,5).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
-          {menu.slice(4,8).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(5,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
-          {menu.slice(8).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
@@ -487,11 +532,15 @@ export default function App(){
       <div className="main">
         <div className="topbar">
           <div className="topbar-title">{PAGE_TITLE[page]}</div>
-          <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
+          <div className="topbar-controls">
+            {unseenPreparations.length>0&&<button className="prep-alert-button" aria-label={`Meeting prep ready (${unseenPreparations.length})`} onClick={()=>setActivePreparation(unseenPreparations[0])}><CalendarSymbol name="document" size={16}/><span className="prep-alert-text">Meeting prep</span><span className="prep-alert-count">{unseenPreparations.length}</span></button>}
+            <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
+          </div>
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
-          {page==="meeting"&&<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>}
+          {page==="meeting"&&((incomingBrief||meetingClient)?<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>:<MeetingPrepWorkspace key={calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>)}
+          {page==="calendar"&&<CalendarPrep onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}
           {page==="clients"&&!selClient&&<Clients clients={clients} onSelect={setSelClient}/>}
           {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)} onPrepare={prepareMeeting}/>}
@@ -502,6 +551,7 @@ export default function App(){
           {page==="portfolio"&&<PortfolioPanel clients={clients}/>}
         </div>
       </div>
+      {activeEvent&&<MeetingReadyDialog key={activePreparation.id} event={activeEvent} onView={openCalendarMeeting} onDismiss={dismissPreparation}/>}
     </div>
   );
 }

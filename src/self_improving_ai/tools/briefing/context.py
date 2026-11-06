@@ -6,6 +6,7 @@ from pathlib import Path
 
 from self_improving_ai.tools.briefing.crm import get_client_profile, get_crm_notes
 from self_improving_ai.tools.portfolio.holdings import get_holdings
+from self_improving_ai.tools.briefing.compliance import check_compliance_flags
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
@@ -89,6 +90,9 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
     holdings = call("get_holdings", {"client_id": client_id}, get_holdings)
     notes = call("get_crm_notes", {"client_id": client_id, "limit": 100}, get_crm_notes)
     notes["notes"] = [n for n in notes["notes"] if n["date"] <= context["as_of"]]
+    compliance = call("check_compliance_flags", {"client_id": client_id}, check_compliance_flags)
+    if "error" in compliance:
+        raise ValueError("Compliance fixture checks are unavailable")
     minutes = call("list_previous_meetings", {"client_id": client_id}, list_previous_meetings)
     tasks = call("list_client_tasks", {"client_id": client_id}, list_client_tasks)
     updates = call("search_sources", {"client_id": client_id}, search_sources)
@@ -104,6 +108,9 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
     source("HOLDINGS", "Managed-account snapshot", json.dumps(holdings), "holdings",
            context["holdings_as_of"])
     source("TASKS", "Tasks in all states", json.dumps(tasks["items"]), "tasks", context["as_of"])
+    source("COMPLIANCE", "Recorded compliance follow-ups and coverage", json.dumps(compliance),
+           "compliance_check", context["as_of"])
+    sources[-1].update(author="Read-only fixture checks", version="briefing-tools-v1")
     for i, note in enumerate(notes["notes"]):
         source(f"NOTE-{i}", f"CRM note by {note['author']}", note["text"], "crm_note", note["date"])
     for record in minutes["items"]:

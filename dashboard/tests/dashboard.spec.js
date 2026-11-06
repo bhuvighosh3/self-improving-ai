@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test("copilot page loads by default with suggestions", async ({ page }) => {
+test("copilot page loads with suggestions", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Copilot", exact: true }).click();
   await expect(page.locator(".co-empty h3")).toHaveText("How can I help?");
   const chips = page.locator(".co-chip");
   await expect(chips.first()).toBeVisible();
@@ -9,6 +10,7 @@ test("copilot page loads by default with suggestions", async ({ page }) => {
 
 test("copilot sends a message and gets agent response", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Copilot", exact: true }).click();
   await page.fill(".co-textarea", "Hello");
   await page.click(".co-send");
   const bubble = page.locator(".bubble-ai");
@@ -17,6 +19,7 @@ test("copilot sends a message and gets agent response", async ({ page }) => {
 
 test("copilot suggestion chip sends message", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Copilot", exact: true }).click();
   await page.click(".co-chip >> nth=0");
   const bubble = page.locator(".bubble-ai");
   await expect(bubble.first()).toBeVisible({ timeout: 15000 });

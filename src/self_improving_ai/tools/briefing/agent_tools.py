@@ -6,6 +6,10 @@ from self_improving_ai.tools.briefing.context import prepare_context
 from self_improving_ai.tools.briefing.calculator import calculate
 from self_improving_ai.agents.briefing.ledger import register_calculation
 from copy import deepcopy
+import json
+from typing import Literal
+from pydantic import BaseModel
+from self_improving_ai.agents.briefing.instructions import evidence_for_model
 
 
 def prepare_meeting_context(client_id: str, tool_context: ToolContext, focus: str = "") -> dict:
@@ -14,28 +18,61 @@ def prepare_meeting_context(client_id: str, tool_context: ToolContext, focus: st
     if existing:
         if existing["client_id"] != client_id:
             return {"status": "denied", "error": "Client is locked for this session"}
-        return existing
+        return evidence_for_model(existing)
     try:
         evidence = prepare_context(client_id, focus=focus)
     except (LookupError, ValueError) as exc:
         return {"status": "invalid_request", "error": str(exc)}
     tool_context.state["meeting_evidence"] = evidence
-    return evidence
+    return evidence_for_model(evidence)
 
 
-def calculate_metrics(operation: str, operands: list[dict[str, str]],
+class CalculationOperand(BaseModel):
+    source_id: str
+    field: str
+    currency: str
+
+
+def _numeric_fields(value, prefix=""):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from _numeric_fields(item, f"{prefix}.{key}" if prefix else key)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _numeric_fields(item, f"{prefix}.{index}")
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        yield prefix
+
+
+def calculate_metrics(operation: Literal["sum", "difference", "ratio"], operands: list[CalculationOperand],
                       tool_context: ToolContext) -> dict:
-    """Calculate sourced JSON fields. Operands contain source_id, field and currency."""
-    evidence = tool_context.state.get("meeting_evidence")
+    """Use sum, difference or ratio. JSON field paths use dots, e.g. accounts.0.holdings.0.market_value."""
+    return execute_calculation(operation, operands, tool_context.state)
+
+
+def execute_calculation(operation, operands, state):
+    """Shared calculator implementation for ADK calls and explicit backend preflight."""
+    evidence = state.get("meeting_evidence")
     if not evidence:
         return {"status": "invalid_request", "error": "Load client evidence first"}
+    operation = operation.strip().lower()
+    operands = [o.model_dump() if isinstance(o, CalculationOperand) else o for o in operands]
     try:
         result = calculate(operation, operands, evidence["sources"])
     except (ValueError, KeyError, IndexError, TypeError) as exc:
-        return {"status": "invalid_request", "error": str(exc)}
+        fields = {}
+        for source in evidence["sources"]:
+            if source["id"] not in {o.get("source_id") for o in operands}:
+                continue
+            try:
+                fields[source["id"]] = list(_numeric_fields(json.loads(source["content"])))[:30]
+            except (ValueError, TypeError):
+                pass
+        return {"status": "invalid_request", "error": str(exc),
+                "allowed_operations": ["sum", "difference", "ratio"], "valid_numeric_fields": fields}
     evidence = deepcopy(evidence)
-    records = list(tool_context.state.get("meeting_calculations", []))
+    records = list(state.get("meeting_calculations", []))
     register_calculation(evidence, records, result)
-    tool_context.state["meeting_evidence"] = evidence
-    tool_context.state["meeting_calculations"] = records
+    state["meeting_evidence"] = evidence
+    state["meeting_calculations"] = records
     return {"status": "ok", **result}

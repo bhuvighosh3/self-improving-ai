@@ -6,7 +6,8 @@ from self_improving_ai.agents.briefing.checks import check_work
 
 
 async def check_draft(submitted: dict, original: dict) -> dict:
-    for field in ("id", "client_id", "meeting_date", "meeting_time", "focus", "data_as_of"):
+    for field in ("id", "client_id", "meeting_date", "meeting_time", "focus", "data_as_of",
+                  "meeting_type", "timezone", "mode"):
         if submitted.get(field) != original.get(field):
             raise ValueError("Meeting identity or inputs changed; regenerate the draft")
     work = deepcopy(original["workflow"]["work"])
@@ -15,11 +16,13 @@ async def check_draft(submitted: dict, original: dict) -> dict:
     if original["mode"] == "agent" and report["verdict"] == "pass":
         from self_improving_ai.agents.briefing.runtime import semantic_check
 
+        trace = []
         semantic = await semantic_check(work, original["workflow"]["evidence"],
-                                        original["workflow"]["calculations"], [])
+                                        original["workflow"]["calculations"], trace)
         report["verdict"] = semantic["verdict"]
         report["findings"].extend(semantic["findings"])
         report["semantic_support"] = "independent_model_reviewed"
+        report["trace"] = trace
     else:
         report["semantic_support"] = "manual_advisor_review_required_offline"
     return report
