@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings
 
@@ -17,6 +18,7 @@ class Settings(BaseSettings):
     google_cloud_location: str = "us-central1"
     agent_model: str = "gemini-2.5-flash"
     judge_model: str = "gemini-2.5-pro"
+    briefing_discovery: Literal["agent", "backend"] = "agent"
 
     # Independent A selection; connection settings do not change B/C defaults.
     portfolio_model: str = DEFAULT_MODEL

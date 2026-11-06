@@ -17,6 +17,16 @@ def enrich_demo(brief: dict, meeting_type: str) -> dict:
     evidence["sources"] = list(existing.values())
     sections = deepcopy(brief["sections"])
     by_id = {s["id"]: s for s in sections}
+    compliance = json.loads(existing["COMPLIANCE"]["content"])
+    for flag in compliance["flags"]:
+        existing_item = next((item for item in by_id["confirm"]["items"]
+            if item["id"] == ("state" if flag["code"] == "PROFILE_STATE_MISSING" else "distribution")), None)
+        if existing_item:
+            existing_item["source_ids"] = list(dict.fromkeys(existing_item["source_ids"] + ["COMPLIANCE"] + flag["source_ids"]))
+        else:
+            by_id["confirm"]["items"].append({"id": "compliance-" + flag["id"],
+                "title": flag["title"], "text": flag["description"] + " " + flag["next_action"],
+                "source_ids": ["COMPLIANCE"] + flag["source_ids"]})
     calculations, item_calculations = [], {}
     holdings = json.loads(existing["HOLDINGS"]["content"])
     positions = [(a, h, p) for a, account in enumerate(holdings["accounts"])
@@ -112,6 +122,7 @@ def enrich_demo(brief: dict, meeting_type: str) -> dict:
     report = check_work(work, evidence, calculations)
     report["semantic_support"] = "not_model_reviewed_offline_demo"
     return {**brief, "sections": sections, "sources": evidence["sources"],
+            "tools_called": sorted({event["tool"] for event in evidence["trace"]}),
             "meeting_type": meeting_type, "workflow": {"version": "v1", "work": work,
             "evidence": evidence, "calculations": calculations, "quality": report,
             "limitations": ["Offline rules, not autonomous LLM analysis"],

@@ -1,0 +1,562 @@
+{
+  "simulation_start": "2026-11-10T12:00:00-05:00",
+  "events": [
+    {
+      "id": "PREV-FRI",
+      "version": 1,
+      "starts_at": "2026-11-06T15:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Weekly service review",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Service team"
+      ],
+      "location": "Video call · Teams",
+      "description": "Review the week’s service commitments."
+    },
+    {
+      "id": "WORK-0-A",
+      "version": 1,
+      "starts_at": "2026-11-09T08:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Morning planning",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Review the day’s appointments and service priorities."
+    },
+    {
+      "id": "CAL-001",
+      "version": 1,
+      "client_id": "CLI-001",
+      "client_name": "Garcia Family",
+      "title": "Retirement & college planning",
+      "starts_at": "2026-11-09T10:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Retirement planning and upcoming college funding",
+      "participants": [
+        "Garcia Family",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Video call · Teams",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-0-L",
+      "version": 1,
+      "starts_at": "2026-11-09T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "TEAM-MON",
+      "version": 1,
+      "starts_at": "2026-11-09T14:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Advisory team meeting",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Advisory team"
+      ],
+      "location": "Meeting room 3",
+      "description": "Weekly staffing, service updates and upcoming client commitments."
+    },
+    {
+      "id": "WORK-0-F",
+      "version": 1,
+      "starts_at": "2026-11-09T16:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Client follow-ups",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Record meeting notes and work through open service tasks."
+    },
+    {
+      "id": "WORK-1-A",
+      "version": 1,
+      "starts_at": "2026-11-10T08:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Morning planning",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Review the day’s appointments and service priorities."
+    },
+    {
+      "id": "CAL-005",
+      "version": 2,
+      "client_id": "CLI-005",
+      "client_name": "Patel Retirement Account",
+      "title": "Income planning review",
+      "starts_at": "2026-11-10T09:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Monthly withdrawals and inherited IRA distribution schedule",
+      "participants": [
+        "Priya Patel",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Phone call",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "TEAM-TUE",
+      "version": 1,
+      "starts_at": "2026-11-10T10:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Operations check-in",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Operations team"
+      ],
+      "location": "Video call · Teams",
+      "description": "Account paperwork and open service requests."
+    },
+    {
+      "id": "WORK-1-L",
+      "version": 1,
+      "starts_at": "2026-11-10T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "CAL-006",
+      "version": 1,
+      "client_id": "CLI-001",
+      "client_name": "Garcia Family",
+      "title": "College funding follow-up",
+      "starts_at": "2026-11-10T14:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Retirement planning and upcoming college funding",
+      "participants": [
+        "Garcia Family",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Video call · Teams",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-1-F",
+      "version": 1,
+      "starts_at": "2026-11-10T16:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Client follow-ups",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Record meeting notes and work through open service tasks."
+    },
+    {
+      "id": "WORK-2-A",
+      "version": 1,
+      "starts_at": "2026-11-11T08:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Morning planning",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Review the day’s appointments and service priorities."
+    },
+    {
+      "id": "CAL-004",
+      "version": 1,
+      "client_id": "CLI-004",
+      "client_name": "Okafor Family",
+      "title": "Home purchase planning",
+      "starts_at": "2026-11-11T09:00:00-05:00",
+      "duration_minutes": 90,
+      "meeting_type": "goal_review",
+      "focus": "Home purchase timeline, expected down payment and external funding sources",
+      "participants": [
+        "Amara Okafor",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Office · Meeting room 1",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "TEAM-WED",
+      "version": 1,
+      "starts_at": "2026-11-11T11:00:00-05:00",
+      "duration_minutes": 30,
+      "title": "Planning team sync",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Planning team"
+      ],
+      "location": "Video call · Teams",
+      "description": "Coordinate planning deliverables and follow-up ownership."
+    },
+    {
+      "id": "WORK-2-L",
+      "version": 1,
+      "starts_at": "2026-11-11T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "CAL-007",
+      "version": 1,
+      "client_id": "CLI-005",
+      "client_name": "Patel Retirement Account",
+      "title": "Withdrawal planning check-in",
+      "starts_at": "2026-11-11T14:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Monthly withdrawals and inherited IRA distribution schedule",
+      "participants": [
+        "Priya Patel",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Phone call",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-2-F",
+      "version": 1,
+      "starts_at": "2026-11-11T16:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Client follow-ups",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Record meeting notes and work through open service tasks."
+    },
+    {
+      "id": "WORK-3-A",
+      "version": 1,
+      "starts_at": "2026-11-12T08:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Morning planning",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Review the day’s appointments and service priorities."
+    },
+    {
+      "id": "TEAM-THU",
+      "version": 1,
+      "starts_at": "2026-11-12T09:30:00-05:00",
+      "duration_minutes": 60,
+      "title": "Investment committee",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Investment team"
+      ],
+      "location": "Meeting room 3",
+      "description": "Internal discussion of research and portfolio monitoring."
+    },
+    {
+      "id": "CAL-002",
+      "version": 2,
+      "client_id": "CLI-002",
+      "client_name": "Thompson Trust",
+      "title": "Quarterly portfolio review",
+      "starts_at": "2026-11-12T11:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Bond duration, goal progress and outstanding service commitments",
+      "participants": [
+        "Thompson Trust",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Office · Meeting room 2",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-3-L",
+      "version": 1,
+      "starts_at": "2026-11-12T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "CAL-008",
+      "version": 1,
+      "client_id": "CLI-003",
+      "client_name": "Chen Household",
+      "title": "Tax planning conversation",
+      "starts_at": "2026-11-12T15:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "ARKK tax-loss harvesting and early retirement",
+      "participants": [
+        "Wei Chen",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Video call · Teams",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-3-F",
+      "version": 1,
+      "starts_at": "2026-11-12T16:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Client follow-ups",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Record meeting notes and work through open service tasks."
+    },
+    {
+      "id": "WORK-4-A",
+      "version": 1,
+      "starts_at": "2026-11-13T08:30:00-05:00",
+      "duration_minutes": 30,
+      "title": "Morning planning",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Review the day’s appointments and service priorities."
+    },
+    {
+      "id": "TEAM-FRI",
+      "version": 1,
+      "starts_at": "2026-11-13T09:00:00-05:00",
+      "duration_minutes": 30,
+      "title": "Weekly service review",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Service team"
+      ],
+      "location": "Video call · Teams",
+      "description": "Review outstanding commitments and next week’s calendar."
+    },
+    {
+      "id": "CAL-003",
+      "version": 2,
+      "client_id": "CLI-003",
+      "client_name": "Chen Household",
+      "title": "Retirement planning review",
+      "starts_at": "2026-11-13T10:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Early retirement goals, ARKK position and information to confirm",
+      "participants": [
+        "Wei Chen",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Video call · Teams",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-4-L",
+      "version": 1,
+      "starts_at": "2026-11-13T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "CAL-009",
+      "version": 1,
+      "client_id": "CLI-002",
+      "client_name": "Thompson Trust",
+      "title": "Bond allocation follow-up",
+      "starts_at": "2026-11-13T14:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Interest rates and bond portfolio duration",
+      "participants": [
+        "Thompson Trust",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Office · Meeting room 2",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "WORK-4-F",
+      "version": 1,
+      "starts_at": "2026-11-13T16:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Client follow-ups",
+      "category": "focus",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Focus time",
+      "description": "Record meeting notes and work through open service tasks."
+    },
+    {
+      "id": "NEXT-MON",
+      "version": 1,
+      "starts_at": "2026-11-16T09:00:00-05:00",
+      "duration_minutes": 30,
+      "title": "Weekly planning",
+      "category": "internal",
+      "prep_required": false,
+      "participants": [
+        "Advisor",
+        "Advisory team"
+      ],
+      "location": "Video call · Teams",
+      "description": "Plan client meetings and service priorities for the week."
+    },
+    {
+      "id": "CAL-010",
+      "version": 1,
+      "client_id": "CLI-004",
+      "client_name": "Okafor Family",
+      "title": "Home purchase follow-up",
+      "starts_at": "2026-11-16T10:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "goal_review",
+      "focus": "Home purchase timeline, expected down payment and external funding sources",
+      "participants": [
+        "Amara Okafor",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Office · Meeting room 1",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "NEXT-TUE",
+      "version": 1,
+      "starts_at": "2026-11-17T12:00:00-05:00",
+      "duration_minutes": 60,
+      "title": "Lunch",
+      "category": "break",
+      "prep_required": false,
+      "participants": [
+        "Advisor"
+      ],
+      "location": "Out of office",
+      "description": "Reserved personal time."
+    },
+    {
+      "id": "CAL-011",
+      "version": 1,
+      "client_id": "CLI-001",
+      "client_name": "Garcia Family",
+      "title": "Family planning review",
+      "starts_at": "2026-11-17T14:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Retirement planning and upcoming college funding",
+      "participants": [
+        "Garcia Family",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Video call · Teams",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    },
+    {
+      "id": "CAL-012",
+      "version": 1,
+      "client_id": "CLI-005",
+      "client_name": "Patel Retirement Account",
+      "title": "Retirement income review",
+      "starts_at": "2026-11-18T11:00:00-05:00",
+      "duration_minutes": 60,
+      "meeting_type": "quarterly_review",
+      "focus": "Monthly withdrawals and inherited IRA distribution schedule",
+      "participants": [
+        "Priya Patel",
+        "Advisor"
+      ],
+      "category": "client",
+      "prep_required": true,
+      "location": "Phone call",
+      "description": "Review the client’s latest requests, portfolio context and outstanding follow-ups."
+    }
+  ]
+}

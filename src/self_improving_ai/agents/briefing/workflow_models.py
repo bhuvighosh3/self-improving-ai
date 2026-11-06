@@ -52,7 +52,7 @@ class DraftItem(StrictModel):
 class DraftSection(StrictModel):
     id: Literal["overview", "changes", "portfolio", "priorities", "actions", "confirm"]
     title: str
-    items: list[DraftItem] = Field(max_length=20)
+    items: list[DraftItem] = Field(min_length=1, max_length=20)
 
 
 class AgentWork(StrictModel):

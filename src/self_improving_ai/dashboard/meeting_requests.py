@@ -5,6 +5,22 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 
+def is_meeting_request(message: str) -> bool:
+    """Route explicit preparation requests to the shared, reviewable B workflow.
+
+    This is a UI handoff, not a replacement for C's general intent planner.
+    Discussion of previous meetings alone does not start a new brief.
+    """
+    text = message.lower()
+    preparation = r"\b(?:prepare|prep|brief|briefing|agenda|ready)\b"
+    meeting = r"\b(?:meeting|meetings|appointment|review)\b"
+    return bool(
+        re.search(preparation, text) and re.search(meeting, text)
+        or re.search(r"\bget me ready\b", text)
+        or re.search(r"\bprep(?:are)? me for\b", text)
+    )
+
+
 def collect_meeting_details(message: str, clients: list[dict], selected_client_id: str | None = None,
                             today: date | None = None) -> dict:
     """Leave missing or ambiguous fields empty rather than silently guessing."""

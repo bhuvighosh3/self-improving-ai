@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./meeting-prep.css";
 import { loadMeetingDraft, saveMeetingDraft } from "./meetingDraftStore";
+import { CalendarSymbol, meetingLabel } from "./calendarFormat";
 
 const FOCUS = {
   "CLI-001": "Retirement planning and upcoming college funding",
@@ -16,17 +17,17 @@ function tomorrow() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export default function MeetingPrep({ clients, selectedClient, incomingBrief }) {
-  const [saved] = useState(() => loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
+export default function MeetingPrep({ clients, selectedClient, incomingBrief, calendarEvent, onBackToCalendar, freshDraft = false, embedded = false, defaultMode = "simulation", defaultDate }) {
+  const [saved] = useState(() => freshDraft ? null : loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
   const [brief, setBrief] = useState(saved?.brief || null);
   const [clientId, setClientId] = useState(saved?.brief.client_id || "CLI-003");
-  const [meetingDate, setMeetingDate] = useState(saved?.brief.meeting_date || tomorrow());
+  const [meetingDate, setMeetingDate] = useState(saved?.brief.meeting_date || defaultDate || tomorrow());
   const [meetingTime, setMeetingTime] = useState(saved?.brief.meeting_time || "14:00");
   const [focus, setFocus] = useState(saved?.brief.focus || FOCUS["CLI-003"]);
   const [reviewedAt, setReviewedAt] = useState(saved?.reviewedAt || null);
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
-  const [mode, setMode] = useState(saved?.brief.mode || "simulation");
+  const [mode, setMode] = useState(saved?.brief.mode || defaultMode);
   const [meetingType, setMeetingType] = useState(saved?.brief.meeting_type || "quarterly_review");
   const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
   const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
@@ -168,12 +169,16 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
 
   return (
     <div className="meeting-prep">
-      <div className="meeting-heading no-meeting-print">
+      {calendarEvent ? <header className="calendar-prep-context no-meeting-print">
+        <button className="calendar-back" onClick={onBackToCalendar}><CalendarSymbol name="previous" size={16}/>Back to calendar</button>
+        <div><h2>{calendarEvent.client_name}</h2><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft for your review"}</span></div>
+        <p>{calendarEvent.title} · {meetingLabel(calendarEvent)}</p>
+      </header> : !embedded && <div className="meeting-heading no-meeting-print">
         <div><h2>Meeting Prep</h2></div>
         <span className="chip chip-amber">Demo · Synthetic data</span>
-      </div>
+      </div>}
 
-      <form className="card meeting-form no-meeting-print" onSubmit={generate}>
+      {!calendarEvent && <form className="card meeting-form no-meeting-print" onSubmit={generate}>
         <div className="card-body meeting-fields">
           <label>Generation mode<select value={mode} onChange={event => setMode(event.target.value)} disabled={busy}><option value="simulation">Offline demo · No LLM</option><option value="agent">AI Agent · Gemini</option></select></label>
           <label>Meeting type<select value={meetingType} onChange={event => setMeetingType(event.target.value)} disabled={busy}><option value="quarterly_review">Quarterly review</option><option value="annual_review">Annual review</option><option value="goal_review">Goal review</option></select></label>
@@ -186,7 +191,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
           <label className="meeting-focus">Meeting focus<input value={focus} onChange={event => setFocus(event.target.value)} minLength={3} maxLength={500} disabled={busy} required placeholder="What should this meeting focus on?" /></label>
           <button className="meeting-btn primary" disabled={busy || !clients.length || !focus.trim()} type="submit">{busy ? "Preparing brief…" : "Generate Meeting Brief"}</button>
         </div>
-      </form>
+      </form>}
 
       {error && <div className="meeting-message error" role="alert">{error}</div>}
       {notice && <div className="meeting-message" role="status">{notice}</div>}
@@ -198,6 +203,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
       </div>}
 
       {brief && <>
+        {calendarEvent && <section className="meeting-glance no-meeting-print" aria-label="Meeting at a glance"><h3>At a glance</h3><p>{brief.focus}</p><ul>{brief.sections.find(section => section.id === "priorities")?.items.slice(0, 3).map(item => <li key={item.id}>{item.title}</li>)}</ul><a href="#meeting-full-brief">Read the full brief<CalendarSymbol name="next" size={13}/></a></section>}
         <div className="meeting-toolbar no-meeting-print">
           <div aria-live="polite"><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft · Needs review"}</span><span className="meeting-muted">Revision {revision}{edited ? " · Advisor edited" : ""}</span></div>
           <div className="meeting-actions">
@@ -210,7 +216,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
         </div>
         {stale && <p className="meeting-message no-meeting-print" role="status">Meeting inputs changed. Generate a new brief to review or export these inputs. The previous draft is shown below.</p>}
         {editing && <p className="meeting-message no-meeting-print">Edits are saved in this browser and reset the review status. References stay attached to their original records; verify that they support your edited text.</p>}
-        {brief.workflow && <details className="card no-meeting-print" style={{ padding: 16, marginBottom: 16 }}>
+        {brief.workflow && <details className="card meeting-process no-meeting-print" style={{ padding: 16, marginBottom: 16 }}>
           <summary>Preparation process · {brief.workflow.work.change_status.replaceAll("_", " ")} · {quality ? `Check: ${quality.verdict}` : "Edited: recheck required"}</summary>
           <p>{brief.mode === "agent" ? "Gemini agent with an independent model reviewer." : "Deterministic demonstration; not model-reviewed."} Review records are local demo records, without authenticated advisor identity.</p>
           <p>{brief.workflow.work.context_summary}</p>
@@ -221,7 +227,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief }) 
         </details>}
 
         <div className="meeting-workspace">
-          <article className="card meeting-sheet" aria-label="Meeting briefing">
+          <article id="meeting-full-brief" className="card meeting-sheet" aria-label="Meeting briefing">
             <header className="meeting-sheet-header">
               <div className="meeting-sheet-title"><h2>{brief.client_name}</h2><span className="chip chip-violet">Meeting Brief</span></div>
               <p>{brief.contact} · {brief.meeting_date} at {brief.meeting_time} · New York</p>
