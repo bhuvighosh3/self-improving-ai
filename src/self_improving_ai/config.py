@@ -15,8 +15,9 @@ class Settings(BaseSettings):
     # GCP / Gemini
     google_cloud_project: str = ""
     google_cloud_location: str = "us-central1"
-    agent_model: str = "gemini-2.5-flash"
-    judge_model: str = "gemini-2.5-pro"
+    agent_model: str = "gemini-3.8-flash"
+    agent_model_fallback: str = "gemini-3.5-flash-lite"
+    judge_model: str = "gemini-3.8-flash"
 
     # Independent A selection; connection settings do not change B/C defaults.
     portfolio_model: str = DEFAULT_MODEL
