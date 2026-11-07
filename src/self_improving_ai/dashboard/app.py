@@ -52,6 +52,10 @@ from self_improving_ai.dashboard.calendar import router as calendar_router
 
 app.include_router(calendar_router)
 
+from self_improving_ai.dashboard.email import router as email_router
+
+app.include_router(email_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
