@@ -86,7 +86,7 @@ Three agents connected via Google ADK's `AgentTool`:
 Advisor request
       ↓
 ┌─────────────────────┐
-│  Request Orchestrator│ ← Gemini 2.5 Flash
+│  Request Orchestrator│ ← Gemini 3.8 Flash
 │  (LlmAgent)         │
 └──┬──────────────┬───┘
    │              │
@@ -117,7 +117,8 @@ Each agent improves through different strategies, all gated by the shared improv
 ## Tech Stack
 
 - **Agent framework**: Google ADK v1.32.0 (`LlmAgent`, `AgentTool`, `Runner`)
-- **LLM**: Gemini 2.5 Flash via Developer API
+- **LLM**: Gemini 3.8 Flash via Developer API (fallback: Gemini 3.5 Flash Lite)
+- **Database**: Cloud Firestore (calendar events, emails)
 - **Backend**: FastAPI + Uvicorn
 - **Frontend**: React + Vite (light theme, DM Sans / JetBrains Mono)
 - **Testing**: Playwright (11 automated tests)
@@ -125,15 +126,18 @@ Each agent improves through different strategies, all gated by the shared improv
 
 ## Dashboard
 
-The dashboard provides 8 pages:
+The dashboard provides 11 pages:
 
 - **Copilot** — chat interface powered by the live ADK orchestrator (Gemini), suggestion chips, execution trace visualization
 - **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, local advisor edits and review, and PDF export
+- **Calendar** — monthly grid calendar with event chips, create/edit/delete modal, backed by Cloud Firestore
+- **Email** — inbox/sent/archive views with compose, reply, star, search, and category labels, backed by Cloud Firestore
+- **Portfolio Analysis** — deterministic calculations and Gemini-powered portfolio agent
 - **Overview** — AUM, client count, intent breakdown
 - **Clients** — 5 synthetic households with detail views
 - **Requests** — request history table
-- **Tools** — mock tool catalog (14 tools with realistic traps)
-- **News** — market news feed
+- **Tools** — tool catalog (19 tools, including live Twelve Data news and rule-based compliance)
+- **News** — market news feed (live via Twelve Data API with mock fallback)
 - **Agents** — agent cards showing configuration and status
 
 ### Copilot Chat

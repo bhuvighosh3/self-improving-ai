@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -28,6 +29,7 @@ from self_improving_ai.agents.briefing.schemas import BriefExportRequest, Meetin
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
 from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
+from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
 from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.agents.briefing.review import check_draft
@@ -46,6 +48,14 @@ from self_improving_ai.dashboard.connections import router as connections_router
 
 app.include_router(connections_router)
 
+from self_improving_ai.dashboard.calendar import router as calendar_router
+
+app.include_router(calendar_router)
+
+from self_improving_ai.dashboard.email import router as email_router
+
+app.include_router(email_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -62,6 +72,36 @@ _runner = Runner(
     session_service=_session_service,
 )
 _sessions: dict[str, str] = {}
+
+_fallback_runner = None
+
+
+def _get_fallback_runner():
+    global _fallback_runner
+    if _fallback_runner is None:
+        from google.adk import Agent
+        from google.adk.tools.agent_tool import AgentTool
+        from self_improving_ai.agents.orchestrator.instructions import ORCHESTRATOR_INSTRUCTION
+        from self_improving_ai.agents.portfolio.agent import create_portfolio_agent
+        from self_improving_ai.agents.briefing.agent import briefing_agent
+
+        fallback_orchestrator = Agent(
+            name="request_orchestrator",
+            model=settings.agent_model_fallback,
+            instruction=ORCHESTRATOR_INSTRUCTION,
+            tools=[
+                AgentTool(agent=create_portfolio_agent(settings.agent_model_fallback)),
+                AgentTool(agent=briefing_agent),
+                search_tool_catalog,
+            ],
+            output_key="orchestrator_result",
+        )
+        _fallback_runner = Runner(
+            app_name=fallback_orchestrator.name,
+            agent=fallback_orchestrator,
+            session_service=_session_service,
+        )
+    return _fallback_runner
 
 
 async def _get_or_create_session(user_id: str) -> str:
@@ -115,6 +155,18 @@ async def create_meeting_brief(req: MeetingBriefRequest):
     except TimeoutError as exc:
         raise HTTPException(status_code=504, detail="Agent timed out; no approved brief was created.") from exc
     except Exception as exc:
+        err = str(exc)
+        if req.mode == "agent" and ("503" in err or "UNAVAILABLE" in err):
+            log.warning("Briefing primary model unavailable, retrying with fallback")
+            try:
+                from self_improving_ai.agents.briefing.runtime import generate_agent_brief
+
+                brief = await asyncio.wait_for(
+                    generate_agent_brief(req, model=settings.agent_model_fallback), timeout=180)
+                await asyncio.to_thread(DraftStore().create, brief)
+                return brief
+            except Exception:
+                log.exception("Briefing fallback model also failed")
         raise HTTPException(status_code=502, detail="Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
 
 
@@ -308,8 +360,38 @@ async def chat(req: ChatRequest):
     steps = []
     response_parts = []
 
-    try:
-        async for event in _runner.run_async(
+    _FRIENDLY_ACTIONS = {
+        "get_holdings": "Looking up portfolio holdings",
+        "get_holdings_v1": "Looking up portfolio holdings",
+        "get_price_history": "Fetching price history",
+        "get_stale_price": "Fetching recent price",
+        "get_client_profile": "Pulling up client profile",
+        "get_crm_notes": "Reviewing recent notes",
+        "search_market_news": "Scanning market news",
+        "run_monte_carlo": "Running projections",
+        "get_capital_market_assumptions": "Checking market assumptions",
+        "estimate_capital_gains": "Estimating capital gains",
+        "calculate_withdrawal_rate": "Calculating withdrawal rate",
+        "check_compliance_flags": "Checking compliance",
+        "calculate_fee_drag": "Analyzing fee impact",
+        "search_tool_catalog": "Searching available tools",
+        "calculate_allocation_drift": "Checking allocation drift",
+        "estimate_portfolio_risk": "Estimating portfolio risk",
+        "project_financial_goal": "Running goal projection",
+        "get_market_quote": "Getting market quote",
+        "get_external_price_history": "Fetching price history",
+        "get_portfolio_scenarios": "Running scenario analysis",
+        "prepare_meeting_context": "Gathering meeting context",
+        "calculate_metrics": "Calculating key metrics",
+    }
+    _FRIENDLY_AGENTS = {
+        "request_orchestrator": "Copilot",
+        "portfolio_estimation_agent": "Portfolio Analysis",
+        "meeting_briefing_agent": "Meeting Prep",
+    }
+
+    async def _run_with_runner(runner):
+        async for event in runner.run_async(
             session_id=session_id,
             user_id=user_id,
             new_message=content,
@@ -319,25 +401,45 @@ async def chat(req: ChatRequest):
                 for part in event.content.parts:
                     if hasattr(part, "function_call") and part.function_call:
                         fc = part.function_call
+                        friendly = _FRIENDLY_ACTIONS.get(fc.name, fc.name.replace("_", " ").title())
                         steps.append({
-                            "agent": author,
+                            "agent": _FRIENDLY_AGENTS.get(author, author),
                             "action": fc.name,
-                            "detail": f"Called {fc.name}",
+                            "detail": friendly,
                             "tools_called": [fc.name],
                         })
                     elif hasattr(part, "text") and part.text:
                         response_parts.append(part.text)
+
+    try:
+        await _run_with_runner(_runner)
     except Exception as exc:
-        log.exception("Orchestrator error")
         err = str(exc)
-        if "429" in err or "RESOURCE_EXHAUSTED" in err:
-            response_parts.append("Rate limit reached — the free Gemini tier allows 5 requests/minute. Please wait a moment and try again.")
+        if "503" in err or "UNAVAILABLE" in err:
+            log.warning("Primary model unavailable, trying fallback model")
+            steps.clear()
+            response_parts.clear()
+            try:
+                fallback = _get_fallback_runner()
+                await _run_with_runner(fallback)
+            except Exception as fallback_exc:
+                log.exception("Fallback model also failed")
+                fallback_err = str(fallback_exc)
+                if "429" in fallback_err or "RESOURCE_EXHAUSTED" in fallback_err:
+                    response_parts.append("Rate limit reached — please wait a moment and try again.")
+                elif "503" in fallback_err or "UNAVAILABLE" in fallback_err:
+                    response_parts.append("The AI service is temporarily busy. Please try again in a minute.")
+                else:
+                    response_parts.append("Something went wrong. Please try again.")
+        elif "429" in err or "RESOURCE_EXHAUSTED" in err:
+            response_parts.append("Rate limit reached — please wait a moment and try again.")
         else:
-            response_parts.append("The orchestrator encountered an error. Please try again.")
+            log.exception("Orchestrator error")
+            response_parts.append("Something went wrong. Please try again.")
 
     agents_used = list({s["agent"] for s in steps})
     if not agents_used:
-        agents_used = ["request_orchestrator"]
+        agents_used = ["Copilot"]
 
     response_text = response_parts[-1] if response_parts else "I'm not sure how to help with that. Could you rephrase?"
 

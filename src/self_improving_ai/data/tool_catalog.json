@@ -128,7 +128,7 @@
       "client_id"
     ],
     "returns": "List of active compliance flags",
-    "implementation_status": "planned_not_implemented"
+    "implementation_status": "implemented"
   },
   {
     "name": "calculate_fee_drag",

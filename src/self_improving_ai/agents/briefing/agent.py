@@ -6,7 +6,7 @@ from google.adk import Agent
 
 from self_improving_ai.agents.briefing.instructions import briefing_instructions
 from self_improving_ai.agents.briefing.workflow_models import AgentWork
-from self_improving_ai.tools.briefing.agent_tools import prepare_meeting_context, calculate_metrics
+from self_improving_ai.tools.briefing.agent_tools import prepare_meeting_context, calculate_metrics, check_compliance
 from self_improving_ai.config import settings
 
 
@@ -17,6 +17,7 @@ briefing_agent = Agent(
     tools=[
         prepare_meeting_context,
         calculate_metrics,
+        check_compliance,
     ],
     output_key="briefing_result",
     output_schema=AgentWork,
