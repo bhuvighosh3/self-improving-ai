@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -150,6 +151,18 @@ async def create_meeting_brief(req: MeetingBriefRequest):
     except TimeoutError as exc:
         raise HTTPException(status_code=504, detail="Agent timed out; no approved brief was created.") from exc
     except Exception as exc:
+        err = str(exc)
+        if req.mode == "agent" and ("503" in err or "UNAVAILABLE" in err):
+            log.warning("Briefing primary model unavailable, retrying with fallback")
+            try:
+                from self_improving_ai.agents.briefing.runtime import generate_agent_brief
+
+                brief = await asyncio.wait_for(
+                    generate_agent_brief(req, model=settings.agent_model_fallback), timeout=180)
+                await asyncio.to_thread(DraftStore().create, brief)
+                return brief
+            except Exception:
+                log.exception("Briefing fallback model also failed")
         raise HTTPException(status_code=502, detail="Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
 
 
