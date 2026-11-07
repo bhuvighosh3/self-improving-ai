@@ -2,7 +2,7 @@
 
 ## Current integration
 
-The teammate's PR #4 (`4316af3` on main) supplies the canonical monthly Calendar,
+The teammate's PR #4 (`4316af3` on main) supplies the canonical Calendar records,
 Calendar CRUD, simulated Inbox and Firestore document schemas. Part B now consumes
 those records. The earlier private weekly calendar component, event dialog and
 35-event JSON fixture have been removed. There is one schedule and one Inbox.
@@ -12,9 +12,23 @@ Both open the same retained draft. Calendar editing and Inbox operations keep th
 teammate's layout and theme. Part A/C model and portfolio changes from main remain
 in place.
 
+## Weekly Calendar presentation
+
+Calendar displays Monday–Sunday on a timed grid with previous/next week and Today
+navigation. Saturday and Sunday are always included; no weekend toggle is needed.
+Mobile shows seven day selectors and one selected day's time grid. Returning from
+a weekend brief, or opening on a weekend demo day, selects that actual day.
+
+This is a presentation-only change. The same nine seeded meeting records retain
+their IDs, dates, times and content; Meeting Prep and the agent pipeline are
+unchanged. Weeks crossing months/years read both canonical month queries.
+Overlapping meetings use adjacent lanes and early/late meetings extend the hour
+range without rescheduling records.
+
 ## Demo workflow
 
-1. Open Calendar. The explicit demo clock starts November 11, 2026 at 3 PM New York.
+1. The dashboard opens Inbox by default; choose Calendar to see the schedule.
+   The explicit demo clock starts November 11, 2026 at 3 PM New York.
    The shared seed has nine client meetings across October–December, five in
    November. Garcia's November 12 review is within the 24-hour window.
 2. The serial background monitor automatically prepares Garcia in Offline demo
@@ -126,7 +140,7 @@ failures stay visible rather than closing forms and pretending a write succeeded
 Offline backend tests cover the original B contracts, shared Calendar CRUD,
 client/cutoff isolation, mail snapshot freezing, content invalidation, deletion and
 rescheduling during generation, explicit cloud outages and model fallback.
-Browser checks cover the monthly Calendar, automatic ready dialog, six-section
+Browser checks cover the weekly Calendar, automatic ready dialog, six-section
 review at desktop/mobile widths, meeting creation validation, Inbox archive/read
 operations and retained manual/Copilot preparation.
 

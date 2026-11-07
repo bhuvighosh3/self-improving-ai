@@ -126,12 +126,13 @@ Each agent improves through different strategies, all gated by the shared improv
 
 ## Dashboard
 
-The dashboard provides 11 pages:
+The dashboard provides 11 pages and opens Inbox by default:
+
+- **Inbox** — inbox/sent/archive views with compose, reply, star, search, and category labels, using the shared local/Firestore store
 
 - **Copilot** — chat interface powered by the live ADK orchestrator (Gemini), suggestion chips, execution trace visualization
 - **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, local advisor edits and review, and PDF export
-- **Calendar** — monthly grid calendar with event chips, create/edit/delete modal, using the shared local/Firestore store
-- **Email** — inbox/sent/archive views with compose, reply, star, search, and category labels, using the shared local/Firestore store
+- **Calendar** — timed Monday–Sunday calendar with week navigation and the existing create/edit/delete modal, using the shared local/Firestore store
 - **Portfolio Analysis** — deterministic calculations and Gemini-powered portfolio agent
 - **Overview** — AUM, client count, intent breakdown
 - **Clients** — 5 synthetic households with detail views
@@ -451,7 +452,7 @@ The harness reports these scores per stage for the learner and each baseline. A 
 
 ### Calendar/Inbox and Part B integration
 
-The monthly Calendar and simulated Inbox from PR #4 now feed the shared Part B
+The shared Calendar and simulated Inbox from PR #4 now feed the shared Part B
 meeting-preparation service. Upcoming client meetings receive a retained brief
 within 24 hours; Calendar links and the ready notice open that same draft.
 Client-linked mail is available to the investigator as original evidence.

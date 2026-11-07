@@ -431,7 +431,7 @@ function md(t){
 
 /* ════ App ════ */
 export default function App(){
-  const [page,setPage]=useState("calendar");
+  const [page,setPage]=useState("email");
   const [health,setHealth]=useState(null);
   const [stats,setStats]=useState(null);
   const [clients,setClients]=useState([]);
@@ -498,10 +498,10 @@ export default function App(){
   const openCalendarMeeting=(event)=>{autoNoticeShown.current=true;readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
+    {id:"email",ic:ic.mail,label:"Inbox"},
     {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
-    {id:"email",ic:ic.mail,label:"Inbox"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
