@@ -134,3 +134,9 @@ Earlier live acceptance reports describe the previous private fixture. They are
 historical evidence, not proof of the new Firestore integration. The updated
 `scripts/audit_calendar_briefing.py` exercises the canonical Okafor event through
 the same operational scope; pass `--live` with an isolated `SIA_DB_PATH` to opt in.
+
+One integrated Okafor live audit on November 7 passed 16 technical checks using
+Gemini 3.5 Flash-Lite and the shared local Inbox original. Manual review still
+requires clearer chronological attribution of the older purchase plan and newer
+payment deadline. See [verification results](integration-verification.md). This
+local-synthetic run did not exercise Firestore credentials or connectivity.

@@ -1,6 +1,6 @@
-# Part B integration verification — 2026-11-05
+# Part B integration verification — updated 2026-11-07
 
-Branch: `codex/proactive-meeting-prep`, based on main `115fe27`.
+Branch: `codex/proactive-meeting-prep`, integrating main `4316af3` (PR #4).
 
 ## Shared Calendar/Inbox integration (2026-11-07)
 
@@ -16,10 +16,26 @@ from main are preserved.
   manual form and Copilot handoff.
 - Vite production build passed.
 - Real Firestore credentials/connectivity have **not** been verified locally.
-- The new live Gemini audit has **not** run: automatic approval review rejected
-  external transmission of the newly combined synthetic payload pending explicit
-  user approval. Earlier live records below describe the superseded private
-  calendar fixture and must not be presented as this integration's acceptance.
+- One explicitly authorized live Okafor audit passed **16/16 technical checks**
+  with `gemini-3.5-flash-lite`: **9.35 seconds**, **19,167 recorded tokens**, one
+  quality round and no alternative-model invocation. These are trace-recorded
+  tokens for the retained brief, not a billing statement.
+- The investigator read the canonical Inbox original `EML-a3b4c5d6`; its content
+  reached the writer and citations. Six sections, actual calculations, objective
+  and independent model checks, persisted draft and retained reopening passed.
+- Manual inspection found a content-quality limitation despite the automated
+  pass: the change summary compresses an older tentative six-month purchase plan
+  and the newer possible mid-December down-payment deadline into one sentence.
+  It should attribute these updates chronologically, distinguish purchase dates
+  from payment deadlines, and explicitly ask which dates remain current. The
+  simulated sender name also differs from the primary-contact profile and needs
+  clarification. This case is technical integration evidence, not full editorial
+  or financial acceptance.
+
+The live command used an isolated local SQLite database and fixture news, with
+no Firestore access. Full local receipt: `/private/tmp/sia-workspace-live-approved-20261107.json`.
+Runtime receipts are not committed. No second live case was run. Earlier receipts
+below concern the superseded private calendar fixture.
 
 See [current workflow and configuration](calendar-simulation.md). No employer
 approval, live cloud-database verification or quality guarantee is implied.
