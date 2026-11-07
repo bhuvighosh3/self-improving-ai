@@ -4,6 +4,7 @@ from google.adk.tools import ToolContext
 
 from self_improving_ai.tools.briefing.context import prepare_context
 from self_improving_ai.tools.briefing.calculator import calculate
+from self_improving_ai.tools.briefing.compliance import check_compliance_flags
 from self_improving_ai.agents.briefing.ledger import register_calculation
 from copy import deepcopy
 import json
@@ -76,3 +77,11 @@ def execute_calculation(operation, operands, state):
     state["meeting_evidence"] = evidence
     state["meeting_calculations"] = records
     return {"status": "ok", **result}
+
+
+def check_compliance(client_id: str, tool_context: ToolContext) -> dict:
+    """Check compliance flags for a client. Returns active flags with severity."""
+    evidence = tool_context.state.get("meeting_evidence")
+    if evidence and evidence["client_id"] != client_id:
+        return {"status": "denied", "error": "Client is locked for this session"}
+    return check_compliance_flags(client_id)

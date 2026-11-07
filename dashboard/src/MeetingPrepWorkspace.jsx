@@ -61,6 +61,6 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCa
 function PreparationDetail({ event, data, clients, onBackToCalendar, onOpened, autoOpen }) {
   const [prepareNow, setPrepareNow] = useState(false);
   const state = preparationState(data, event);
-  if (state.job || prepareNow || autoOpen) return <CalendarMeeting key={event.id} event={event} clients={clients} onBack={onBackToCalendar} onOpened={onOpened}/>;
+  if (state.job || prepareNow || autoOpen) return <CalendarMeeting key={`${event.id}:${event.version}:${data.mode}`} event={event} clients={clients} onBack={onBackToCalendar} onOpened={onOpened}/>;
   return <section className="prep-scheduled" aria-label="Scheduled preparation"><CalendarSymbol name="document" size={30}/><span className="prep-state state-scheduled">{state.label}</span><h3>{event.client_name}</h3><h4>{event.title}</h4><p>{meetingLabel(event)}</p><p>{event.focus}</p><div className="prep-scheduled-note">{state.tone === "past" ? "This meeting has passed. You can still prepare a brief from the available client records." : `Your brief will be prepared automatically 24 hours before this meeting${data.enabled ? "." : " when automatic prep resumes."}`}</div><button className="meeting-btn primary" onClick={() => setPrepareNow(true)}>Prepare {state.tone === "past" ? "brief" : "early"}<CalendarSymbol name="next" size={14}/></button>{data.mode === "agent" && <p className="meeting-muted">Uses the configured Gemini API quota.</p>}</section>;
 }

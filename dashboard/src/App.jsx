@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import MeetingPrep from "./MeetingPrep";
 import CopilotMeetingForm from "./CopilotMeetingForm";
 import PortfolioPanel from "./PortfolioPanel";
-import CalendarPrep from "./CalendarPrep";
+import CalendarPage from "./CalendarPage";
+import EmailPage from "./EmailPage";
 import MeetingPrepWorkspace from "./MeetingPrepWorkspace";
 import MeetingReadyDialog from "./MeetingReadyDialog";
 import { CalendarSymbol } from "./calendarFormat";
@@ -20,7 +21,6 @@ function pct(v,t){return t?((v/t)*100).toFixed(1):0}
 function Ic({d,s=16}){return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{__html:d}}/>}
 
 const ic={
-  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
   copilot:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   dash:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   people:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -30,9 +30,11 @@ const ic={
   bot:'<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><path d="M9 15h6"/>',
   back:'<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
   send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
 };
 
-const PAGE_TITLE={calendar:"Calendar",portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
+const PAGE_TITLE={calendar:"Calendar",email:"Inbox",portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
 function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
@@ -453,7 +455,7 @@ export default function App(){
 
   useEffect(()=>{
     const controller=new AbortController();
-    const load=()=>fetch("/api/calendar",{signal:controller.signal}).then(r=>r.ok?r.json():null)
+    const load=()=>fetch("/api/meeting-preparations",{signal:controller.signal}).then(r=>r.ok?r.json():null)
       .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.preparations.filter(job=>job.status==="ready"&&job.mode===state.mode&&state.events.some(event=>event.id===job.event_id&&event.version===job.version&&new Date(event.starts_at)>new Date(state.now))).sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
     load(); const timer=setInterval(load,1500);
     return()=>{controller.abort();clearInterval(timer);};
@@ -471,7 +473,7 @@ export default function App(){
   const activeEvent=activePreparation&&calendarEvents.find(event=>event.id===activePreparation.event_id&&event.version===activePreparation.version);
   useEffect(()=>{
     if(page!=="calendar"||activePreparation||!firstUnseenId||autoNoticeShown.current)return;
-    const timer=setTimeout(()=>{if(document.querySelector("dialog[open]"))return;autoNoticeShown.current=true;setActivePreparation(unseenPreparations[0]);},1200);
+    const timer=setTimeout(()=>{if(autoNoticeShown.current)return;if(document.querySelector('dialog[open], [role="dialog"]'))return;autoNoticeShown.current=true;setActivePreparation(unseenPreparations[0]);},1200);
     return()=>clearTimeout(timer);
   },[page,activePreparation,firstUnseenId]);
   function markPreparationSeen(id){setSeenPreparations(current=>new Set([...current,id]));}
@@ -493,12 +495,13 @@ export default function App(){
   const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null);if(p!=="calendar")setCalendarMeeting(null)};
   const prepareMeeting=(client)=>{setCalendarMeeting(null);setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
   const openMeetingBrief=(brief)=>{setCalendarMeeting(null);acknowledgePreparations(brief.id);setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
-  const openCalendarMeeting=(event)=>{readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
+  const openCalendarMeeting=(event)=>{autoNoticeShown.current=true;readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
     {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
+    {id:"email",ic:ic.mail,label:"Inbox"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
@@ -540,7 +543,8 @@ export default function App(){
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
           {page==="meeting"&&((incomingBrief||meetingClient)?<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>:<MeetingPrepWorkspace key={calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>)}
-          {page==="calendar"&&<CalendarPrep onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
+          {page==="calendar"&&<CalendarPage clients={clients} onEditing={()=>{autoNoticeShown.current=true;}} onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
+          {page==="email"&&<EmailPage clients={clients}/> }
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}
           {page==="clients"&&!selClient&&<Clients clients={clients} onSelect={setSelClient}/>}
           {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)} onPrepare={prepareMeeting}/>}

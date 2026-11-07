@@ -4,6 +4,7 @@
     "profile": {
       "name": "Garcia Family",
       "primary_contact": "Maria Garcia",
+      "age": 52,
       "risk_tolerance": "moderate",
       "investment_horizon": "15 years",
       "goals": ["retirement", "college_funding"],
@@ -42,6 +43,8 @@
     "profile": {
       "name": "Thompson Trust",
       "primary_contact": "Robert Thompson",
+      "age": 78,
+      "beneficiary_last_reviewed": "2024-01-15",
       "risk_tolerance": "conservative",
       "investment_horizon": "5 years",
       "goals": ["income_generation", "capital_preservation"],
@@ -71,6 +74,7 @@
     "profile": {
       "name": "Chen Household",
       "primary_contact": "Wei Chen",
+      "age": 42,
       "risk_tolerance": "aggressive",
       "investment_horizon": "25 years",
       "goals": ["growth", "early_retirement"],
@@ -108,6 +112,7 @@
     "profile": {
       "name": "Okafor Family",
       "primary_contact": "Amara Okafor",
+      "age": 38,
       "risk_tolerance": "moderate",
       "investment_horizon": "10 years",
       "goals": ["home_purchase", "retirement"],
@@ -133,6 +138,7 @@
     "profile": {
       "name": "Patel Retirement Account",
       "primary_contact": "Priya Patel",
+      "age": 75,
       "risk_tolerance": "conservative",
       "investment_horizon": "3 years",
       "goals": ["income_generation"],

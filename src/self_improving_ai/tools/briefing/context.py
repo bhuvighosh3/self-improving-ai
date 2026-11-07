@@ -15,14 +15,24 @@ def load_context(client_id: str) -> dict:
     data = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
     if client_id not in data["households"]:
         raise LookupError("Client not found")
-    return {"as_of": data["data_as_of"], "holdings_as_of": data["holdings_as_of"],
-            **data["households"][client_id]}
+    from self_improving_ai.tools.briefing.workspace_sources import current_scope
+    scope = current_scope()
+    if scope and scope["client_id"] != client_id:
+        raise ValueError("Client is locked to the operational snapshot")
+    if scope and scope["as_of"] < data["data_as_of"]:
+        raise ValueError("Meeting precedes the available historical snapshot")
+    return {"as_of": scope["as_of"] if scope else data["data_as_of"],
+            "holdings_as_of": data["holdings_as_of"], **data["households"][client_id],
+            "context_revision": scope["revision"] if scope else "fixture-v1"}
 
 
 def _records(client_id: str, kind: str) -> dict:
     context = load_context(client_id)
     path = DATA_DIR / "clients/meeting_sources.json"
     records = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    if kind == "email":
+        from self_improving_ai.tools.briefing.workspace_sources import email_originals
+        records.extend(email_originals(client_id))
     items = [r for r in records if r["client_id"] == client_id and r["kind"] == kind
              and r["event_at"][:10] <= context["as_of"]
              and r["recorded_at"][:10] <= context["as_of"]]
@@ -121,6 +131,7 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
         if result["status"] == "ok":
             r = result["record"]
             source(r["id"], r["title"], r["text"], r["kind"], r["event_at"][:10])
+            sources[-1]["origin"] = r.get("origin", "fixture")
             sources[-1].update(recorded_at=r["recorded_at"], version=r["version"])
             confirmed_coverage |= (r["kind"] == "review_confirmation"
                                    and r.get("covers_from") == context.get("previous_meeting")
@@ -136,6 +147,7 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
                 for token in focus.lower().split() if len(token) > 3
             ):
                 source(article["id"], article["headline"], article["text"], "news", article["date"])
+                sources[-1].update(provenance=news.get("_provenance", {}), author=news.get("_provenance", {}).get("source", "Synthetic news"))
     return {"client_id": client_id, "as_of": context["as_of"],
             "previous_meeting": context.get("previous_meeting"), "meeting_type": meeting_type,
             "routine_items": ROUTINES[meeting_type], "template_version": "proposal-v1",

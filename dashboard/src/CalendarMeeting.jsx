@@ -13,13 +13,13 @@ export default function CalendarMeeting({ event, clients, onBack, onOpened }) {
     let timer;
     async function load() {
       try {
-        const preparation = await requestJson(`/api/calendar/events/${event.id}/preparation`, {
+        const preparation = await requestJson(`/api/meeting-preparations/events/${event.id}`, {
           method: "POST", signal: controller.signal,
         });
         if (controller.signal.aborted) return;
         setJob(preparation);
         if (preparation.status === "ready") {
-          const result = await requestJson(`/api/calendar/preparations/${preparation.id}/brief`, { signal: controller.signal });
+          const result = await requestJson(`/api/meeting-preparations/${preparation.id}/brief`, { signal: controller.signal });
           if (!controller.signal.aborted) { setBrief(result); setError(""); opened.current(preparation.id); }
         } else if (preparation.status === "failed") {
           setError(preparation.error || "The meeting brief could not be prepared. Please retry.");
@@ -33,7 +33,7 @@ export default function CalendarMeeting({ event, clients, onBack, onOpened }) {
   async function retryPreparation() {
     setError("");
     try {
-      if (job?.status === "failed") await requestJson(`/api/calendar/preparations/${job.id}/retry`, { method: "POST" });
+      if (job?.status === "failed") await requestJson(`/api/meeting-preparations/${job.id}/retry`, { method: "POST" });
       setRetry(value => value + 1);
     } catch (err) { setError(err.message); }
   }

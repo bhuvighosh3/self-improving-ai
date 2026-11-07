@@ -86,7 +86,7 @@ Three agents connected via Google ADK's `AgentTool`:
 Advisor request
       ↓
 ┌─────────────────────┐
-│  Request Orchestrator│ ← Gemini 2.5 Flash
+│  Request Orchestrator│ ← Gemini 3.8 Flash
 │  (LlmAgent)         │
 └──┬──────────────┬───┘
    │              │
@@ -117,7 +117,8 @@ Each agent improves through different strategies, all gated by the shared improv
 ## Tech Stack
 
 - **Agent framework**: Google ADK v1.32.0 (`LlmAgent`, `AgentTool`, `Runner`)
-- **LLM**: Gemini 2.5 Flash via Developer API
+- **LLM**: Gemini 3.8 Flash via Developer API (fallback: Gemini 3.5 Flash Lite)
+- **Database**: shared Calendar/Inbox records use local SQLite by default or explicitly configured Cloud Firestore; Part B jobs and drafts use SQLite
 - **Backend**: FastAPI + Uvicorn
 - **Frontend**: React + Vite (light theme, DM Sans / JetBrains Mono)
 - **Testing**: Playwright (11 automated tests)
@@ -125,15 +126,18 @@ Each agent improves through different strategies, all gated by the shared improv
 
 ## Dashboard
 
-The dashboard provides 8 pages:
+The dashboard provides 11 pages:
 
 - **Copilot** — chat interface powered by the live ADK orchestrator (Gemini), suggestion chips, execution trace visualization
 - **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, local advisor edits and review, and PDF export
+- **Calendar** — monthly grid calendar with event chips, create/edit/delete modal, using the shared local/Firestore store
+- **Email** — inbox/sent/archive views with compose, reply, star, search, and category labels, using the shared local/Firestore store
+- **Portfolio Analysis** — deterministic calculations and Gemini-powered portfolio agent
 - **Overview** — AUM, client count, intent breakdown
 - **Clients** — 5 synthetic households with detail views
 - **Requests** — request history table
-- **Tools** — mock tool catalog (14 tools with realistic traps)
-- **News** — market news feed
+- **Tools** — tool catalog (19 tools, including live Twelve Data news and rule-based compliance)
+- **News** — market news feed (live via Twelve Data API with mock fallback)
 - **Agents** — agent cards showing configuration and status
 
 ### Copilot Chat
@@ -444,3 +448,16 @@ Every run is scored stage by stage, not just on the final answer, so we can see 
 | 7. Outcome | Is the final answer or end state correct? | Numeric tolerance (A), checklist (B), end-state comparison in the style of τ-bench (C) |
 
 The harness reports these scores per stage for the learner and each baseline. A learning curve per stage then shows, for example, whether gains came from better tool selection or from better arguments.
+
+### Calendar/Inbox and Part B integration
+
+The monthly Calendar and simulated Inbox from PR #4 now feed the shared Part B
+meeting-preparation service. Upcoming client meetings receive a retained brief
+within 24 hours; Calendar links and the ready notice open that same draft.
+Client-linked mail is available to the investigator as original evidence.
+
+Use `SIA_WORKSPACE_STORE=local` for an offline demo, or configure the team's project
+and Application Default Credentials before selecting `firestore`. A Gemini API
+key is separate from Firestore authentication. See
+[shared Calendar/Inbox workflow](docs/meeting-brief/calendar-simulation.md) for
+configuration, API boundaries, known data conflicts and verification limits.

@@ -102,7 +102,7 @@ def check_compliance_flags(client_id: str, tool_context: ToolContext) -> dict:
 
 
 def search_market_news(query: str, tool_context: ToolContext, max_results: int = 3) -> dict:
-    """Search synthetic market context only when relevant. Results may include distractors."""
+    """Search available market context only when relevant. Results may include distractors."""
     if not isinstance(max_results, int) or isinstance(max_results, bool) or not 0 <= max_results <= 5:
         return {"status": "invalid_request", "error": "Use max_results between 0 and 5"}
     return execute_tool("search_market_news", {"query": query, "max_results": max_results}, tool_context.state)
@@ -219,7 +219,7 @@ def assemble_evidence(investigation):
         if record["client_id"] != investigation["client_id"] or max(record["event_at"][:10], record["recorded_at"][:10]) > investigation["as_of"]:
             raise ValueError("An original is outside the locked client/cutoff")
         add(record["id"], record["title"], record["text"], record["kind"], record["event_at"][:10],
-            recorded_at=record["recorded_at"], version=record["version"])
+            recorded_at=record["recorded_at"], version=record["version"], origin=record.get("origin","fixture"))
         confirmed |= (record["kind"] == "review_confirmation" and record.get("covers_from") == investigation["previous_meeting"]
             and record.get("covers_through") == investigation["as_of"] and set(record.get("domains", [])) == {"client", "investment", "service"})
     for entry in entries:
@@ -229,6 +229,7 @@ def assemble_evidence(investigation):
         for article in entry["result"].get("results", []):
             if article["id"] in matches and article["sector"] not in {"lifestyle", "health", "entertainment"} and article["date"] <= investigation["as_of"]:
                 add(article["id"], article["headline"], article["text"], "news", article["date"])
+                sources[article["id"]].update(provenance=entry["result"].get("_provenance", {}), author=entry["result"].get("_provenance", {}).get("source", "Synthetic news"))
     searches = [entry["result"] for entry in entries if entry["tool"] == "search_sources"]
     hits = {hit["id"] for search in searches for hit in search["hits"]}
     communications = "incomplete" if hits - sources.keys() else "ok" if hits else "no_results"
@@ -249,7 +250,7 @@ async def investigate(task, state, trace, checkpoint):
         checkpoint("running")
     token = _checkpoint.set(persist)
     try:
-        agent = Agent(name="meeting_context_investigator", model=create_model(settings.agent_model),
+        agent = Agent(name="meeting_context_investigator", model=create_model(task.get("model", settings.agent_model)),
             instruction=INSTRUCTION, tools=TOOLS, before_model_callback=before_model,
             generate_content_config=types.GenerateContentConfig(max_output_tokens=3000, temperature=0))
         checkpoint("running")

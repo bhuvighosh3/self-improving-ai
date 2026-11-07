@@ -126,7 +126,7 @@ offline brief was an AI success.
 
 ## Service and state contract
 
-Retain `POST /api/calendar/events/{id}/preparation`, the calendar worker and
+Retain `POST /api/meeting-preparations/events/{id}`, the calendar worker and
 `create_meeting_brief` as entry points. Investigation runs inside
 `generate_agent_brief`, before the existing preflight/writer. Persisted run phases:
 `discover -> generate -> review -> complete`; sourced calculation is an idempotent preflight before generation.

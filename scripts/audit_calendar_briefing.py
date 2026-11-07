@@ -16,11 +16,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 async def audit(args):
     from self_improving_ai.config import settings
-    from self_improving_ai.dashboard.app import create_meeting_brief
-    from self_improving_ai.dashboard.calendar import CalendarSimulation, SimulationCommand
+    from self_improving_ai.dashboard.app import app, create_meeting_brief
+    from self_improving_ai.dashboard.preparation import MeetingPreparationMonitor, SimulationCommand
     from audit_live_briefing import acceptance_checks
 
-    engine = CalendarSimulation(settings.db_path, create_meeting_brief)
+    engine = MeetingPreparationMonitor(settings.db_path, create_meeting_brief)
+    app.state.preparations = engine
     event = next(event for event in engine.events if event["id"] == args.event)
     # Use the normal 24-hour window just before the selected meeting. Other eligible
     # events can be queued; process exactly one tick and reopen the selected job.
@@ -74,9 +75,9 @@ def main():
     from dotenv import load_dotenv
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", required=True)
-    parser.add_argument("--event", choices=["CAL-004"], default="CAL-004")
+    parser.add_argument("--event", choices=["EVT-a3b4c5d6"], default="EVT-a3b4c5d6")
     parser.add_argument("--timeout", type=float, default=180)
-    parser.add_argument("--output", type=Path, default=ROOT / "artifacts/briefing/discovery-calendar-live.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "artifacts/briefing/workspace-calendar-live.json")
     args = parser.parse_args()
     load_dotenv(ROOT / ".env", override=False)
     if not os.environ.get("SIA_DB_PATH"):

@@ -7,7 +7,7 @@ from pydantic import Field, create_model
 
 from self_improving_ai.agents.briefing.workflow_models import AgentWork, ContextChange, StrictModel
 
-CONTRACT_VERSION = "content-v3-discovery-v1"
+CONTRACT_VERSION = "content-v4-workspace-integration"
 SECTIONS = {
     "overview": "Client Overview", "changes": "Recent Changes & Requests",
     "portfolio": "Portfolio Highlights", "priorities": "Discussion Priorities",

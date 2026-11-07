@@ -2,7 +2,29 @@
 
 Branch: `codex/proactive-meeting-prep`, based on main `115fe27`.
 
-## Latest acceptance: content-v2 and calendar trigger
+## Shared Calendar/Inbox integration (2026-11-07)
+
+The teammate's PR #4/main changes have been integrated with Part B. The private
+weekly calendar fixture/UI is removed; shared Calendar/Inbox CRUD supplies the
+preparation monitor and client-scoped evidence. Original portfolio and C changes
+from main are preserved.
+
+- Offline Python suite: **269 passed, 78 subtests passed**; network connections
+  were blocked by the verification runner.
+- Chrome integration: **10 passed**, covering desktop/mobile calendar notices,
+  six-section review, Calendar creation/validation, Inbox read/archive, retained
+  manual form and Copilot handoff.
+- Vite production build passed.
+- Real Firestore credentials/connectivity have **not** been verified locally.
+- The new live Gemini audit has **not** run: automatic approval review rejected
+  external transmission of the newly combined synthetic payload pending explicit
+  user approval. Earlier live records below describe the superseded private
+  calendar fixture and must not be presented as this integration's acceptance.
+
+See [current workflow and configuration](calendar-simulation.md). No employer
+approval, live cloud-database verification or quality guarantee is implied.
+
+## Historical acceptance: content-v2 and calendar trigger
 
 The real Okafor calendar-triggered case **passed** with Gemini 3.5 Flash-Lite in
 **29.25 seconds**, recording **12,786 tokens** across writing, one targeted repair,

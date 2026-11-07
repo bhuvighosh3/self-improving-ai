@@ -5,6 +5,16 @@ This file describes the merged workflow and integration fixes on
 [architecture document](README.md) retains the pre-implementation audit and larger
 proposal; not every proposed capability is complete.
 
+## Shared workspace integration (2026-11-07)
+
+The earlier private weekly calendar was replaced by the teammate's canonical
+monthly Calendar and Inbox from main (`4316af3`, PR #4). Part B's monitor, ready
+notice and brief review now use those records; linked correspondence enters the
+same scoped evidence pipeline. Local persistence runs without cloud credentials;
+Firestore is an explicit configuration. See the current
+[Calendar/Inbox integration](calendar-simulation.md). Earlier live-run timings and
+fixture-based descriptions below are historical until independently rerun.
+
 ## Available now
 
 - Content-v2 uses six required named content slots. Python owns section titles,
@@ -23,7 +33,7 @@ proposal; not every proposed capability is complete.
   subsequent synthetic communications/investment/service records. Sources are
   filtered by client, event date and recorded-at date at the backend fixture
   cutoff. Search snippets are followed by original reads. Optional relevant mock
-  news is included. Current connectors are local fixtures, not real email/calendar.
+  news is included. Calendar/Inbox records use the shared local/Firestore adapter; CRM/holdings remain fixtures. No external mailbox/calendar synchronization is implemented.
 - The Decimal calculator accepts original JSON fields with declared currency,
   preserves operands/results and registers derived sources for chained arithmetic.
   It does not execute arbitrary code or infer a household shortfall from cash.

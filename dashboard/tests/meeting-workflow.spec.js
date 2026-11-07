@@ -23,14 +23,14 @@ test("meeting workflow exposes evidence coverage and persists local demo review"
   await expect(process).toContainText("recheck required");
 });
 
-test("no significant changes retain routine review and agent mode is explicit", async ({ page }) => {
+test("limited historical coverage retains routine review and agent mode is explicit", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
   await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
   await page.getByLabel("Client", { exact: true }).selectOption("CLI-002");
   await page.getByLabel("Meeting date", { exact: true }).fill("2026-10-30");
   await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
-  await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("unchanged");
+  await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("insufficient information");
   await expect(page.getByRole("heading", { name: "Routine meeting review" })).toBeVisible();
   await page.getByLabel("Generation mode").selectOption("agent");
   await expect(page.getByText("Meeting inputs changed.", { exact: false })).toBeVisible();

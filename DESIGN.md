@@ -156,3 +156,11 @@ Keep simulation, mode selection, advance/reset and replay controls inside the co
 - **Don't** introduce a new display face, decorative hero treatment or replacement visual concept for this extension.
 - **Don't** apply client-card hover elevation to every resting card.
 - **Don't** indicate review status or errors through color alone.
+
+## Shared workspace integration (2026-11-07)
+
+The monthly Calendar and simulated Inbox from main replace the earlier independent
+weekly CalendarPrep surface. Preserve their existing theme and Calendar editor.
+Part B adds a next-meeting preparation link, per-event prep actions and the same
+ready notice. Meeting Prep remains the list-and-detail review workspace.
+Historical weekly-calendar design records describe the superseded prototype.

@@ -29,6 +29,11 @@ amounts into committed requirements. Apply the same tentative wording to why,
 rationale, findings and context_summary: a possible earlier purchase is not a
 confirmed accelerated timeline. Unknown external balances require a funding
 question, never an asserted household shortfall or a proven need to liquidate.
+Client-linked Inbox messages are correspondence, not verified account balances or legal calculations.
+Different account identifiers, people, estimates or amounts across email and the dated
+snapshot require explicit reconciliation questions. Do not silently replace portfolio
+facts with email amounts. Avoid repeating policy-check numerical estimates without
+registered calculation support.
 Compliance-check results identify recorded follow-ups and missing information;
 they do not establish violations or regulatory clearance. Surface relevant flags
 as confirmation work with original profile/CRM references. Empty flags do not

@@ -82,13 +82,14 @@ def test_cutoff_precedes_limit_and_missing_data_is_not_an_empty_search():
 def test_compliance_flags_preserve_originals_and_never_claim_clearance():
     for client_id, expected in [("CLI-004", "PROFILE_STATE_MISSING"), ("CLI-005", "RECORDED_COMPLIANCE_FOLLOWUP")]:
         result = check_compliance_flags(client_id)
-        assert result["flags"][0]["code"] == expected
-        assert result["flags"][0]["status"] == "needs_confirmation"
+        flag = next(flag for flag in result["flags"] if flag["code"] == expected)
+        assert flag["status"] == "needs_confirmation"
         evidence = prepare_context(client_id)
         sources = {source["id"] for source in evidence["sources"]}
-        assert set(result["flags"][0]["source_ids"]) <= sources
+        assert set(flag["source_ids"]) <= sources
         assert any(event["tool"] == "check_compliance_flags" for event in evidence["trace"])
-    empty = check_compliance_flags("CLI-002")
+    with patch("self_improving_ai.tools.briefing.compliance._load_households", return_value=[{"client_id":"CLI-002","accounts":[]}]), patch("self_improving_ai.tools.briefing.compliance.get_client_profile", return_value={"name":"Test", "state":"CA", "beneficiary_last_reviewed":"2026-10-01","_provenance":{"as_of":"2026-10-27"}}):
+        empty = check_compliance_flags("CLI-002")
     assert empty["flags"] == [] and empty["assessment_status"] == "not_cleared"
     assert empty["coverage"] == "partial_synthetic_records"
 
@@ -152,4 +153,4 @@ def test_actual_adk_runner_executes_all_four_tools_without_network():
     responses = {event["tool"]: event["result"] for event in trace if event.get("event") == "tool_response"}
     assert set(responses) == set(BRIEFING_TOOLS)
     assert all("error" not in result for result in responses.values())
-    assert responses["check_compliance_flags"]["flags"][0]["code"] == "RECORDED_COMPLIANCE_FOLLOWUP"
+    assert "RECORDED_COMPLIANCE_FOLLOWUP" in {flag["code"] for flag in responses["check_compliance_flags"]["flags"]}

@@ -18,7 +18,7 @@ async def check_draft(submitted: dict, original: dict) -> dict:
 
         trace = []
         semantic = await semantic_check(work, original["workflow"]["evidence"],
-                                        original["workflow"]["calculations"], trace)
+                                        original["workflow"]["calculations"], trace, model=original["workflow"].get("model"))
         report["verdict"] = semantic["verdict"]
         report["findings"].extend(semantic["findings"])
         report["semantic_support"] = "independent_model_reviewed"

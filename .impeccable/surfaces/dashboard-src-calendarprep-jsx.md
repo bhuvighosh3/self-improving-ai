@@ -5,7 +5,11 @@ primary_target: "dashboard/src/CalendarPrep.jsx"
 related_targets: ["dashboard/src/MeetingPrepWorkspace.jsx","dashboard/src/CalendarMeeting.jsx","dashboard/src/CalendarEventDialog.jsx","dashboard/src/MeetingReadyDialog.jsx","dashboard/src/calendar-prep.css"]
 ---
 
-# Calendar and Meeting Prep
+# Calendar and Meeting Prep (historical prototype)
+
+Superseded on 2026-11-07 by the teammate's canonical monthly Calendar and Inbox.
+See `docs/meeting-brief/calendar-simulation.md` for the current integration.
+The deleted CalendarPrep and CalendarEventDialog targets below describe the earlier prototype.
 
 Mode: Operate. Audience: a busy wealth advisor with a full working week.
 Scope: only Part B's calendar, preparation queue and brief reading/review. Preserve Part A, Part C and their data/logic. Existing DM Sans, neutral surfaces, blue controls and shell are the visual authority.

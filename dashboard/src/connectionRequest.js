@@ -24,6 +24,7 @@ export async function requestJson(url,options={}) {
       ...fetchOptions,signal:controller.signal,
       headers:{"Content-Type":"application/json",...fetchOptions.headers}
     });
+    if(response.status===204 && response.ok) return null;
     let data;
     try {data=await response.json();}
     catch(error) {

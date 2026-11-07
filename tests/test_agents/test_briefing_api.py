@@ -109,7 +109,8 @@ class BriefingApiTests(unittest.TestCase):
         state = {"meeting_evidence": brief["workflow"]["evidence"],
                  "meeting_calculations": brief["workflow"]["calculations"]}
         runs = BriefRunStore(self.store.path)
-        with patch("self_improving_ai.config.settings.briefing_discovery", "backend"), \
+        with patch("self_improving_ai.config.settings.agent_model_fallback", ""), \
+             patch("self_improving_ai.config.settings.briefing_discovery", "backend"), \
              patch("self_improving_ai.agents.briefing.runs.BriefRunStore", return_value=runs), \
              patch("self_improving_ai.agents.briefing.runtime.BriefRunStore", return_value=runs), \
              patch("self_improving_ai.agents.briefing.runtime.run_adk", new=AsyncMock(

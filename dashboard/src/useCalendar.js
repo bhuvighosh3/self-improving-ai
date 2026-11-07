@@ -8,7 +8,7 @@ export default function useCalendar() {
     if (mutating.current) return;
     const current = ++sequence.current;
     try {
-      const state = await requestJson("/api/calendar", { signal });
+      const state = await requestJson("/api/meeting-preparations", { signal });
       if (alive.current && current === sequence.current) { setData(state); setError(""); }
     } catch (err) { if (alive.current && err.kind !== "cancelled" && current === sequence.current) setError(err.message); }
   }, []);
@@ -24,7 +24,7 @@ export default function useCalendar() {
     if (mutating.current) return null;
     mutating.current = true; sequence.current += 1;
     try {
-      const state = await requestJson("/api/calendar/simulation", { method: "POST", body: JSON.stringify({ action, ...(mode ? { mode } : {}) }) });
+      const state = await requestJson("/api/meeting-preparations/simulation", { method: "POST", body: JSON.stringify({ action, ...(mode ? { mode } : {}) }) });
       if (alive.current) { setData(state); setError(""); }
       return state;
     } catch (err) { if (alive.current) setError(err.message); return null; }

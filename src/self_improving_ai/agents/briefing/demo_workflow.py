@@ -19,8 +19,8 @@ def enrich_demo(brief: dict, meeting_type: str) -> dict:
     by_id = {s["id"]: s for s in sections}
     compliance = json.loads(existing["COMPLIANCE"]["content"])
     for flag in compliance["flags"]:
-        existing_item = next((item for item in by_id["confirm"]["items"]
-            if item["id"] == ("state" if flag["code"] == "PROFILE_STATE_MISSING" else "distribution")), None)
+        existing_id = {"PROFILE_STATE_MISSING":"state", "RECORDED_COMPLIANCE_FOLLOWUP":"distribution"}.get(flag["code"])
+        existing_item = next((item for item in by_id["confirm"]["items"] if item["id"] == existing_id), None)
         if existing_item:
             existing_item["source_ids"] = list(dict.fromkeys(existing_item["source_ids"] + ["COMPLIANCE"] + flag["source_ids"]))
         else:
@@ -83,6 +83,17 @@ def enrich_demo(brief: dict, meeting_type: str) -> dict:
             "text": update["text"], "source_ids": update["source_ids"],
             "why": "The client explicitly raised a changed intention after the prior meeting.",
             "question": "What amount, payment date and external funding can the client confirm?"})
+    mail = sorted((source for source in evidence["sources"] if source.get("origin") == "workspace_inbox"),key=lambda source:source.get("date") or "",reverse=True)
+    for source in mail[:2]:
+        by_id["changes"]["items"].append({"id":"mail-"+source["id"],"title":source["title"],
+            "text":source["content"][:1400],"source_ids":[source["id"]]})
+    if mail:
+        by_id["priorities"]["items"].insert(0,{"id":"mail-priority","title":"Review the latest linked correspondence",
+            "text":mail[0]["title"],"source_ids":[mail[0]["id"]],"why":"Keep the meeting aligned with the latest available client-linked message.",
+            "question":"Which requests or estimates in this message need confirmation at the meeting?"})
+        by_id["confirm"]["items"].append({"id":"mail-verification","title":"Reconcile correspondence with account records",
+            "text":"Email amounts, account labels and reported plans may differ from the dated holdings snapshot. Confirm differences before using them in decisions.",
+            "source_ids":[mail[0]["id"],"HOLDINGS"]})
     complete = all(value in {"checked", "ok"} for value in evidence["coverage"].values())
     by_id["confirm"]["items"].append({
         "id": "workflow-coverage", "title": "Preparation coverage",

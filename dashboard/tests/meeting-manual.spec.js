@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 for (const width of [1280, 390]) {
-  test(`manual preparation retains the meeting workspace and form at ${width}px`, async ({ page }, testInfo) => {
+  test(`manual preparation retains the meeting workspace and form at ${width}px`, async ({ page, request }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
+    const queued = await (await request.post("/api/meeting-preparations/events/EVT-a3b4c5d6")).json();
+    await expect.poll(async () => (await (await request.get("/api/meeting-preparations")).json()).preparations.find(job => job.id === queued.id)?.status).toBe("ready");
     let generations = 0;
     page.on("request", request => { if (request.method() === "POST" && request.url().endsWith("/api/briefings")) generations += 1; });
     await page.goto("/");
@@ -26,7 +28,7 @@ for (const width of [1280, 390]) {
     await expect(panel).toBeHidden();
     if (width < 768) await expect(list).toBeVisible();
     await expect(page.getByLabel("Search client meetings")).toHaveValue("Okafor");
-    await page.getByRole("button", { name: "Open preparation for Okafor Family on 2026-11-11", exact: true }).click();
+    await page.getByRole("button", { name: "Open preparation for Okafor Family on 2026-11-20", exact: true }).click();
     await expect(page.getByRole("article", { name: "Meeting briefing" })).toContainText("Okafor Family");
     if (width < 768) await page.getByRole("button", { name: "All meetings", exact: true }).click();
     await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
