@@ -14,8 +14,16 @@ def load_context(client_id: str) -> dict:
     data = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
     if client_id not in data["households"]:
         raise LookupError("Client not found")
-    return {"as_of": data["data_as_of"], "holdings_as_of": data["holdings_as_of"],
-            **data["households"][client_id]}
+    result = {"as_of": data["data_as_of"], "holdings_as_of": data["holdings_as_of"],
+              **data["households"][client_id]}
+    try:
+        from self_improving_ai.calendar_store import CalendarStore
+        last = CalendarStore().get_last_meeting(client_id)
+        if last:
+            result["previous_meeting"] = last
+    except Exception:
+        pass
+    return result
 
 
 def _records(client_id: str, kind: str) -> dict:
@@ -91,6 +99,9 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
     notes["notes"] = [n for n in notes["notes"] if n["date"] <= context["as_of"]]
     minutes = call("list_previous_meetings", {"client_id": client_id}, list_previous_meetings)
     tasks = call("list_client_tasks", {"client_id": client_id}, list_client_tasks)
+    from self_improving_ai.tools.briefing.compliance import check_compliance_flags
+
+    compliance = call("check_compliance_flags", {"client_id": client_id}, check_compliance_flags)
     updates = call("search_sources", {"client_id": client_id}, search_sources)
 
     def source(sid, title, content, kind, when=None):
@@ -119,6 +130,9 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
                                    and r.get("covers_from") == context.get("previous_meeting")
                                    and r.get("covers_through") == context["as_of"]
                                    and set(r.get("domains", [])) == {"client", "investment", "service"})
+    if compliance.get("flags"):
+        source("COMPLIANCE", "Compliance flags", json.dumps(compliance["flags"]),
+               "compliance", compliance["checked_at"][:10])
     if focus:
         from self_improving_ai.tools.briefing.news import search_market_news
 
@@ -136,4 +150,5 @@ def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focu
             "coverage": {"profile": "checked", "accounts": "checked", "tasks": "checked",
                          "prior_meeting": "checked" if minutes["items"] else "no_results",
                          "communications": updates["status"],
+                         "compliance": "checked" if not compliance.get("error") else "error",
                          "investment_service_history": "checked" if confirmed_coverage else "incomplete"}}
