@@ -497,11 +497,11 @@ export default function App(){
   const openCalendarMeeting=(event)=>{autoNoticeShown.current=true;readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
-    {id:"email",ic:ic.mail,label:"Inbox"},
-    {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
+    {id:"email",ic:ic.mail,label:"Inbox"},
+    {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
     {id:"requests",ic:ic.inbox,label:"Requests"},
@@ -518,8 +518,10 @@ export default function App(){
           <div className="brand-sub">Wealth Management</div>
         </div>
         <nav className="sidebar-nav">
-          <div className="nav-group-label">Main</div>
-          {menu.slice(0,5).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          <div className="nav-group-label">Advisor</div>
+          {menu.slice(0,3).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          <div className="nav-group-label">Personal</div>
+          {menu.slice(3,5).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
           {menu.slice(5,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
