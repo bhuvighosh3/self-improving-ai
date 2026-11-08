@@ -401,7 +401,7 @@ async def chat(req: ChatRequest):
         }
 
     if is_meeting_request(req.message):
-        details = collect_meeting_details(req.message, _load("clients/households.json"), req.client_id)
+        details = collect_meeting_details(req.message, await run_in_threadpool(_load_clients), req.client_id)
         return {
             "response": "Confirm the client, New York meeting time and focus, then choose how to prepare the brief.",
             "intent": "meeting_briefing", "client_id": details["client_id"] or None,

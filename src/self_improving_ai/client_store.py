@@ -66,8 +66,5 @@ class ClientStore:
 
 
 def load_households() -> list[dict]:
-    """Load clients from Firestore, falling back to JSON fixture."""
-    try:
-        return ClientStore().list_clients()
-    except Exception:
-        return _load_seed_data()
+    """Load clients from Firestore."""
+    return ClientStore().list_clients()
