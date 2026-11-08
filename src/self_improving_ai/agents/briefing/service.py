@@ -1,4 +1,4 @@
-"""Evidence-backed meeting preparation using the repository's synthetic fixtures."""
+"""Evidence-backed meeting preparation using Firestore CRM and portfolio data."""
 
 from __future__ import annotations
 
@@ -35,15 +35,15 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     if "error" in profile:
         raise LookupError("Client not found. Select a client from the list.")
 
-    context = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
     from self_improving_ai.tools.briefing.context import load_context
-    data_as_of = date.fromisoformat(load_context(request.client_id)["as_of"])
+    loaded_ctx = load_context(request.client_id)
+    data_as_of = date.fromisoformat(loaded_ctx["as_of"])
     if request.meeting_date < data_as_of:
         raise ValueError(f"This demo supports meetings on or after {data_as_of}. Historical snapshots are not available.")
     if not request.focus.strip():
         raise ValueError("Enter a meeting focus.")
 
-    client_context = context["households"].get(request.client_id, {})
+    client_context = loaded_ctx
     notes = get_crm_notes(request.client_id)["notes"]
     notes = [note for note in notes if note["date"] <= data_as_of.isoformat()]
     holdings_result = get_holdings(request.client_id)
@@ -53,9 +53,9 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     total = holdings_result["total_market_value"]
     sources = [
         {"id": "PROFILE", "kind": "Client profile", "title": profile["name"],
-         "date": None, "author": "Synthetic CRM", "content": json.dumps(profile, indent=2)},
+         "date": None, "author": "CRM", "content": json.dumps(profile, indent=2)},
         {"id": "HOLDINGS", "kind": "Holdings snapshot", "title": "Household holdings and cost basis",
-         "date": context["holdings_as_of"], "author": "Synthetic account ledger",
+         "date": loaded_ctx["holdings_as_of"], "author": "Account ledger",
          "content": json.dumps(accounts, indent=2)},
     ]
     note_pairs = []
@@ -199,7 +199,7 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
                              f"Owner: {task['owner']}. Due: {task['due_date']}. Status: {task['status']}.", [task["id"]]))
 
     confirmations = [_item("freshness", "Refresh account information",
-        f"Holdings are dated {context['holdings_as_of']}. Confirm balances and transactions before making decisions.", ["HOLDINGS"])]
+        f"Holdings are dated {loaded_ctx['holdings_as_of']}. Confirm balances and transactions before making decisions.", ["HOLDINGS"])]
     if "early_retirement" in profile.get("goals", []):
         retirement_refs = [ref for ref, note in note_pairs if "retirement" in note["text"].lower()]
         confirmations.append(_item("horizon", "Confirm the planning horizon",
