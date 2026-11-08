@@ -27,6 +27,7 @@ from google.genai import types
 from google.genai.errors import APIError
 
 from self_improving_ai.agents.orchestrator.agent import orchestrator
+from self_improving_ai.agents.orchestrator.runtime import run_copilot
 from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
@@ -106,11 +107,17 @@ def _get_fallback_runner():
         from self_improving_ai.agents.portfolio.agent import create_portfolio_agent
         from self_improving_ai.agents.briefing.agent import briefing_agent
 
+        from self_improving_ai.tools.orchestrator.workspace import (
+            get_client_holdings, get_client_info, get_crm_summary,
+            get_recent_emails, get_upcoming_events,
+        )
         fallback_orchestrator = Agent(
             name="request_orchestrator",
             model=settings.agent_model_fallback,
             instruction=ORCHESTRATOR_INSTRUCTION,
             tools=[
+                get_upcoming_events, get_recent_emails, get_client_info,
+                get_crm_summary, get_client_holdings,
                 AgentTool(agent=create_portfolio_agent(settings.agent_model_fallback)),
                 AgentTool(agent=briefing_agent),
                 search_tool_catalog,
@@ -417,76 +424,31 @@ async def chat(req: ChatRequest):
     if req.client_id:
         message += f" (client_id: {req.client_id})"
 
-    content = types.Content(
-        role="user",
-        parts=[types.Part(text=message)],
-    )
-
     steps = []
     response_parts = []
 
-    _FRIENDLY_ACTIONS = {
-        "get_holdings": "Looking up portfolio holdings",
-        "get_holdings_v1": "Looking up portfolio holdings",
-        "get_price_history": "Fetching price history",
-        "get_stale_price": "Fetching recent price",
-        "get_client_profile": "Pulling up client profile",
-        "get_crm_notes": "Reviewing recent notes",
-        "search_market_news": "Scanning market news",
-        "run_monte_carlo": "Running projections",
-        "get_capital_market_assumptions": "Checking market assumptions",
-        "estimate_capital_gains": "Estimating capital gains",
-        "calculate_withdrawal_rate": "Calculating withdrawal rate",
-        "check_compliance_flags": "Checking compliance",
-        "calculate_fee_drag": "Analyzing fee impact",
-        "search_tool_catalog": "Searching available tools",
-        "calculate_allocation_drift": "Checking allocation drift",
-        "estimate_portfolio_risk": "Estimating portfolio risk",
-        "project_financial_goal": "Running goal projection",
-        "get_market_quote": "Getting market quote",
-        "get_external_price_history": "Fetching price history",
-        "get_portfolio_scenarios": "Running scenario analysis",
-        "prepare_meeting_context": "Gathering meeting context",
-        "calculate_metrics": "Calculating key metrics",
-    }
-    _FRIENDLY_AGENTS = {
-        "request_orchestrator": "Copilot",
-        "portfolio_estimation_agent": "Portfolio Analysis",
-        "meeting_briefing_agent": "Meeting Prep",
-    }
-
-    async def _run_with_runner(runner):
-        async for event in runner.run_async(
+    try:
+        result = await run_copilot(
+            runner=_runner,
+            message=message,
             session_id=session_id,
             user_id=user_id,
-            new_message=content,
-        ):
-            author = event.author or "unknown"
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, "function_call") and part.function_call:
-                        fc = part.function_call
-                        friendly = _FRIENDLY_ACTIONS.get(fc.name, fc.name.replace("_", " ").title())
-                        steps.append({
-                            "agent": _FRIENDLY_AGENTS.get(author, author),
-                            "action": fc.name,
-                            "detail": friendly,
-                            "tools_called": [fc.name],
-                        })
-                    elif hasattr(part, "text") and part.text:
-                        response_parts.append(part.text)
-
-    try:
-        await _run_with_runner(_runner)
+        )
+        steps = result["steps"]
+        response_parts = result["response_parts"]
     except Exception as exc:
         err = str(exc)
         if "503" in err or "UNAVAILABLE" in err:
             log.warning("Primary model unavailable, trying fallback model")
-            steps.clear()
-            response_parts.clear()
             try:
-                fallback = _get_fallback_runner()
-                await _run_with_runner(fallback)
+                result = await run_copilot(
+                    runner=_get_fallback_runner(),
+                    message=message,
+                    session_id=session_id,
+                    user_id=user_id,
+                )
+                steps = result["steps"]
+                response_parts = result["response_parts"]
             except Exception as fallback_exc:
                 log.exception("Fallback model also failed")
                 fallback_err = str(fallback_exc)

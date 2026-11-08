@@ -176,6 +176,70 @@
     "implementation_status": "planned_not_implemented"
   },
   {
+    "name": "get_upcoming_events",
+    "description": "Look up calendar events by client or by month",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "year",
+      "month"
+    ],
+    "returns": "List of calendar events",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_recent_emails",
+    "description": "Look up emails by client or by folder",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "folder"
+    ],
+    "returns": "List of emails",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_client_info",
+    "description": "Returns client profile including demographics, risk tolerance, and goals",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "Client profile dictionary",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_crm_summary",
+    "description": "Returns CRM notes, last meeting date, and open tasks for a client",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "CRM notes, previous meeting, tasks",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_client_holdings",
+    "description": "Returns current portfolio holdings and market values for a client",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "account_id"
+    ],
+    "returns": "Account holdings with market values",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
     "name": "search_tool_catalog",
     "description": "Searches this tool catalog by keyword",
     "agent": "request_orchestrator",
