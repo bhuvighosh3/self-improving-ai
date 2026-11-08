@@ -5,19 +5,29 @@ import json
 import unittest
 from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from fastapi import HTTPException
 
 from self_improving_ai.agents.briefing.schemas import MeetingBriefRequest
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
+from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.dashboard.app import ChatRequest, chat
-from self_improving_ai.dashboard.meeting_requests import collect_meeting_details
+from self_improving_ai.dashboard.meeting_requests import collect_meeting_details, is_meeting_request
 
 CLIENTS = json.loads((Path(__file__).resolve().parents[2] / "src/self_improving_ai/data/clients/households.json").read_text(encoding="utf-8"))
 
 
 class CopilotMeetingTests(unittest.TestCase):
+    def setUp(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        store = DraftStore(Path(directory.name) / "drafts.db")
+        patcher = patch("self_improving_ai.dashboard.app.DraftStore", return_value=store)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_explicit_details_are_suggestions_until_the_advisor_confirms(self):
         details = collect_meeting_details(
             "Prepare a meeting for Wei Chen tomorrow at 2pm — ARKK tax-loss harvesting",
@@ -67,9 +77,29 @@ class CopilotMeetingTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 404)
 
     def test_non_meeting_requests_keep_the_existing_flow(self):
-        response = asyncio.run(chat(ChatRequest(message="How much tax if we sold AAPL for Garcia?")))
-        self.assertEqual(response["intent"], "tax_estimation")
+        from google.adk.events import Event
+        from google.genai import types
+
+        async def events(**kwargs):
+            yield Event(author="request_orchestrator", content=types.Content(
+                role="model", parts=[types.Part(text="Live C response")]))
+
+        with patch("self_improving_ai.dashboard.app._runner.run_async", side_effect=events) as run:
+            response = asyncio.run(chat(ChatRequest(message="How much tax if we sold AAPL for Garcia?")))
+        run.assert_called_once()
+        self.assertEqual(response["intent"], "gemini")
+        self.assertEqual(response["response"], "Live C response")
         self.assertNotIn("meeting_details", response)
+
+    def test_preparation_handoff_is_narrow_and_includes_existing_hint(self):
+        for message in ["Get me ready for my 2pm with the Garcias", "Meeting briefing for Chen",
+                        "Prepare an annual review for Okafor"]:
+            with self.subTest(message=message):
+                self.assertTrue(is_meeting_request(message))
+        for message in ["Quick summary of Thompson Trust", "What happened at the last meeting?",
+                        "Review Garcia's portfolio risk", "Get ready cash balances for Garcia"]:
+            with self.subTest(message=message):
+                self.assertFalse(is_meeting_request(message))
 
 
 if __name__ == "__main__":

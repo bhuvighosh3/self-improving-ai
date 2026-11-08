@@ -15,6 +15,7 @@ export function saveMeetingDraft(draft) {
   try {
     localStorage.setItem(`${STORAGE_KEY}:${draft.brief.id}`, JSON.stringify(draft));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    window.dispatchEvent(new Event("sia-meeting-draft-changed"));
     return true;
   } catch {
     return false;

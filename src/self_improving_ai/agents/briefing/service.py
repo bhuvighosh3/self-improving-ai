@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from self_improving_ai.agents.briefing.schemas import MeetingBriefRequest
 from self_improving_ai.tools.briefing.crm import get_client_profile, get_crm_notes
-from self_improving_ai.tools.briefing.news import search_market_news
+from self_improving_ai.tools.briefing.news import search_market_news, fixture_news
 from self_improving_ai.tools.portfolio.holdings import get_holdings
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -25,6 +25,7 @@ def _item(item_id: str, title: str, text: str, refs: list[str], **extra) -> dict
     return {"id": item_id, "title": title, "text": text, "source_ids": refs, **extra}
 
 
+@fixture_news()
 def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
     """Read real mock tools, calculate facts, and retain the evidence for each item.
 
@@ -35,7 +36,8 @@ def generate_meeting_brief(request: MeetingBriefRequest) -> dict:
         raise LookupError("Client not found. Select a client from the list.")
 
     context = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
-    data_as_of = date.fromisoformat(context["data_as_of"])
+    from self_improving_ai.tools.briefing.context import load_context
+    data_as_of = date.fromisoformat(load_context(request.client_id)["as_of"])
     if request.meeting_date < data_as_of:
         raise ValueError(f"This demo supports meetings on or after {data_as_of}. Historical snapshots are not available.")
     if not request.focus.strip():

@@ -6,10 +6,23 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from self_improving_ai.email_store import EmailStore
+from self_improving_ai.workspace_store import get_store, invalidate_snapshots
+
+
+class StoreProxy:
+    """Resolve credentials only when the shared store is actually used."""
+    def __getattr__(self, name):
+        def call(*args, **kwargs):
+            try:
+                return getattr(get_store("email"), name)(*args, **kwargs)
+            except LookupError:
+                raise
+            except Exception as exc:
+                raise HTTPException(503, "Workspace storage unavailable. Check the selected storage configuration.") from exc
+        return call
 
 router = APIRouter(prefix="/api/email", tags=["email"])
-_store = EmailStore()
+_store = StoreProxy()
 
 _CATEGORIES = Literal["client", "internal", "compliance", "market_update", "scheduling"]
 _FOLDERS = Literal["inbox", "sent", "drafts", "archive"]
@@ -34,7 +47,7 @@ class EmailUpdate(BaseModel):
 
 
 @router.get("/messages")
-async def list_emails(folder: str = "inbox"):
+async def list_emails(folder: _FOLDERS = "inbox"):
     return await run_in_threadpool(_store.list_emails, folder)
 
 
@@ -48,15 +61,17 @@ async def get_email(email_id: str):
 
 @router.post("/messages", status_code=201)
 async def create_email(body: EmailCreate):
-    return await run_in_threadpool(_store.create_email, body.model_dump())
+    result = await run_in_threadpool(_store.create_email, body.model_dump())
+    invalidate_snapshots()
+    return result
 
 
 @router.patch("/messages/{email_id}")
 async def update_email(email_id: str, body: EmailUpdate):
     try:
-        return await run_in_threadpool(
-            _store.update_email, email_id, body.model_dump(exclude_none=True)
-        )
+        result = await run_in_threadpool(_store.update_email, email_id, body.model_dump(exclude_none=True))
+        invalidate_snapshots()
+        return result
     except LookupError:
         raise HTTPException(404, "Email not found")
 
@@ -65,5 +80,6 @@ async def update_email(email_id: str, body: EmailUpdate):
 async def delete_email(email_id: str):
     try:
         await run_in_threadpool(_store.delete_email, email_id)
+        invalidate_snapshots()
     except LookupError:
         raise HTTPException(404, "Email not found")

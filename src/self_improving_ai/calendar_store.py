@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from google.cloud import firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
+def FieldFilter(*args, **kwargs):
+    from google.cloud.firestore_v1.base_query import FieldFilter as CloudFilter
+    return CloudFilter(*args, **kwargs)
 
 from self_improving_ai.config import settings
 
@@ -54,6 +55,8 @@ _SEED = [
 
 class CalendarStore:
     def __init__(self, project: str | None = None):
+        from google.cloud import firestore
+        self.firestore = firestore
         self.db = firestore.Client(project=project or settings.google_cloud_project or None)
         self.collection = self.db.collection(_COLLECTION)
         self._seed_if_empty()
@@ -144,9 +147,13 @@ class CalendarStore:
             self.collection
             .where(filter=FieldFilter("client_id", "==", client_id))
             .where(filter=FieldFilter("date", "<", today))
-            .order_by("date", direction=firestore.Query.DESCENDING)
+            .order_by("date", direction=self.firestore.Query.DESCENDING)
             .limit(1)
             .get()
         )
         results = list(docs)
         return results[0].to_dict()["date"] if results else None
+
+    def list_all_events(self) -> list[dict]:
+        """Read the small shared demo collection without client/date index requirements."""
+        return [self._doc_to_dict(doc) for doc in self.collection.get()]

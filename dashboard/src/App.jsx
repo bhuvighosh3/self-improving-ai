@@ -4,6 +4,9 @@ import CopilotMeetingForm from "./CopilotMeetingForm";
 import PortfolioPanel from "./PortfolioPanel";
 import CalendarPage from "./CalendarPage";
 import EmailPage from "./EmailPage";
+import MeetingPrepWorkspace from "./MeetingPrepWorkspace";
+import MeetingReadyDialog from "./MeetingReadyDialog";
+import { CalendarSymbol } from "./calendarFormat";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -31,7 +34,7 @@ const ic={
   mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
 };
 
-const PAGE_TITLE={portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",calendar:"Calendar",email:"Email",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
+const PAGE_TITLE={calendar:"Calendar",email:"Inbox",portfolio:"Portfolio Analysis",copilot:"Copilot",meeting:"Meeting Prep",dashboard:"Overview",clients:"Clients",requests:"Requests",tools:"Tools",news:"News",agents:"Agents"};
 
 /* ════ Copilot ════ */
 function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
@@ -428,7 +431,7 @@ function md(t){
 
 /* ════ App ════ */
 export default function App(){
-  const [page,setPage]=useState("copilot");
+  const [page,setPage]=useState("email");
   const [health,setHealth]=useState(null);
   const [stats,setStats]=useState(null);
   const [clients,setClients]=useState([]);
@@ -440,6 +443,44 @@ export default function App(){
   const [incomingBrief,setIncomingBrief]=useState(null);
   const [chatMessages,setChatMessages]=useState([]);
   const [chatBusy,setChatBusy]=useState(false);
+  const [calendarMeeting,setCalendarMeeting]=useState(null);
+  const autoNoticeShown=useRef(false);
+  const [calendarEvents,setCalendarEvents]=useState([]);
+  const [activePreparation,setActivePreparation]=useState(null);
+  const [readyPreparations,setReadyPreparations]=useState([]);
+  const [seenPreparations,setSeenPreparations]=useState(()=>{
+    try { return new Set(JSON.parse(localStorage.getItem("sia-seen-preparations")||"[]")); }
+    catch { return new Set(); }
+  });
+
+  useEffect(()=>{
+    const controller=new AbortController();
+    const load=()=>fetch("/api/meeting-preparations",{signal:controller.signal}).then(r=>r.ok?r.json():null)
+      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.preparations.filter(job=>job.status==="ready"&&job.mode===state.mode&&state.events.some(event=>event.id===job.event_id&&event.version===job.version&&new Date(event.starts_at)>new Date(state.now))).sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
+    load(); const timer=setInterval(load,1500);
+    return()=>{controller.abort();clearInterval(timer);};
+  },[]);
+
+  function acknowledgePreparations(briefId=null){
+    setSeenPreparations(current=>{
+      const next=new Set(current);
+      readyPreparations.filter(job=>!briefId||job.brief_id===briefId).forEach(job=>next.add(job.id));
+      return next;
+    });
+  }
+  const unseenPreparations=readyPreparations.filter(job=>!seenPreparations.has(job.id));
+  const firstUnseenId=unseenPreparations[0]?.id;
+  const activeEvent=activePreparation&&calendarEvents.find(event=>event.id===activePreparation.event_id&&event.version===activePreparation.version);
+  useEffect(()=>{
+    if(page!=="calendar"||activePreparation||!firstUnseenId||autoNoticeShown.current)return;
+    const timer=setTimeout(()=>{if(autoNoticeShown.current)return;if(document.querySelector('dialog[open], [role="dialog"]'))return;autoNoticeShown.current=true;setActivePreparation(unseenPreparations[0]);},1200);
+    return()=>clearTimeout(timer);
+  },[page,activePreparation,firstUnseenId]);
+  function markPreparationSeen(id){setSeenPreparations(current=>new Set([...current,id]));}
+  function dismissPreparation(){if(activePreparation)markPreparationSeen(activePreparation.id);setActivePreparation(null);}
+  useEffect(()=>{
+    try {localStorage.setItem("sia-seen-preparations",JSON.stringify([...seenPreparations]));}catch{}
+  },[seenPreparations]);
 
   useEffect(()=>{
     const f=(u,s)=>fetch(u).then(r=>r.json()).then(s).catch(()=>{});
@@ -451,15 +492,16 @@ export default function App(){
     f("/api/news",setNews);
   },[]);
 
-  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null)};
-  const prepareMeeting=(client)=>{setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
-  const openMeetingBrief=(brief)=>{setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
+  const nav=(p)=>{setPage(p);setSelClient(null);setMeetingClient(null);setIncomingBrief(null);if(p!=="calendar")setCalendarMeeting(null)};
+  const prepareMeeting=(client)=>{setCalendarMeeting(null);setMeetingClient(client);setIncomingBrief(null);setPage("meeting");setSelClient(null)};
+  const openMeetingBrief=(brief)=>{setCalendarMeeting(null);acknowledgePreparations(brief.id);setIncomingBrief(brief);setMeetingClient(null);setSelClient(null);setPage("meeting")};
+  const openCalendarMeeting=(event)=>{autoNoticeShown.current=true;readyPreparations.filter(job=>job.event_id===event.id).forEach(job=>markPreparationSeen(job.id));setActivePreparation(null);setCalendarMeeting(event);setIncomingBrief(null);setMeetingClient(null);setSelClient(null);setPage("meeting")};
 
   const menu=[
+    {id:"email",ic:ic.mail,label:"Inbox"},
+    {id:"calendar",ic:ic.calendar,label:"Calendar"},
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
-    {id:"calendar",ic:ic.calendar,label:"Calendar"},
-    {id:"email",ic:ic.mail,label:"Email"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
@@ -478,11 +520,11 @@ export default function App(){
         </div>
         <nav className="sidebar-nav">
           <div className="nav-group-label">Main</div>
-          {menu.slice(0,6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(0,5).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
-          {menu.slice(6,10).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(5,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
-          {menu.slice(10).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
@@ -493,13 +535,16 @@ export default function App(){
       <div className="main">
         <div className="topbar">
           <div className="topbar-title">{PAGE_TITLE[page]}</div>
-          <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
+          <div className="topbar-controls">
+            {unseenPreparations.length>0&&<button className="prep-alert-button" aria-label={`Meeting prep ready (${unseenPreparations.length})`} onClick={()=>setActivePreparation(unseenPreparations[0])}><CalendarSymbol name="document" size={16}/><span className="prep-alert-text">Meeting prep</span><span className="prep-alert-count">{unseenPreparations.length}</span></button>}
+            <select className="mobile-page-select" aria-label="Navigate to page" value={page} onChange={event=>nav(event.target.value)}>{menu.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}</select>
+          </div>
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
-          {page==="meeting"&&<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>}
-          {page==="calendar"&&<CalendarPage clients={clients}/>}
-          {page==="email"&&<EmailPage clients={clients}/>}
+          {page==="meeting"&&((incomingBrief||meetingClient)?<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>:<MeetingPrepWorkspace key={calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>)}
+          {page==="calendar"&&<CalendarPage clients={clients} onEditing={()=>{autoNoticeShown.current=true;}} onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
+          {page==="email"&&<EmailPage clients={clients}/> }
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}
           {page==="clients"&&!selClient&&<Clients clients={clients} onSelect={setSelClient}/>}
           {page==="clients"&&selClient&&<ClientDetail client={selClient} onBack={()=>setSelClient(null)} onPrepare={prepareMeeting}/>}
@@ -510,6 +555,7 @@ export default function App(){
           {page==="portfolio"&&<PortfolioPanel clients={clients}/>}
         </div>
       </div>
+      {activeEvent&&<MeetingReadyDialog key={activePreparation.id} event={activeEvent} onView={openCalendarMeeting} onDismiss={dismissPreparation}/>}
     </div>
   );
 }

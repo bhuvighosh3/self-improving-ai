@@ -20,6 +20,7 @@ class BriefingResult(BaseModel):
 
 
 class MeetingBriefRequest(BaseModel):
+    calendar_event_id: str | None = Field(default=None, max_length=100)
     client_id: str = Field(min_length=1, max_length=60)
     meeting_date: date
     meeting_time: time
