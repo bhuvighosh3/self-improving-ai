@@ -21,5 +21,8 @@ class PortfolioGemini(Gemini):
     def api_client(self) -> Client:
         # ADK documents overriding this property for explicit Client settings.
         # No mutation of GOOGLE_API_KEY or the team's Vertex AI mode is needed.
-        return Client(vertexai=False, api_key=self.api_key.get_secret_value(),
-                      http_options=types.HttpOptions(timeout=60000, retry_options=self.retry_options))
+        http = types.HttpOptions(timeout=60000, retry_options=self.retry_options)
+        key = self.api_key.get_secret_value()
+        if not key and os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
+            return Client(http_options=http)  # no key: use the team's Vertex AI project
+        return Client(vertexai=False, api_key=key, http_options=http)
