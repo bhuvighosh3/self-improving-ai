@@ -17,7 +17,7 @@ function tomorrow() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export default function MeetingPrep({ clients, selectedClient, incomingBrief, calendarEvent, onBackToCalendar, freshDraft = false, embedded = false, defaultMode = "simulation", defaultDate }) {
+export default function MeetingPrep({ clients, selectedClient, incomingBrief, calendarEvent, onBackToCalendar, freshDraft = false, embedded = false, defaultDate }) {
   const [saved] = useState(() => freshDraft ? null : loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
   const [brief, setBrief] = useState(saved?.brief || null);
   const [clientId, setClientId] = useState(saved?.brief.client_id || "CLI-003");
@@ -27,7 +27,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const [reviewedAt, setReviewedAt] = useState(saved?.reviewedAt || null);
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
-  const [mode, setMode] = useState(saved?.brief.mode || defaultMode);
+  const [mode] = useState("agent");
   const [meetingType, setMeetingType] = useState(saved?.brief.meeting_type || "quarterly_review");
   const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
   const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
@@ -40,7 +40,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
   const requestRef = useRef(null);
-  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus || mode !== brief.mode || meetingType !== (brief.meeting_type || "quarterly_review"));
+  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus || meetingType !== (brief.meeting_type || "quarterly_review"));
 
   useEffect(() => {
     if (selectedClient) {
@@ -175,12 +175,10 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
         <p>{calendarEvent.title} · {meetingLabel(calendarEvent)}</p>
       </header> : !embedded && <div className="meeting-heading no-meeting-print">
         <div><h2>Meeting Prep</h2></div>
-        <span className="chip chip-amber">Demo · Synthetic data</span>
       </div>}
 
       {!calendarEvent && <form className="card meeting-form no-meeting-print" onSubmit={generate}>
         <div className="card-body meeting-fields">
-          <label>Generation mode<select value={mode} onChange={event => setMode(event.target.value)} disabled={busy}><option value="simulation">Offline demo · No LLM</option><option value="agent">AI Agent · Gemini</option></select></label>
           <label>Meeting type<select value={meetingType} onChange={event => setMeetingType(event.target.value)} disabled={busy}><option value="quarterly_review">Quarterly review</option><option value="annual_review">Annual review</option><option value="goal_review">Goal review</option></select></label>
           <label>Client<select aria-label="Client" value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Quarterly portfolio and goals review"); }} disabled={busy} required>
             {!clients.length && <option value="">Loading clients…</option>}
@@ -232,7 +230,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
               <div className="meeting-sheet-title"><h2>{brief.client_name}</h2><span className="chip chip-violet">Meeting Brief</span></div>
               <p>{brief.contact} · {brief.meeting_date} at {brief.meeting_time} · New York</p>
               <div className="meeting-objective">{brief.focus}</div>
-              <div className="meeting-sheet-meta">Data through {brief.data_as_of}{brief.previous_meeting && ` · Previous meeting ${brief.previous_meeting}`} · Synthetic demo</div>
+              <div className="meeting-sheet-meta">Data through {brief.data_as_of}{brief.previous_meeting && ` · Previous meeting ${brief.previous_meeting}`}</div>
               <div className="meeting-print-status">{reviewedAt ? "Reviewed" : "DRAFT — NOT REVIEWED"} · Revision {revision}{edited ? " · Advisor edited" : ""}</div>
             </header>
 
@@ -259,7 +257,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
 
             <div className="meeting-sheet-footer">
               {reviewedAt ? `Reviewed ${new Date(reviewedAt).toLocaleString("en-US")} · ` : "Draft awaiting advisor review · "}
-              Synthetic demonstration. Sources are mock records. Saved in this browser.
+              Sources are on record.
             </div>
             <div className="meeting-print-evidence">
               <h3>Source Index</h3>

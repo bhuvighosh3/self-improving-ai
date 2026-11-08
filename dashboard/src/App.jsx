@@ -111,7 +111,6 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
                   {m.brief&&<button className="meeting-btn primary co-open-brief" onClick={()=>onOpenBrief(m.brief)}>Open Meeting Brief</button>}
                   <div className="bubble-foot">
                     {m.intent&&<span className={`chip ${INTENT_CHIP[m.intent]||"chip-accent"}`}>{m.intent.replace(/_/g," ")}</span>}
-                    {m.mode==="simulation"&&<span className="chip chip-amber">demo</span>}
                     <span className="bubble-time" style={{marginTop:0}}>{m.time}</span>
                   </div>
                 </div>
@@ -500,13 +499,13 @@ export default function App(){
   const menu=[
     {id:"email",ic:ic.mail,label:"Inbox"},
     {id:"calendar",ic:ic.calendar,label:"Calendar"},
-    {id:"copilot",ic:ic.copilot,label:"Copilot"},
-    {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
-    {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"dashboard",ic:ic.dash,label:"Overview"},
     {id:"clients",ic:ic.people,label:"Clients"},
     {id:"requests",ic:ic.inbox,label:"Requests"},
     {id:"tools",ic:ic.wrench,label:"Tools"},
+    {id:"copilot",ic:ic.copilot,label:"Copilot"},
+    {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
+    {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
     {id:"news",ic:ic.news,label:"News"},
     {id:"agents",ic:ic.bot,label:"Agents"},
   ];
@@ -519,10 +518,12 @@ export default function App(){
           <div className="brand-sub">Wealth Management</div>
         </div>
         <nav className="sidebar-nav">
-          <div className="nav-group-label">Main</div>
-          {menu.slice(0,5).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          <div className="nav-group-label">Personal</div>
+          {menu.slice(0,2).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Data</div>
-          {menu.slice(5,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(2,6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          <div className="nav-group-label">Advisor</div>
+          {menu.slice(6,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">System</div>
           {menu.slice(9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>

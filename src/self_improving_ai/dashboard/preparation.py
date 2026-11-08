@@ -38,7 +38,8 @@ class SimulationCommand(BaseModel):
 class MeetingPreparationMonitor:
     def __init__(self, path, prepare):
         self.path, self.prepare = str(path), prepare
-        profiles = json.loads((Path(__file__).resolve().parents[1] / "data/clients/households.json").read_text(encoding="utf-8"))
+        from self_improving_ai.client_store import load_households
+        profiles = load_households()
         self.client_names = {record["client_id"]:record["profile"]["name"] for record in profiles}
         self.lock = asyncio.Lock()
         self.processing = False

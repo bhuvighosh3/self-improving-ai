@@ -47,7 +47,7 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCa
         <button className="calendar-back prep-mobile-back" onClick={() => setShowDetail(false)}><CalendarSymbol name="previous" size={14}/>All meetings</button>
         {manualStarted && <section className="prep-manual-panel" aria-label="Prepare another meeting" hidden={!manualOpen || !showDetail}>
           <header className="prep-manual-heading"><h3 ref={manualHeading} tabIndex={-1}>Prepare another meeting</h3><button className="meeting-btn" onClick={cancelManual}>Cancel</button></header>
-          <MeetingPrep clients={clients} freshDraft embedded defaultMode={data.mode} defaultDate={addDays(dateKey(data.now), 1)}/>
+          <MeetingPrep clients={clients} freshDraft embedded defaultDate={addDays(dateKey(data.now), 1)}/>
         </section>}
         <div key={selected?.id || "empty"} hidden={manualOpen}>
         {selected && showDetail && !manualOpen ? <PreparationDetail autoOpen={initialEvent?.id === selected.id} event={selected} data={data} clients={clients} onBackToCalendar={() => onBackToCalendar(selected)} onOpened={onOpened}/>

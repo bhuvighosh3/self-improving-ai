@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # GCP / Gemini
     google_cloud_project: str = ""
-    google_cloud_location: str = "us-central1"
+    google_cloud_location: str = "global"
     agent_model: str = "gemini-3.8-flash"
     agent_model_fallback: str = "gemini-3.5-flash-lite"
     judge_model: str = "gemini-3.8-flash"
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # OpenTelemetry
     otel_service_name: str = "self-improving-ai"
-    otel_exporter: str = "console"  # "console" | "otlp"
+    otel_exporter: str = "console"  # "console" | "otlp" | "gcp"
     otel_endpoint: str = "http://localhost:4317"
 
     # Dashboard

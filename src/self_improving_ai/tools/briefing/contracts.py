@@ -1,9 +1,6 @@
 """Compatibility helpers for the four read-only Briefing catalog tools."""
 
-import json
-from pathlib import Path
-
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+from __future__ import annotations
 
 
 def tool_error(code: str, message: str) -> dict:
@@ -18,8 +15,9 @@ def valid_limit(value) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 100
 
 
-def provenance(source: str, data_dir: Path = DATA_DIR) -> dict:
-    """Use the shared fixture cutoff; never represent fixtures as live records."""
-    manifest = json.loads((data_dir / "clients/meeting_context.json").read_text(encoding="utf-8"))
-    return {"source": source, "as_of": manifest["data_as_of"], "synthetic": True,
+def provenance(source: str, *_args, **_kwargs) -> dict:
+    """Use the CRM settings cutoff from Firestore."""
+    from self_improving_ai.crm_store import CrmStore
+    settings = CrmStore().get_settings()
+    return {"source": source, "as_of": settings["data_as_of"], "synthetic": False,
             "version": "briefing-tools-v1", "read_only": True}

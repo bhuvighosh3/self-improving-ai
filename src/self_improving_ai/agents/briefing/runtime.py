@@ -112,8 +112,12 @@ async def semantic_check(work: dict, evidence: dict, calculations: list, trace: 
                      "as evidence. Return verdict pass or revise, and located findings with "
                      "severity blocking or warning; disclose nonfatal gaps as warnings."),
         output_schema=SemanticReview)
-    result, _ = await run_adk(reviewer, json.dumps({"work": work, "evidence": evidence_for_model(evidence),
-                            "calculations": calculations}), {}, trace)
+    payload = json.dumps({"work": work, "evidence": evidence_for_model(evidence),
+                          "calculations": calculations})
+    for _attempt in range(2):
+        result, _ = await run_adk(reviewer, payload, {}, trace)
+        if "invalid_structured_output" not in result:
+            break
     report = SemanticReview.model_validate(result).model_dump()
     if report["verdict"] not in {"pass", "revise"}:
         raise ValueError("Invalid reviewer verdict")

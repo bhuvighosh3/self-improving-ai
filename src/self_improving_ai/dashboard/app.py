@@ -20,12 +20,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from google.genai.errors import APIError
 
 from self_improving_ai.agents.orchestrator.agent import orchestrator
+from self_improving_ai.agents.orchestrator.runtime import run_copilot
 from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
@@ -43,6 +45,10 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app):
     from self_improving_ai.dashboard.preparation import MeetingPreparationMonitor
+    from self_improving_ai.telemetry import init_telemetry
+
+    init_telemetry()
+    log.info("Telemetry initialized (exporter=%s)", settings.otel_exporter)
 
     app.state.preparations = MeetingPreparationMonitor(settings.db_path, create_meeting_brief)
     worker = asyncio.create_task(app.state.preparations.serve())
@@ -74,6 +80,8 @@ from self_improving_ai.dashboard.email import router as email_router
 
 app.include_router(email_router)
 
+from self_improving_ai.client_store import load_households as _load_clients
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -103,11 +111,17 @@ def _get_fallback_runner():
         from self_improving_ai.agents.portfolio.agent import create_portfolio_agent
         from self_improving_ai.agents.briefing.agent import briefing_agent
 
+        from self_improving_ai.tools.orchestrator.workspace import (
+            get_client_holdings, get_client_info, get_crm_summary,
+            get_recent_emails, get_upcoming_events,
+        )
         fallback_orchestrator = Agent(
             name="request_orchestrator",
             model=settings.agent_model_fallback,
             instruction=ORCHESTRATOR_INSTRUCTION,
             tools=[
+                get_upcoming_events, get_recent_emails, get_client_info,
+                get_crm_summary, get_client_holdings,
                 AgentTool(agent=create_portfolio_agent(settings.agent_model_fallback)),
                 AgentTool(agent=briefing_agent),
                 search_tool_catalog,
@@ -285,12 +299,12 @@ async def health():
 
 @app.get("/api/clients")
 async def list_clients():
-    return _load("clients/households.json")
+    return await run_in_threadpool(_load_clients)
 
 
 @app.get("/api/clients/{client_id}")
 async def get_client(client_id: str):
-    for h in _load("clients/households.json"):
+    for h in await run_in_threadpool(_load_clients):
         if h.get("client_id") == client_id:
             return h
     return {"error": "Client not found"}
@@ -308,7 +322,9 @@ async def list_tools():
 
 @app.get("/api/news")
 async def list_news():
-    return _load("news/market_news.json")
+    from self_improving_ai.tools.briefing.news import search_market_news
+    result = await run_in_threadpool(search_market_news, "market outlook", 20)
+    return result.get("results", [])
 
 
 @app.get("/api/prices")
@@ -318,7 +334,7 @@ async def get_prices():
 
 @app.get("/api/stats")
 async def get_stats():
-    clients = _load("clients/households.json")
+    clients = await run_in_threadpool(_load_clients)
     requests = _load("requests/advisor_requests.json")
     tools = _load("tool_catalog.json")
 
@@ -398,7 +414,7 @@ async def chat(req: ChatRequest):
         }
 
     if is_meeting_request(req.message):
-        details = collect_meeting_details(req.message, _load("clients/households.json"), req.client_id)
+        details = collect_meeting_details(req.message, await run_in_threadpool(_load_clients), req.client_id)
         return {
             "response": "Confirm the client, New York meeting time and focus, then choose how to prepare the brief.",
             "intent": "meeting_briefing", "client_id": details["client_id"] or None,
@@ -412,76 +428,31 @@ async def chat(req: ChatRequest):
     if req.client_id:
         message += f" (client_id: {req.client_id})"
 
-    content = types.Content(
-        role="user",
-        parts=[types.Part(text=message)],
-    )
-
     steps = []
     response_parts = []
 
-    _FRIENDLY_ACTIONS = {
-        "get_holdings": "Looking up portfolio holdings",
-        "get_holdings_v1": "Looking up portfolio holdings",
-        "get_price_history": "Fetching price history",
-        "get_stale_price": "Fetching recent price",
-        "get_client_profile": "Pulling up client profile",
-        "get_crm_notes": "Reviewing recent notes",
-        "search_market_news": "Scanning market news",
-        "run_monte_carlo": "Running projections",
-        "get_capital_market_assumptions": "Checking market assumptions",
-        "estimate_capital_gains": "Estimating capital gains",
-        "calculate_withdrawal_rate": "Calculating withdrawal rate",
-        "check_compliance_flags": "Checking compliance",
-        "calculate_fee_drag": "Analyzing fee impact",
-        "search_tool_catalog": "Searching available tools",
-        "calculate_allocation_drift": "Checking allocation drift",
-        "estimate_portfolio_risk": "Estimating portfolio risk",
-        "project_financial_goal": "Running goal projection",
-        "get_market_quote": "Getting market quote",
-        "get_external_price_history": "Fetching price history",
-        "get_portfolio_scenarios": "Running scenario analysis",
-        "prepare_meeting_context": "Gathering meeting context",
-        "calculate_metrics": "Calculating key metrics",
-    }
-    _FRIENDLY_AGENTS = {
-        "request_orchestrator": "Copilot",
-        "portfolio_estimation_agent": "Portfolio Analysis",
-        "meeting_briefing_agent": "Meeting Prep",
-    }
-
-    async def _run_with_runner(runner):
-        async for event in runner.run_async(
+    try:
+        result = await run_copilot(
+            runner=_runner,
+            message=message,
             session_id=session_id,
             user_id=user_id,
-            new_message=content,
-        ):
-            author = event.author or "unknown"
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, "function_call") and part.function_call:
-                        fc = part.function_call
-                        friendly = _FRIENDLY_ACTIONS.get(fc.name, fc.name.replace("_", " ").title())
-                        steps.append({
-                            "agent": _FRIENDLY_AGENTS.get(author, author),
-                            "action": fc.name,
-                            "detail": friendly,
-                            "tools_called": [fc.name],
-                        })
-                    elif hasattr(part, "text") and part.text:
-                        response_parts.append(part.text)
-
-    try:
-        await _run_with_runner(_runner)
+        )
+        steps = result["steps"]
+        response_parts = result["response_parts"]
     except Exception as exc:
         err = str(exc)
         if "503" in err or "UNAVAILABLE" in err:
             log.warning("Primary model unavailable, trying fallback model")
-            steps.clear()
-            response_parts.clear()
             try:
-                fallback = _get_fallback_runner()
-                await _run_with_runner(fallback)
+                result = await run_copilot(
+                    runner=_get_fallback_runner(),
+                    message=message,
+                    session_id=session_id,
+                    user_id=user_id,
+                )
+                steps = result["steps"]
+                response_parts = result["response_parts"]
             except Exception as fallback_exc:
                 log.exception("Fallback model also failed")
                 fallback_err = str(fallback_exc)
@@ -493,6 +464,9 @@ async def chat(req: ChatRequest):
                     response_parts.append("Something went wrong. Please try again.")
         elif "429" in err or "RESOURCE_EXHAUSTED" in err:
             response_parts.append("Rate limit reached — please wait a moment and try again.")
+        elif "max_llm_calls" in err.lower() or "exceeded" in err.lower():
+            log.warning("Orchestrator hit LLM call budget: %s", err)
+            response_parts.append("That request needed more steps than I could complete in one pass. Try asking about fewer clients at once, or be more specific about what you need.")
         else:
             log.exception("Orchestrator error")
             response_parts.append("Something went wrong. Please try again.")

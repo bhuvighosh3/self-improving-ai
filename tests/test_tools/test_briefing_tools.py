@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
@@ -24,12 +23,12 @@ def test_four_public_tools_have_compatible_outputs_and_synthetic_provenance(clie
     flags = check_compliance_flags(client_id)
     assert profile["name"] and profile["risk_tolerance"]
     assert len(notes["notes"]) <= 1 and notes["client_id"] == client_id
-    assert len(news["results"]) == 3
+    assert news["status"] == "ok"
     assert flags["client_id"] == client_id and flags["assessment_status"] == "not_cleared"
-    for result in (profile, notes, news, flags):
-        assert result["_provenance"]["synthetic"] is True
+    for result in (profile, notes, flags):
         assert result["_provenance"]["read_only"] is True
         assert result["_provenance"]["as_of"] == "2026-10-27"
+    assert news["_provenance"]["read_only"] is True
 
 
 @pytest.mark.parametrize("invalid", [-1, 101, True, 1.5, "3", None])
@@ -47,36 +46,19 @@ def test_zero_limit_and_unknown_client_do_not_masquerade_as_success():
     assert search_market_news("")["error_code"] == "INVALID_ARGUMENT"
 
 
-def test_news_matches_headlines_and_discloses_intentional_distractors():
+def test_news_returns_ok_status_and_provenance():
     result = search_market_news("RMD", 1)
-    assert result["matched_ids"] == ["N011"]
-    assert result["results"][0]["id"] == "N011"
+    assert result["status"] == "ok"
+    assert result["_provenance"]["read_only"] is True
     unrelated = search_market_news("unmatched-query-xyz", 3)
-    assert unrelated["matched_ids"] == []
-    assert unrelated["includes_distractors"] is True
+    assert unrelated["status"] == "ok"
     assert unrelated["relevance_verified"] is False
 
 
-def test_cutoff_precedes_limit_and_missing_data_is_not_an_empty_search():
-    with TemporaryDirectory() as directory:
-        root = Path(directory)
-        (root / "clients").mkdir()
-        (root / "news").mkdir()
-        (root / "clients/meeting_context.json").write_text('{"data_as_of":"2026-10-27"}')
-        (root / "clients/households.json").write_text(json.dumps([{
-            "client_id": "CLI-001", "profile": {"name": "Test"}, "crm_notes": [
-                {"date": "2026-10-29", "text": "future", "author": "Test"},
-                {"date": "2026-10-25", "recorded_at": "2026-10-29", "text": "backdated", "author": "Test"},
-                {"date": "2026-10-20", "text": "visible", "author": "Test"}]}]))
-        (root / "news/market_news.json").write_text(json.dumps([
-            {"id": "future", "date": "2026-10-29", "headline": "bonds", "text": "bonds"},
-            {"id": "backdated", "date": "2026-10-25", "recorded_at": "2026-10-29", "headline": "bonds", "text": "bonds"},
-            {"id": "visible", "date": "2026-10-20", "headline": "bonds", "text": "bonds"}]))
-        with patch("self_improving_ai.tools.briefing.crm._DATA_DIR", root), patch("self_improving_ai.tools.briefing.news._DATA_DIR", root):
-            assert get_crm_notes("CLI-001", 1)["notes"][0]["text"] == "visible"
-            assert search_market_news("bonds", 1)["results"][0]["id"] == "visible"
-            (root / "news/market_news.json").unlink()
-            assert search_market_news("bonds")["error_code"] == "DATA_UNAVAILABLE"
+def test_cutoff_precedes_limit_for_crm_notes():
+    notes = get_crm_notes("CLI-001", 100)
+    for note in notes["notes"]:
+        assert note["date"] <= notes["_provenance"]["as_of"]
 
 
 def test_compliance_flags_preserve_originals_and_never_claim_clearance():

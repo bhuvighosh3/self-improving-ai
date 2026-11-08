@@ -7,7 +7,7 @@ from pathlib import Path
 
 def run_metadata(lessons: str = "") -> dict:
     package = Path(__file__).resolve().parents[2]
-    files = [package / "data/clients/households.json", *sorted((package / "data/portfolio").glob("*.json"))]
+    files = sorted((package / "data/portfolio").glob("*.json"))
     digest = hashlib.sha256()
     for path in files:
         digest.update(path.relative_to(package).as_posix().encode())

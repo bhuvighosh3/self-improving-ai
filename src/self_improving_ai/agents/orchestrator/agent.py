@@ -13,6 +13,13 @@ from self_improving_ai.agents.orchestrator.memory import orchestrator_state_for
 from self_improving_ai.agents.portfolio.agent import portfolio_agent
 from self_improving_ai.config import settings
 from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
+from self_improving_ai.tools.orchestrator.workspace import (
+    get_client_holdings,
+    get_client_info,
+    get_crm_summary,
+    get_recent_emails,
+    get_upcoming_events,
+)
 
 log = logging.getLogger(__name__)
 _MEMORY_KEYS = ("intent_corrections", "tool_notes", "plan_templates")
@@ -42,8 +49,16 @@ orchestrator = Agent(
     model=settings.agent_model,
     instruction=ORCHESTRATOR_INSTRUCTION,
     tools=[
+        # Direct lookup tools (fast, no sub-agent overhead)
+        get_upcoming_events,
+        get_recent_emails,
+        get_client_info,
+        get_crm_summary,
+        get_client_holdings,
+        # Sub-agents for complex tasks
         AgentTool(agent=portfolio_agent),
         AgentTool(agent=briefing_agent),
+        # Discovery
         search_tool_catalog,
     ],
     before_agent_callback=inject_learned_memory,

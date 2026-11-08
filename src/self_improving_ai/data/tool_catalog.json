@@ -52,7 +52,7 @@
     ],
     "returns": "Client profile dictionary",
     "implementation_status": "implemented",
-    "data_source": "synthetic_fixture",
+    "data_source": "firestore",
     "read_only": true
   },
   {
@@ -65,7 +65,7 @@
     ],
     "returns": "List of dated notes",
     "implementation_status": "implemented",
-    "data_source": "synthetic_fixture",
+    "data_source": "firestore",
     "read_only": true
   },
   {
@@ -76,9 +76,9 @@
       "query",
       "max_results"
     ],
-    "returns": "Dated fixture articles, matched IDs and an explicit distractor indicator",
+    "returns": "Articles from Twelve Data API, matched IDs and an explicit distractor indicator",
     "implementation_status": "implemented",
-    "data_source": "synthetic_fixture",
+    "data_source": "twelve_data_api",
     "read_only": true
   },
   {
@@ -127,6 +127,31 @@
     "implementation_status": "planned_not_implemented"
   },
   {
+    "name": "get_crm_context",
+    "description": "Returns meeting context for a client: previous meeting date, tasks, data cutoff dates",
+    "agent": "meeting_briefing_agent",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "Previous meeting date, tasks array, data_as_of, holdings_as_of",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_crm_records",
+    "description": "Retrieves CRM source records (minutes, emails, service updates) for a client",
+    "agent": "meeting_briefing_agent",
+    "parameters": [
+      "client_id",
+      "kind"
+    ],
+    "returns": "List of CRM records filtered by client and optional kind",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
     "name": "check_compliance_flags",
     "description": "Returns sourced profile and recorded CRM compliance follow-ups for advisor confirmation",
     "agent": "meeting_briefing_agent",
@@ -135,7 +160,7 @@
     ],
     "returns": "Flags, source locators and partial coverage; never compliance clearance",
     "implementation_status": "implemented",
-    "data_source": "synthetic_fixture",
+    "data_source": "firestore",
     "read_only": true
   },
   {
@@ -149,6 +174,70 @@
     ],
     "returns": "Fee drag analysis",
     "implementation_status": "planned_not_implemented"
+  },
+  {
+    "name": "get_upcoming_events",
+    "description": "Look up calendar events by client or by month",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "year",
+      "month"
+    ],
+    "returns": "List of calendar events",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_recent_emails",
+    "description": "Look up emails by client or by folder",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "folder"
+    ],
+    "returns": "List of emails",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_client_info",
+    "description": "Returns client profile including demographics, risk tolerance, and goals",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "Client profile dictionary",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_crm_summary",
+    "description": "Returns CRM notes, last meeting date, and open tasks for a client",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id"
+    ],
+    "returns": "CRM notes, previous meeting, tasks",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
+  },
+  {
+    "name": "get_client_holdings",
+    "description": "Returns current portfolio holdings and market values for a client",
+    "agent": "request_orchestrator",
+    "parameters": [
+      "client_id",
+      "account_id"
+    ],
+    "returns": "Account holdings with market values",
+    "implementation_status": "implemented",
+    "data_source": "firestore",
+    "read_only": true
   },
   {
     "name": "search_tool_catalog",

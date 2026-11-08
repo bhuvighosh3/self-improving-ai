@@ -1,44 +1,47 @@
-"""Read-only, cutoff-aware adapters over the synthetic CRM and optional sources."""
+"""Read-only, cutoff-aware adapters over the Firestore CRM and optional sources."""
+
+from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from pathlib import Path
 
 from self_improving_ai.tools.briefing.crm import get_client_profile, get_crm_notes
 from self_improving_ai.tools.portfolio.holdings import get_holdings
 from self_improving_ai.tools.briefing.compliance import check_compliance_flags
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-
 
 def load_context(client_id: str) -> dict:
-    data = json.loads((DATA_DIR / "clients/meeting_context.json").read_text(encoding="utf-8"))
-    if client_id not in data["households"]:
+    from self_improving_ai.tools.briefing.crm_records import get_crm_context
+    result = get_crm_context(client_id)
+    if result.get("status") == "error":
         raise LookupError("Client not found")
     from self_improving_ai.tools.briefing.workspace_sources import current_scope
     scope = current_scope()
     if scope and scope["client_id"] != client_id:
         raise ValueError("Client is locked to the operational snapshot")
-    if scope and scope["as_of"] < data["data_as_of"]:
+    if scope and scope["as_of"] < result["data_as_of"]:
         raise ValueError("Meeting precedes the available historical snapshot")
-    return {"as_of": scope["as_of"] if scope else data["data_as_of"],
-            "holdings_as_of": data["holdings_as_of"], **data["households"][client_id],
-            "context_revision": scope["revision"] if scope else "fixture-v1"}
+    return {"as_of": scope["as_of"] if scope else result["data_as_of"],
+            "holdings_as_of": result["holdings_as_of"],
+            "previous_meeting": result.get("previous_meeting"),
+            "tasks": result.get("tasks", []),
+            "context_revision": scope["revision"] if scope else "firestore-v1"}
 
 
 def _records(client_id: str, kind: str) -> dict:
     context = load_context(client_id)
-    path = DATA_DIR / "clients/meeting_sources.json"
-    records = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    from self_improving_ai.tools.briefing.crm_records import get_crm_records
+    crm_result = get_crm_records(client_id, kind=kind)
+    records = crm_result.get("records", [])
     if kind == "email":
         from self_improving_ai.tools.briefing.workspace_sources import email_originals
         records.extend(email_originals(client_id))
-    items = [r for r in records if r["client_id"] == client_id and r["kind"] == kind
-             and r["event_at"][:10] <= context["as_of"]
-             and r["recorded_at"][:10] <= context["as_of"]]
+    items = [r for r in records if r.get("client_id") == client_id and r.get("kind") == kind
+             and r.get("event_at", "")[:10] <= context["as_of"]
+             and r.get("recorded_at", "")[:10] <= context["as_of"]]
     return {"status": "ok" if items else "no_results", "client_id": client_id,
             "as_of": context["as_of"], "items": items,
-            "scope": "Available synthetic records only; not complete client history"}
+            "scope": "Available records only; not complete client history"}
 
 
 def list_previous_meetings(client_id: str) -> dict:

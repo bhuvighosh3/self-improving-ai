@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
@@ -52,7 +52,14 @@ class DraftItem(StrictModel):
 class DraftSection(StrictModel):
     id: Literal["overview", "changes", "portfolio", "priorities", "actions", "confirm"]
     title: str
-    items: list[DraftItem] = Field(min_length=1, max_length=20)
+    items: list[DraftItem]  # at most 20, checked below (Vertex rejects maxItems)
+
+    @field_validator("items")
+    @classmethod
+    def _at_most_twenty_items(cls, v):
+        if len(v) > 20:
+            raise ValueError("items must contain at most 20 entries")
+        return v
 
 
 class AgentWork(StrictModel):
@@ -63,8 +70,16 @@ class AgentWork(StrictModel):
     changes: list[ContextChange] = Field(default_factory=list)
     findings: list[Finding] = Field(min_length=1)
     claims: list[Claim] = Field(min_length=1)
-    sections: list[DraftSection] = Field(min_length=6, max_length=6)
+    # Vertex AI rejects maxItems in response schemas, so "exactly six" is checked here instead.
+    sections: list[DraftSection] = Field(min_length=6)
     client_agenda: list[str] = Field(min_length=1)
+
+    @field_validator("sections")
+    @classmethod
+    def _exactly_six_sections(cls, v):
+        if len(v) != 6:
+            raise ValueError("sections must contain exactly 6 items")
+        return v
 
 
 class ReviewRequest(BaseModel):

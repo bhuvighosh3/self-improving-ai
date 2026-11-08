@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
+from self_improving_ai.client_store import load_households as _load_households
 from self_improving_ai.tools.briefing.contracts import provenance, tool_error, valid_client_id, valid_limit
 
 _DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-
-
-def _load_households() -> list[dict]:
-    path = _DATA_DIR / "clients" / "households.json"
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def get_client_profile(client_id: str) -> dict:
@@ -28,9 +23,9 @@ def get_client_profile(client_id: str) -> dict:
         return tool_error("INVALID_ARGUMENT", "client_id must be a nonempty string")
     try:
         households = _load_households()
-        metadata = provenance("clients/households.json", _DATA_DIR)
+        metadata = provenance("firestore/clients", _DATA_DIR)
     except (OSError, ValueError, KeyError):
-        return tool_error("DATA_UNAVAILABLE", "Client fixture data is unavailable")
+        return tool_error("DATA_UNAVAILABLE", "Client data is unavailable")
     for household in households:
         if household.get("client_id") == client_id:
             return {**household.get("profile", {}), "_provenance": metadata}
@@ -51,7 +46,7 @@ def get_crm_notes(client_id: str, limit: int = 10) -> dict:
         return tool_error("INVALID_ARGUMENT", "Provide a client_id and an integer limit from 0 to 100")
     try:
         households = _load_households()
-        metadata = provenance("clients/households.json", _DATA_DIR)
+        metadata = provenance("firestore/clients", _DATA_DIR)
     except (OSError, ValueError, KeyError):
         return tool_error("DATA_UNAVAILABLE", "CRM fixture data is unavailable")
     for household in households:

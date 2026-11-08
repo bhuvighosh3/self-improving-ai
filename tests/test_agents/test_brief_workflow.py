@@ -4,8 +4,6 @@ import asyncio
 from self_improving_ai.agents.briefing.contract import content_from_work
 from copy import deepcopy
 import json
-from pathlib import Path
-from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -58,18 +56,30 @@ class WorkflowTests(unittest.TestCase):
 
     def test_cross_client_and_post_cutoff_sources_are_unavailable(self):
         self.assertEqual(read_source("CLI-003", "EMAIL-004")["status"], "denied")
-        with TemporaryDirectory() as directory:
-            path = Path(directory)
-            (path / "clients").mkdir()
-            (path / "clients/meeting_context.json").write_text(json.dumps({
-                "data_as_of": "2026-10-27", "holdings_as_of": "2026-10-24",
-                "households": {"C": {"previous_meeting": "2026-09-01"}}}))
-            (path / "clients/meeting_sources.json").write_text(json.dumps([
-                {"id": "LATE", "client_id": "C", "kind": "email", "event_at": "2026-10-01",
-                 "recorded_at": "2026-10-28", "title": "Late", "text": "Backdated"}]))
-            with patch("self_improving_ai.tools.briefing.context.DATA_DIR", path):
-                self.assertEqual(search_sources("C")["status"], "no_results")
-                self.assertEqual(read_source("C", "LATE")["status"], "denied")
+        mock_ctx_result = {
+            "status": "ok", "client_id": "C",
+            "previous_meeting": "2026-09-01", "tasks": [],
+            "data_as_of": "2026-10-27", "holdings_as_of": "2026-10-24",
+        }
+        mock_records_result = {
+            "status": "ok", "client_id": "C",
+            "records": [{"id": "LATE", "client_id": "C", "kind": "email",
+                         "event_at": "2026-10-01", "recorded_at": "2026-10-28",
+                         "title": "Late", "text": "Backdated"}],
+        }
+        with patch("self_improving_ai.tools.briefing.crm_records.CrmStore") as MockStore:
+            instance = MockStore.return_value
+            instance.get_client_context.return_value = {
+                "client_id": "C", "previous_meeting": "2026-09-01", "tasks": [],
+            }
+            instance.get_settings.return_value = {"data_as_of": "2026-10-27", "holdings_as_of": "2026-10-24"}
+            instance.list_records.return_value = [
+                {"id": "LATE", "client_id": "C", "kind": "email",
+                 "event_at": "2026-10-01", "recorded_at": "2026-10-28",
+                 "title": "Late", "text": "Backdated"},
+            ]
+            self.assertEqual(search_sources("C")["status"], "no_results")
+            self.assertEqual(read_source("C", "LATE")["status"], "denied")
 
     def test_decimal_calculator_checks_scope_currency_and_real_inputs(self):
         sources = [{"id": "ACCOUNT", "currency": "USD", "content": '{"cash":50000,"stock":130000,"total":650000}'}]
