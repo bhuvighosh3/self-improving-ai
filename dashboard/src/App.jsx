@@ -111,7 +111,6 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
                   {m.brief&&<button className="meeting-btn primary co-open-brief" onClick={()=>onOpenBrief(m.brief)}>Open Meeting Brief</button>}
                   <div className="bubble-foot">
                     {m.intent&&<span className={`chip ${INTENT_CHIP[m.intent]||"chip-accent"}`}>{m.intent.replace(/_/g," ")}</span>}
-                    {m.mode==="simulation"&&<span className="chip chip-amber">demo</span>}
                     <span className="bubble-time" style={{marginTop:0}}>{m.time}</span>
                   </div>
                 </div>
