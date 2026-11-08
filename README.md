@@ -138,7 +138,7 @@ The dashboard provides 11 pages and opens Inbox by default:
 - **Clients** — 5 synthetic households with detail views
 - **Requests** — request history table
 - **Tools** — tool catalog (19 tools, including live Twelve Data news and rule-based compliance)
-- **News** — market news feed (live via Twelve Data API with mock fallback)
+- **News** — market news feed (live via Twelve Data API)
 - **Agents** — agent cards showing configuration and status
 
 ### Copilot Chat
@@ -151,12 +151,11 @@ allows 5 requests per minute; the UI surfaces a message when this limit is hit.
 
 ### Meeting Prep Demo
 
-Meeting Prep now offers an explicit **AI Agent** mode alongside the default
-**Offline demo**. The ADK briefing agent applies three business skills, records
-evidence and calculations, and the dashboard AI service performs independent
-quality review with bounded repairs. See [implementation and setup](docs/meeting-brief/implementation.md)
-for available features, local versioned review, evaluation commands and limitations.
-The deterministic behavior described below remains the default offline mode.
+Meeting Prep uses the **AI Agent** mode. The ADK briefing agent applies three
+business skills, records evidence and calculations, and the dashboard AI service
+performs independent quality review with bounded repairs. See
+[implementation and setup](docs/meeting-brief/implementation.md) for available
+features, local versioned review, evaluation commands and limitations.
 
 Open **Meeting Prep**, or choose **Generate Meeting Brief** from a client detail page.
 Select a meeting date, time (New York), and focus, then generate the brief. The
@@ -171,12 +170,12 @@ before review or export.
 **Print** uses the browser's print dialog. Standard briefs use a compact page
 layout; long advisor edits can continue onto additional pages.
 
-The meeting prep workflow uses actual calls to the repository's mock CRM, holdings
-and news tools, with deterministic synthesis. It makes no LLM calls and is labeled
-as a synthetic demo. Mock task ownership and snapshot dates are in
-`data/clients/meeting_context.json`. Meetings before the fixture cutoff (2026-10-27)
-are rejected because historical snapshots are unavailable. News is a synthetic
-fixture, not a source of current regulatory guidance.
+The meeting prep workflow uses actual calls to Firestore-backed CRM, holdings, and
+live Twelve Data news tools. Client profiles, CRM notes, meeting context (previous
+meeting dates, tasks) and CRM source records (minutes, emails, service updates) are
+stored in Firestore collections, seeded by `scripts/seed_crm.py`. Meetings before
+the data cutoff (2026-10-27) are rejected because historical snapshots are
+unavailable.
 
 Run the meeting workflow checks with:
 
@@ -270,7 +269,7 @@ Advisor request, in plain language
 │  roll back      │  │  roll back      │  │  roll back      │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 
-Sandbox: mock tools, synthetic clients, mock news. No live data, no real trades.
+Sandbox: Firestore-backed CRM, synthetic clients, live Twelve Data news. No real trades.
 ```
 
 The final product will provide a single advisor-facing interface, where the orchestrator coordinates specialized agents to complete end-to-end workflows. Integration will begin from the initial development phase rather than being deferred until the final stage.
@@ -320,7 +319,7 @@ Pull the client profile and CRM notes, retrieve holdings and performance, find r
 
 ### Data
 
-About 50 synthetic client households with profiles, goals and meeting notes, plus a mock news feed. The feed is seeded with relevant items and many distractors, such as news about stocks the client doesn't hold.
+5 client households stored in Firestore with profiles, goals, CRM notes, meeting context and source records. Market news comes from the live Twelve Data API. CRM data is seeded by `scripts/seed_crm.py`.
 
 ### How It Improves
 
