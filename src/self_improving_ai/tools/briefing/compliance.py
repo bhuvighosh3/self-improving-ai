@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from datetime import date, datetime, timezone
-from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+from self_improving_ai.client_store import load_households as _load_households
 
 _HIGH_RISK_TICKERS = frozenset({"ARKK", "TSLA", "TQQQ", "SQQQ", "UVXY"})
 _TAX_DEFERRED_TYPES = frozenset({"ira", "401k", "inherited_ira", "403b", "roth_ira"})
-
-
-def _load_households() -> list[dict]:
-    path = _DATA_DIR / "clients" / "households.json"
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
-    return []
 
 
 def _check_rmd(profile: dict, accounts: list[dict]) -> list[dict]:

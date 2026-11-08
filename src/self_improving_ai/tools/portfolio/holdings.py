@@ -2,18 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import math
-from pathlib import Path
 
-_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-
-
-def _load_households() -> list[dict]:
-    path = _DATA_DIR / "clients" / "households.json"
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
-    return []
+from self_improving_ai.client_store import load_households as _load_households
 
 
 def get_holdings(client_id: str, account_id: str = "") -> dict:

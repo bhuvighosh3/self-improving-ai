@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -55,6 +56,8 @@ app.include_router(calendar_router)
 from self_improving_ai.dashboard.email import router as email_router
 
 app.include_router(email_router)
+
+from self_improving_ai.client_store import load_households as _load_clients
 
 app.add_middleware(
     CORSMiddleware,
@@ -233,12 +236,12 @@ async def health():
 
 @app.get("/api/clients")
 async def list_clients():
-    return _load("clients/households.json")
+    return await run_in_threadpool(_load_clients)
 
 
 @app.get("/api/clients/{client_id}")
 async def get_client(client_id: str):
-    for h in _load("clients/households.json"):
+    for h in await run_in_threadpool(_load_clients):
         if h.get("client_id") == client_id:
             return h
     return {"error": "Client not found"}
@@ -266,7 +269,7 @@ async def get_prices():
 
 @app.get("/api/stats")
 async def get_stats():
-    clients = _load("clients/households.json")
+    clients = await run_in_threadpool(_load_clients)
     requests = _load("requests/advisor_requests.json")
     tools = _load("tool_catalog.json")
 
