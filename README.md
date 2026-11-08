@@ -1,6 +1,6 @@
 # Self-Improving AI — Wealth Management Copilot
 
-A self-improving AI copilot for wealth management advisors, built with [Google ADK](https://google.github.io/adk-docs/) and Gemini. The system learns from execution errors and advisor feedback to improve planning, tool use, and task performance over time.
+A self-improving AI copilot for wealth management advisors, built with [Google ADK](https://google.github.io/adk-docs/) and Gemini. The system learns from execution errors and advisor feedback to improve planning, tool use, and task performance over time. Deployed on GCP Cloud Run with tracing via Cloud Trace.
 
 ## Quick Start
 
