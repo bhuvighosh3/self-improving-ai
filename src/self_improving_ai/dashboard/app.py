@@ -45,6 +45,10 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app):
     from self_improving_ai.dashboard.preparation import MeetingPreparationMonitor
+    from self_improving_ai.telemetry import init_telemetry
+
+    init_telemetry()
+    log.info("Telemetry initialized (exporter=%s)", settings.otel_exporter)
 
     app.state.preparations = MeetingPreparationMonitor(settings.db_path, create_meeting_brief)
     worker = asyncio.create_task(app.state.preparations.serve())

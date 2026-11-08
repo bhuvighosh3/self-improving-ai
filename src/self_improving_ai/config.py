@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # OpenTelemetry
     otel_service_name: str = "self-improving-ai"
-    otel_exporter: str = "console"  # "console" | "otlp"
+    otel_exporter: str = "console"  # "console" | "otlp" | "gcp"
     otel_endpoint: str = "http://localhost:4317"
 
     # Dashboard
