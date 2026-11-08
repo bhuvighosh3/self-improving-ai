@@ -230,7 +230,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
               <div className="meeting-sheet-title"><h2>{brief.client_name}</h2><span className="chip chip-violet">Meeting Brief</span></div>
               <p>{brief.contact} · {brief.meeting_date} at {brief.meeting_time} · New York</p>
               <div className="meeting-objective">{brief.focus}</div>
-              <div className="meeting-sheet-meta">Data through {brief.data_as_of}{brief.previous_meeting && ` · Previous meeting ${brief.previous_meeting}`} · Synthetic demo</div>
+              <div className="meeting-sheet-meta">Data through {brief.data_as_of}{brief.previous_meeting && ` · Previous meeting ${brief.previous_meeting}`}</div>
               <div className="meeting-print-status">{reviewedAt ? "Reviewed" : "DRAFT — NOT REVIEWED"} · Revision {revision}{edited ? " · Advisor edited" : ""}</div>
             </header>
 
@@ -257,7 +257,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
 
             <div className="meeting-sheet-footer">
               {reviewedAt ? `Reviewed ${new Date(reviewedAt).toLocaleString("en-US")} · ` : "Draft awaiting advisor review · "}
-              Synthetic demonstration. Sources are mock records. Saved in this browser.
+              Sources are on record.
             </div>
             <div className="meeting-print-evidence">
               <h3>Source Index</h3>

@@ -55,7 +55,7 @@ def render_brief_pdf(request: BriefExportRequest) -> bytes:
         canvas.line(margin, height - margin - header_height + 8, width - margin, height - margin - header_height + 8)
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(colors.HexColor("#586174"))
-        canvas.drawString(margin, 24, f"Synthetic demo | Mock records through {brief.data_as_of} | No live market data")
+        canvas.drawString(margin, 24, f"Data through {brief.data_as_of}")
         canvas.drawRightString(width - margin, 24, f"Page {document.page}")
         canvas.restoreState()
 
