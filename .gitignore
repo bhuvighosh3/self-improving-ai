@@ -33,3 +33,7 @@ dashboard/playwright-report/
 artifacts/
 work/
 releases/
+
+# Orchestrator learned memory and experiment outputs (local)
+src/self_improving_ai/store/
+results/

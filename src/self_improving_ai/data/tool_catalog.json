@@ -51,7 +51,9 @@
       "client_id"
     ],
     "returns": "Client profile dictionary",
-    "implementation_status": "implemented"
+    "implementation_status": "implemented",
+    "data_source": "synthetic_fixture",
+    "read_only": true
   },
   {
     "name": "get_crm_notes",
@@ -62,7 +64,9 @@
       "limit"
     ],
     "returns": "List of dated notes",
-    "implementation_status": "implemented"
+    "implementation_status": "implemented",
+    "data_source": "synthetic_fixture",
+    "read_only": true
   },
   {
     "name": "search_market_news",
@@ -72,8 +76,10 @@
       "query",
       "max_results"
     ],
-    "returns": "List of articles (may include irrelevant distractors)",
-    "implementation_status": "implemented"
+    "returns": "Dated fixture articles, matched IDs and an explicit distractor indicator",
+    "implementation_status": "implemented",
+    "data_source": "synthetic_fixture",
+    "read_only": true
   },
   {
     "name": "run_monte_carlo",
@@ -122,13 +128,15 @@
   },
   {
     "name": "check_compliance_flags",
-    "description": "Checks for compliance issues on a client account",
+    "description": "Returns sourced profile and recorded CRM compliance follow-ups for advisor confirmation",
     "agent": "meeting_briefing_agent",
     "parameters": [
       "client_id"
     ],
-    "returns": "List of active compliance flags",
-    "implementation_status": "implemented"
+    "returns": "Flags, source locators and partial coverage; never compliance clearance",
+    "implementation_status": "implemented",
+    "data_source": "synthetic_fixture",
+    "read_only": true
   },
   {
     "name": "calculate_fee_drag",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings
 
@@ -18,6 +19,9 @@ class Settings(BaseSettings):
     agent_model: str = "gemini-3.8-flash"
     agent_model_fallback: str = "gemini-3.5-flash-lite"
     judge_model: str = "gemini-3.8-flash"
+    briefing_discovery: Literal["agent", "backend"] = "agent"
+    workspace_store: Literal["local", "firestore"] = "local"
+    briefing_news_source: Literal["auto", "fixture", "live"] = "auto"
 
     # Independent A selection; connection settings do not change B/C defaults.
     portfolio_model: str = DEFAULT_MODEL

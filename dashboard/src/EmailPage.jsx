@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import "./email.css";
+import { requestJson } from "./connectionRequest";
 
 const FOLDERS = [
   { value: "inbox", label: "Inbox" },
@@ -38,10 +39,11 @@ export default function EmailPage({ clients }) {
   const [compose, setCompose] = useState(null);
   const [form, setForm] = useState(EMPTY_COMPOSE);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const fetchEmails = useCallback(() => {
-    fetch(`/api/email/messages?folder=${folder}`)
-      .then(r => r.json()).then(setEmails).catch(() => setEmails([]));
+    requestJson(`/api/email/messages?folder=${folder}`)
+      .then(records => { setEmails(records); setError(""); }).catch(err => setError(err.message));
   }, [folder]);
 
   useEffect(() => { fetchEmails(); setSelected(null); setDetail(null); }, [fetchEmails]);
@@ -49,31 +51,36 @@ export default function EmailPage({ clients }) {
   const selectEmail = async (email) => {
     setSelected(email.id);
     setDetail(email);
+    try {
     if (!email.read) {
-      await fetch(`/api/email/messages/${email.id}`, {
+      await requestJson(`/api/email/messages/${email.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ read: true }),
       });
       setEmails(prev => prev.map(e => e.id === email.id ? { ...e, read: true } : e));
     }
+    } catch (err) { setError(err.message); }
   };
 
   const toggleStar = async (e, email) => {
     e.stopPropagation();
     const updated = !email.starred;
-    await fetch(`/api/email/messages/${email.id}`, {
+    try {
+    await requestJson(`/api/email/messages/${email.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ starred: updated }),
     });
     setEmails(prev => prev.map(em => em.id === email.id ? { ...em, starred: updated } : em));
     if (detail?.id === email.id) setDetail(prev => ({ ...prev, starred: updated }));
+    } catch (err) { setError(err.message); }
   };
 
   const archiveEmail = async () => {
     if (!detail) return;
-    await fetch(`/api/email/messages/${detail.id}`, {
+    try {
+    await requestJson(`/api/email/messages/${detail.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ folder: "archive" }),
@@ -81,14 +88,17 @@ export default function EmailPage({ clients }) {
     setDetail(null);
     setSelected(null);
     fetchEmails();
+    } catch (err) { setError(err.message); }
   };
 
   const deleteEmail = async () => {
     if (!detail || !confirm("Delete this email?")) return;
-    await fetch(`/api/email/messages/${detail.id}`, { method: "DELETE" });
+    try {
+    await requestJson(`/api/email/messages/${detail.id}`, { method: "DELETE" });
     setDetail(null);
     setSelected(null);
     fetchEmails();
+    } catch (err) { setError(err.message); }
   };
 
   const openCompose = (replyTo) => {
@@ -110,14 +120,14 @@ export default function EmailPage({ clients }) {
   const sendEmail = async () => {
     setBusy(true);
     try {
-      await fetch("/api/email/messages", {
+      await requestJson("/api/email/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       setCompose(null);
       if (folder === "sent") fetchEmails();
-    } catch { /* ignore */ }
+    } catch (err) { setError(err.message); }
     setBusy(false);
   };
 
@@ -136,7 +146,9 @@ export default function EmailPage({ clients }) {
 
   return (
     <div className="email-page">
+      {error && <p className="email-error" role="alert">{error}</p>}
       <div className="email-sidebar">
+        <p className="email-simulation-note">Simulated Inbox · Messages stay in this workspace</p>
         <div className="email-toolbar">
           <div className="email-toolbar-left">
             {FOLDERS.map(fl => (
@@ -235,7 +247,7 @@ export default function EmailPage({ clients }) {
       </div>
 
       {compose && (
-        <div className="email-modal-backdrop" onClick={() => setCompose(null)}>
+        <div className="email-modal-backdrop" role="dialog" aria-label="Compose Email" onClick={() => setCompose(null)}>
           <div className="email-modal" onClick={e => e.stopPropagation()}>
             <h3>Compose Email</h3>
             <div className="email-modal-fields">

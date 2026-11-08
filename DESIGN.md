@@ -70,6 +70,18 @@ The prepared workspace places a flexible brief beside a (300px) evidence/news ra
 
 Printing has a separate A4 layout with (10mm) margins: shell and editing controls hide, brief sections use two columns, and review status plus a source index appear. Direct PDF download is a separate server-rendered export of the current draft.
 
+### Calendar extension
+
+Calendar uses the existing shell as its default entry, with a compact heading, next-client-meeting strip and wrapping week toolbar above a bordered, internally scrolling work-week frame. The synthetic schedule contains thirty-five events across adjacent weeks, including twelve client meetings, alongside internal meetings, focus time and personal commitments. At desktop widths, weekday headings and the time grid align to a (58px) time gutter plus five equal Monday–Friday columns. Ten hourly rows run from (8 AM) through (5 PM), with a (96px) hour height; appointment position and height follow New York start time and duration. The current day uses a quiet blue-tinted column and blue date circle; a fine red line marks the current demo time. Initial scrolling places the demo time or the returned meeting roughly two hours below the top of the grid.
+
+At (768px) and below, retain all five weekday selectors above a single selected day and a (48px) time gutter. A blue inset underline distinguishes the selected day from the current-day circle. Meetings gain wider horizontal insets and slightly larger text. The next-meeting strip wraps its client, state and action, and the category legend retains **All meeting briefs** on its own row. At (1100px) and below the inline automatic-prep status hides; on mobile the work-week label also hides while navigation and meeting access remain available.
+
+### Meeting Prep workspace extension
+
+The scheduled-meeting workspace centers within a maximum width of (1600px). A sticky dated meeting list (268px) sits beside a flexible detail area with a (24px) gap. At (1100px) and below the list narrows to (230px) and the gap becomes (16px). The selected brief uses one column of document sections; evidence and news sit in two columns below it, stack at (1100px) and below, and move into a (280px) rail at widths of at least (1700px).
+
+At (768px) and below, show the meeting list or the selected detail as separate views. Selecting a row opens the detail; **All meetings** returns to the list. The list loses its sticky positioning and internal height cap, and evidence/news stack. Keep the client heading, meeting context, At a glance summary and wrapping review/export controls readable in this single-column flow. Printing hides the workspace heading, meeting list and mobile back control before applying the existing brief print layout.
+
 ## Elevation & Depth
 
 Resting cards, the brief and evidence panels are flat. White surfaces, quiet gray interiors and one-pixel borders provide depth. Meeting Prep focus uses a blue (2px) outline offset by (3px), including the selected evidence heading.
@@ -78,6 +90,10 @@ Resting cards, the brief and evidence panels are flat. White surfaces, quiet gra
 - **Client-card hover:** `0 0 0 1px var(--accent), 0 4px 16px rgba(53,99,233,0.08)`; exclusive to the incumbent interactive client-card treatment.
 
 **The Bordered Surface Rule.** Separate resting surfaces with neutral fills and fine borders; reserve the incumbent hover shadow for interactive client cards.
+
+### Calendar overlays
+
+Calendar appointments and the calendar frame remain flat and bordered. Two scoped overlays extend the resting-surface rule: the white Demo settings popover uses `0 8px 24px #1a1f2e14`; the centered event-details and meeting-ready dialogs use `0 18px 60px #18213726` over a translucent neutral backdrop (`rgba(26,31,46,.25)`). These shadows identify temporary layers rather than reusable resting-card elevation. The dialog enters with a short vertical movement (8px over 0.18s, ease-out) only when reduced motion is not requested. Calendar controls retain the blue (2px) focus outline with (3px) offset.
 
 ## Shapes
 
@@ -104,6 +120,30 @@ Keep six named sections: Client Overview, Recent Changes & Requests, Portfolio H
 
 The toolbar keeps Edit draft, Mark as reviewed, Print and Download PDF together. Editing resets review status and increments the revision; local browser storage retains the latest draft and review state. Changed meeting inputs display a stale-draft notice and block review/export until generation. Editing or empty required brief fields also blocks review/export. PDF export remains available for an otherwise valid unreviewed draft and includes its draft status. Keep these states explicit rather than silently implying approval.
 
+### Calendar events and preparation entry
+
+The calendar is first in navigation and the initial page. Timed event containers use compact rounded corners (5px): client meetings have a pale blue fill and fine blue border, internal meetings use quiet violet, and focus/personal commitments use neutral fills. Pair category color with the legend and explicit event-details text. The next upcoming client meeting uses solid action blue with white text. Its client, topic, date/time, preparation state and **View meeting prep** action also appear in the next-meeting strip above the grid.
+
+Each event has a details button; client events also have a separate preparation action. Client events show client name, time range and, when space permits, topic; short events use a compact treatment. The preparation action reflects **Brief ready**, **Reviewed**, **Preparing brief** or **Needs attention**, with a check for ready/reviewed states. Hover slightly darkens the container and strengthens its border. Keep event-specific accessible names and visible focus treatment.
+
+Event details use the scoped native modal treatment and show title, client when applicable, and a divided **Type / When / Where / Who** fact list, followed by the description. Client events expose preparation status and **View meeting prep**; internal, focus and personal events explicitly say that no client brief is needed.
+
+### Meeting list, selected brief and review state
+
+The Meeting Prep navigation item and **All meeting briefs** open the preparation workspace. The dated **Your meetings** list includes only client meetings, with client/topic search, **Upcoming / This week** range controls, explicit preparation states and a blue-soft selected row. Empty search results provide **Clear search**. **Prepare another meeting** remains a secondary entry to the manual setup form; existing client-detail and Copilot entry points retain their form/brief behavior.
+
+Calendar preparation actions open their selected meeting directly, including future and past client meetings. Scheduled meetings selected from the list show client, topic, New York date/time and focus, explain the 24-hour automatic-preparation policy and offer **Prepare early**; past meetings offer **Prepare brief**. When automatic preparation is paused, the workspace says so, keeps existing briefs available and qualifies scheduled preparation with **when automatic prep resumes**. Pending preparation keeps client and meeting context visible; failures provide **Retry preparation**.
+
+**Prepare another meeting** opens a fresh form inside the detail pane, preserving the dated meeting list, search and filters. Cancel restores the previous meeting; switching between existing meetings and the form retains entered values. Mobile keeps the same list-to-detail model with **All meetings**. Manual preparation inherits the calendar mode and next demo date, and does not load an unrelated cached brief.
+
+The selected brief leads with the client name as the primary heading, a Draft or Reviewed badge, the appointment topic and New York date/time, and **Back to calendar**. **At a glance** repeats the retained brief's focus and up to three discussion-priority titles, with **Read the full brief** linking to the existing six-section document. Keep edit/check/review/print/PDF actions together below this summary. Reopening a retained brief restores local edits and review state by brief ID. Review and subsequent edits update the selected context, meeting-list state and ready-for-review count together; edits clear review. Readiness remains distinct from advisor review. Returning to Calendar selects the opened meeting's day on mobile.
+
+### Meeting-ready notice and presenter controls
+
+Use one centered native modal dialog for a ready notice: white surface, rounded corners (12px), width (460px), and a viewport inset of at least (16px) on each side. Padding reduces from (30px) to (25px) on mobile. A document icon, client-specific heading and divided appointment summary lead to **Later** and the blue **View meeting prep** action. Native modal behavior contains keyboard focus; Escape, the close button and Later dismiss and acknowledge the notice. Opening preparation acknowledges it as well. Show at most one automatic ready notice per page visit; other ready items remain discoverable. A topbar button with an unread count provides access to outstanding notices; mobile retains the icon and count.
+
+Keep simulation, mode selection, advance/reset and replay controls inside the collapsed **Demo settings** disclosure. Its white bordered popover uses the scoped overlay elevation above. Default preparation is **Offline demo · No LLM**; **AI Agent · Gemini** is an explicit selection. The calendar remains labeled as a demo, and readiness indicates an available retained brief rather than advisor review.
+
 ## Do's and Don'ts
 ### Do:
 
@@ -116,3 +156,11 @@ The toolbar keeps Edit draft, Mark as reviewed, Print and Download PDF together.
 - **Don't** introduce a new display face, decorative hero treatment or replacement visual concept for this extension.
 - **Don't** apply client-card hover elevation to every resting card.
 - **Don't** indicate review status or errors through color alone.
+
+## Shared workspace integration (2026-11-07)
+
+The monthly Calendar and simulated Inbox from main replace the earlier independent
+weekly CalendarPrep surface. Preserve their existing theme and Calendar editor.
+Part B adds a next-meeting preparation link, per-event prep actions and the same
+ready notice. Meeting Prep remains the list-and-detail review workspace.
+Historical weekly-calendar design records describe the superseded prototype.

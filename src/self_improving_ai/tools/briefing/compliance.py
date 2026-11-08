@@ -7,7 +7,7 @@ from datetime import date, datetime, timezone
 from self_improving_ai.client_store import load_households as _load_households
 
 _HIGH_RISK_TICKERS = frozenset({"ARKK", "TSLA", "TQQQ", "SQQQ", "UVXY"})
-_TAX_DEFERRED_TYPES = frozenset({"ira", "401k", "inherited_ira", "403b", "roth_ira"})
+_TAX_DEFERRED_TYPES = frozenset({"ira", "401k", "inherited_ira", "403b"})
 
 
 def _check_rmd(profile: dict, accounts: list[dict]) -> list[dict]:
@@ -21,11 +21,10 @@ def _check_rmd(profile: dict, accounts: list[dict]) -> list[dict]:
     return [{
         "code": "RMD_REQUIRED",
         "severity": "critical",
-        "title": f"RMD required — client is {age}",
-        "detail": (f"Client is {age} years old with {len(tax_deferred)} tax-deferred "
-                   f"account(s): {acct_list}. Required Minimum Distributions must be "
-                   "calculated and scheduled."),
-        "rule": "Clients age 73+ with tax-deferred accounts must take annual RMDs per IRC 401(a)(9).",
+        "title": f"Verify distribution requirements — client is {age}",
+        "detail": (f"Client is {age} with recorded tax-deferred accounts: {acct_list}. "
+                   "Confirm the applicable account, beneficiary and distribution requirements."),
+        "rule": "Illustrative age-based review trigger; this is not a determination of legal eligibility or due amounts.",
     }]
 
 
@@ -72,7 +71,7 @@ def _check_suitability(profile: dict, accounts: list[dict]) -> list[dict]:
     return flags
 
 
-def _check_beneficiary(profile: dict) -> list[dict]:
+def _check_beneficiary(profile: dict, as_of: date | None = None) -> list[dict]:
     last_reviewed = profile.get("beneficiary_last_reviewed")
     if last_reviewed is None:
         return [{
@@ -83,7 +82,7 @@ def _check_beneficiary(profile: dict) -> list[dict]:
             "rule": "Beneficiary designations should be reviewed at least annually.",
         }]
     reviewed = date.fromisoformat(last_reviewed)
-    if (date.today() - reviewed).days > 365:
+    if ((as_of or date.today()) - reviewed).days > 365:
         return [{
             "code": "BENEFICIARY_STALE",
             "severity": "warning",
@@ -121,31 +120,59 @@ def _check_unrealized(accounts: list[dict]) -> list[dict]:
     return flags
 
 
+
+from self_improving_ai.tools.briefing.crm import get_client_profile, get_crm_notes
 def check_compliance_flags(client_id: str) -> dict:
-    """Run rule-based compliance checks against client data."""
-    for household in _load_households():
-        if household.get("client_id") == client_id:
-            profile = household.get("profile", {})
-            accounts = household.get("accounts", [])
-            total = sum(
-                h["market_value"]
-                for a in accounts
-                for h in a.get("holdings", [])
-            )
-            flags = []
-            flags.extend(_check_rmd(profile, accounts))
-            flags.extend(_check_concentration(accounts, total))
-            flags.extend(_check_suitability(profile, accounts))
-            flags.extend(_check_beneficiary(profile))
-            flags.extend(_check_unrealized(accounts))
-            return {
-                "client_id": client_id,
-                "flags": flags,
-                "checked_at": datetime.now(timezone.utc).isoformat(),
-            }
-    return {
-        "client_id": client_id,
-        "flags": [],
-        "checked_at": datetime.now(timezone.utc).isoformat(),
-        "error": f"Client {client_id} not found",
-    }
+    """Return sourced items for advisor confirmation from profile and CRM fixtures.
+
+    Args:
+        client_id: The client household identifier.
+
+    Returns:
+        Active confirmation flags, source locators and explicit partial coverage.
+        An empty flags list is not compliance clearance. No legal rules are inferred
+        from synthetic news, and no CRM/account records are modified.
+    """
+    profile = get_client_profile(client_id)
+    if "error" in profile:
+        return profile
+    notes = get_crm_notes(client_id, limit=100)
+    if "error" in notes:
+        return notes
+    household = next(record for record in _load_households() if record.get("client_id") == client_id)
+    accounts = household.get("accounts", [])
+    total = sum(holding["market_value"] for account in accounts for holding in account.get("holdings", []))
+    from self_improving_ai.tools.briefing.workspace_sources import current_scope
+    scope = current_scope()
+    cutoff = scope["as_of"] if scope else profile["_provenance"]["as_of"]
+    policy = (_check_rmd(profile,accounts) + _check_concentration(accounts,total)
+        + _check_suitability(profile,accounts) + _check_beneficiary(profile,date.fromisoformat(cutoff))
+        + _check_unrealized(accounts))
+    flags = [{**flag, "id":f"{client_id}-POLICY-{index}", "status":"needs_confirmation",
+        "description":flag["detail"], "source_ids":["PROFILE","HOLDINGS"],
+        "policy_scope":"Illustrative team review rules, not regulatory clearance",
+        "next_action":"Verify source records and applicable requirements with the advisor."}
+        for index,flag in enumerate(policy)]
+    if not profile.get("state"):
+        flags.append({"id": f"{client_id}-PROFILE-STATE", "code": "PROFILE_STATE_MISSING",
+            "status": "needs_confirmation", "severity": "attention",
+            "title": "Confirm the state of residence",
+            "description": "The provided profile has no state of residence. Confirm it before any state-specific assessment.",
+            "source_ids": ["PROFILE"], "locators": [{"source_id": "PROFILE", "field": "state"}],
+            "next_action": "Ask the client to confirm their state of residence."})
+    for index, note in enumerate(notes["notes"]):
+        if "compliance flag:" not in note["text"].lower():
+            continue
+        flags.append({"id": f"{client_id}-CRM-{index}", "code": "RECORDED_COMPLIANCE_FOLLOWUP",
+            "status": "needs_confirmation", "severity": "attention",
+            "title": "Verify a recorded compliance follow-up", "description": note["text"],
+            "source_ids": [f"NOTE-{index}"],
+            "locators": [{"source_id": f"NOTE-{index}", "date": note["date"], "author": note["author"]}],
+            "next_action": "Review original account and beneficiary records with the advisor before confirming any distribution schedule."})
+    return {"status": "ok", "client_id": client_id, "flags": flags,
+        "assessment_status": "not_cleared", "coverage": "partial_synthetic_records",
+        "scope": "Team policy review checks, profile completeness and explicitly recorded CRM follow-ups",
+        "limitations": ["An empty flags list does not establish compliance.",
+            "Account documentation and applicable regulations have not been independently checked.",
+            "Flags identify confirmation work, not established violations."],
+        "_provenance": profile["_provenance"]}

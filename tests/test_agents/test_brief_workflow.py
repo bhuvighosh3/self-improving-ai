@@ -1,6 +1,7 @@
 """Behavior and integration tests for the evidence-driven briefing workflow."""
 
 import asyncio
+from self_improving_ai.agents.briefing.contract import content_from_work
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -23,6 +24,11 @@ def demo(client="CLI-003"):
 
 
 class WorkflowTests(unittest.TestCase):
+    def setUp(self):
+        strategy = patch("self_improving_ai.config.settings.briefing_discovery", "backend")
+        strategy.start()
+        self.addCleanup(strategy.stop)
+
     def test_changed_unchanged_and_missing_are_distinct(self):
         for client, expected in [("CLI-004", "changed"), ("CLI-002", "unchanged"),
                                  ("CLI-003", "insufficient_information")]:
@@ -115,20 +121,45 @@ class WorkflowTests(unittest.TestCase):
         from self_improving_ai.agents.briefing.runtime import generate_agent_brief
 
         original = demo()
-        work = original["workflow"]["work"]
+        work = deepcopy(original["workflow"]["work"])
+        work["sections"].reverse()
         state = {"meeting_calculations": original["workflow"]["calculations"],
                  "meeting_evidence": original["workflow"]["evidence"]}
         reviewer = AsyncMock(side_effect=[{"verdict": "revise", "findings": [
             {"code": "TEST", "reason": "Test injection", "severity": "blocking", "location": "claims"}]},
             {"verdict": "pass", "findings": []}])
         with patch("self_improving_ai.agents.briefing.runtime.prepare_context", return_value=original["workflow"]["evidence"]), \
-             patch("self_improving_ai.agents.briefing.runtime.run_adk", new=AsyncMock(return_value=(work, state))) as run, \
+             patch("self_improving_ai.agents.briefing.runtime.run_adk", new=AsyncMock(return_value=(content_from_work(work), state))) as run, \
              patch("self_improving_ai.agents.briefing.runtime.semantic_check", new=reviewer):
             result = asyncio.run(generate_agent_brief(MeetingBriefRequest(client_id="CLI-003",
                 meeting_date="2026-10-30", meeting_time="14:00", focus="Review goals", mode="agent")))
         self.assertEqual(run.await_count, 2)
         self.assertEqual(result["mode"], "agent")
         self.assertEqual(len(result["workflow"]["quality_history"]), 2)
+        self.assertEqual([section["id"] for section in result["sections"]],
+                         ["overview", "changes", "portfolio", "priorities", "actions", "confirm"])
+
+    def test_blocked_quality_keeps_trace_and_stops_after_two_repairs(self):
+        from self_improving_ai.agents.briefing.runtime import generate_agent_brief
+
+        original = demo()
+        work = deepcopy(original["workflow"]["work"])
+        work["sections"][0]["items"] = []
+        state = {"meeting_calculations": original["workflow"]["calculations"],
+                 "meeting_evidence": original["workflow"]["evidence"]}
+        trace = []
+        with patch("self_improving_ai.agents.briefing.runtime.run_adk",
+                   new=AsyncMock(return_value=(content_from_work(work), state))) as run, \
+             patch("self_improving_ai.agents.briefing.runtime.semantic_check", new=AsyncMock()) as reviewer:
+            with self.assertRaisesRegex(ValueError, "two repair cycles"):
+                asyncio.run(generate_agent_brief(MeetingBriefRequest(client_id="CLI-003",
+                    meeting_date="2026-11-06", meeting_time="14:00", focus="Review goals", mode="agent"),
+                    trace=trace))
+        self.assertEqual(run.await_count, 3)
+        reviewer.assert_not_called()
+        reports = [e for e in trace if e.get("event") == "quality_check"]
+        self.assertEqual(len(reports), 3)
+        self.assertTrue(all(e["objective"]["verdict"] == "revise" for e in reports))
 
     def test_actual_adk_runner_accepts_schema_and_tools_without_network(self):
         from google.adk.models.base_llm import BaseLlm

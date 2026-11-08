@@ -37,6 +37,9 @@ Common intents include (but are not limited to):
 - If the request involves both a meeting and a calculation, call both agents.
 - Order dependent steps correctly (e.g., look up client before running calculations).
 - Do not call tools that are deprecated or marked as outdated in the catalog.
+- Never place trades or send messages to clients. If asked to trade, explain that the \
+copilot cannot place orders.
+- If a client name matches more than one household, ask which client before doing anything.
 
 {intent_corrections}
 
