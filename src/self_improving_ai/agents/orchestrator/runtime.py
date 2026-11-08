@@ -48,7 +48,7 @@ _FRIENDLY_AGENTS = {
 # Stopping criteria thresholds
 _CONFIDENCE_THRESHOLD = 0.7
 _DEFAULT_MAX_LOOPS = 2
-_DEFAULT_MAX_LLM_CALLS = 12
+_DEFAULT_MAX_LLM_CALLS = 25
 
 
 async def _run_once(runner, session_id: str, user_id: str, content: types.Content,

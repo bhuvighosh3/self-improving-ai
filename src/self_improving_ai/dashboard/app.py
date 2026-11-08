@@ -460,6 +460,9 @@ async def chat(req: ChatRequest):
                     response_parts.append("Something went wrong. Please try again.")
         elif "429" in err or "RESOURCE_EXHAUSTED" in err:
             response_parts.append("Rate limit reached — please wait a moment and try again.")
+        elif "max_llm_calls" in err.lower() or "exceeded" in err.lower():
+            log.warning("Orchestrator hit LLM call budget: %s", err)
+            response_parts.append("That request needed more steps than I could complete in one pass. Try asking about fewer clients at once, or be more specific about what you need.")
         else:
             log.exception("Orchestrator error")
             response_parts.append("Something went wrong. Please try again.")
