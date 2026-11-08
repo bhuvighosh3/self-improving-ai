@@ -23,9 +23,9 @@ def get_client_profile(client_id: str) -> dict:
         return tool_error("INVALID_ARGUMENT", "client_id must be a nonempty string")
     try:
         households = _load_households()
-        metadata = provenance("clients/households.json", _DATA_DIR)
+        metadata = provenance("firestore/clients", _DATA_DIR)
     except (OSError, ValueError, KeyError):
-        return tool_error("DATA_UNAVAILABLE", "Client fixture data is unavailable")
+        return tool_error("DATA_UNAVAILABLE", "Client data is unavailable")
     for household in households:
         if household.get("client_id") == client_id:
             return {**household.get("profile", {}), "_provenance": metadata}
@@ -46,7 +46,7 @@ def get_crm_notes(client_id: str, limit: int = 10) -> dict:
         return tool_error("INVALID_ARGUMENT", "Provide a client_id and an integer limit from 0 to 100")
     try:
         households = _load_households()
-        metadata = provenance("clients/households.json", _DATA_DIR)
+        metadata = provenance("firestore/clients", _DATA_DIR)
     except (OSError, ValueError, KeyError):
         return tool_error("DATA_UNAVAILABLE", "CRM fixture data is unavailable")
     for household in households:
