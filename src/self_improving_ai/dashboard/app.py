@@ -311,7 +311,9 @@ async def list_tools():
 
 @app.get("/api/news")
 async def list_news():
-    return _load("news/market_news.json")
+    from self_improving_ai.tools.briefing.news import search_market_news
+    result = await run_in_threadpool(search_market_news, "market outlook", 20)
+    return result.get("results", [])
 
 
 @app.get("/api/prices")
