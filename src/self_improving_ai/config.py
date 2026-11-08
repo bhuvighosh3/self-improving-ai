@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # GCP / Gemini
     google_cloud_project: str = ""
-    google_cloud_location: str = "us-central1"
+    google_cloud_location: str = "global"
     agent_model: str = "gemini-3.8-flash"
     agent_model_fallback: str = "gemini-3.5-flash-lite"
     judge_model: str = "gemini-3.8-flash"
