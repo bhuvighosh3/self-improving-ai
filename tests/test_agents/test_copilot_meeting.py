@@ -16,7 +16,8 @@ from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.dashboard.app import ChatRequest, chat
 from self_improving_ai.dashboard.meeting_requests import collect_meeting_details, is_meeting_request
 
-CLIENTS = json.loads((Path(__file__).resolve().parents[2] / "src/self_improving_ai/data/clients/households.json").read_text(encoding="utf-8"))
+from self_improving_ai.client_store import load_households
+CLIENTS = load_households()
 
 
 class CopilotMeetingTests(unittest.TestCase):

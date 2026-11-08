@@ -27,9 +27,6 @@ class PortfolioDataTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.data = self.root / "src/self_improving_ai/data"
         shutil.copytree(ROOT / "src/self_improving_ai/data/portfolio", self.data / "portfolio")
-        (self.data / "clients").mkdir()
-        shutil.copy2(ROOT / "src/self_improving_ai/data/clients/households.json",
-                     self.data / "clients/households.json")
 
     def edit(self, name, mutation):
         path = self.data / "portfolio" / name

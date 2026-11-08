@@ -42,7 +42,12 @@ def validate_project(root: Path = ROOT) -> dict:
             errors.append(f"{path.name}: {exc}")
             return None
 
-    households = read(root / "src/self_improving_ai/data/clients/households.json")
+    try:
+        from self_improving_ai.client_store import load_households
+        households = load_households()
+    except Exception:
+        households = None
+        errors.append("Could not load client data from Firestore")
     asset_doc = read(portfolio / "asset_class_map.json")
     target_doc = read(portfolio / "target_allocations.json")
     goal_doc = read(portfolio / "financial_goals.json")

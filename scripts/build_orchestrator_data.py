@@ -436,7 +436,7 @@ def build_catalog_v2() -> list[dict]:
     return out
 
 
-# Client directory (the advisor's book). CLI-001..005 match clients/households.json.
+# Client directory (the advisor's book). CLI-001..005 match the Firestore clients collection.
 CLIENTS = [
     ("CLI-001", "Garcia Family", "Maria Garcia", ["the Garcias", "Garcia family", "Maria Garcia", "garcias", "the garcia household"]),
     ("CLI-002", "Thompson Trust", "Robert Thompson", ["Thompson Trust", "Robert Thompson", "the Thompson trust", "Bob Thompson"]),
