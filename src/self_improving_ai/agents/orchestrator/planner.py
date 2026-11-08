@@ -33,7 +33,28 @@ def load_intents() -> dict[str, dict]:
 
 
 def load_clients() -> list[dict]:
-    return json.loads((_DATA_DIR / "clients.json").read_text())
+    """Load the advisor's book of clients from Firestore."""
+    from self_improving_ai.client_store import load_households
+
+    households = load_households()
+    clients = []
+    for h in households:
+        profile = h.get("profile", {})
+        name = profile.get("name", h.get("name", ""))
+        contact = profile.get("primary_contact", profile.get("name", ""))
+        aliases = profile.get("aliases") or []
+        if not aliases:
+            aliases = [name, contact]
+            surname = contact.split()[-1] if contact else ""
+            if surname:
+                aliases.extend([f"the {surname}s", f"{surname} family"])
+        clients.append({
+            "client_id": h["client_id"],
+            "name": name,
+            "primary_contact": contact,
+            "aliases": aliases,
+        })
+    return clients
 
 
 def load_hand_tuned_notes() -> str:
