@@ -195,7 +195,6 @@ The dashboard provides the following pages:
 - **Clients** — 5 synthetic households with detail views
 - **Overview** — AUM, client count, intent breakdown
 - **Tools** — tool catalog (19 tools, including live Twelve Data news and rule-based compliance)
-- **News** — market news feed (live via Twelve Data API)
 
 ### Copilot Chat
 
