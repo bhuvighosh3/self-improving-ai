@@ -44,51 +44,6 @@ npx vite --port 5173
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Run the Part B Cloud Demo
-
-The repository includes a demo entry point; no machine-specific scripts are needed.
-After installing the Python dependencies, authenticate with the Google account
-that has access to the team's Firestore project:
-
-```bash
-gcloud auth application-default login
-```
-
-For the Gemini API-key configuration used in the Part B acceptance, set these in
-your ignored root `.env`. Keep the existing Vertex configuration if your team uses
-Vertex instead. B/C share `SIA_AGENT_MODEL`; this does not change A's separate model.
-
-```dotenv
-SIA_GOOGLE_CLOUD_PROJECT=self-improving-ai-513915
-SIA_WORKSPACE_STORE=firestore
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
-GOOGLE_API_KEY=<your-local-key>
-SIA_AGENT_MODEL=gemini-3.5-flash-lite
-SIA_AGENT_MODEL_FALLBACK=gemini-3.5-flash-lite
-SIA_OTEL_EXPORTER=console
-```
-
-Start the backend from the repository root, then start the frontend in a second
-terminal using the existing frontend commands above:
-
-```bash
-python scripts/run_briefing_demo.py --workspace-store firestore --port 8000
-```
-
-The demo loads `.env` before initializing models or stores, selects AI preparation,
-and pauses automatic scanning before startup. Briefs and jobs use the ignored
-`.local-settings/briefing-demo.db`; Calendar/Inbox use shared Firestore. On restart,
-unfinished demo jobs require an explicit retry rather than silently calling Gemini.
-Stop the existing backend before restarting the same demo database.
-
-Create a new labeled test meeting, open Meeting Prep and prepare it. Editing its
-Notes and saving should produce a new brief version. Agent preparation and edited
-meeting refreshes consume Gemini quota. For deterministic preparation without
-model calls, pass `--mode simulation`; `--workspace-store local` keeps Calendar
-and Inbox local, while client/CRM stores still require the configured cloud access.
-See [the Part B audit](docs/meeting-brief/partb-audit-2026-11-09.md) for verification
-scope and [the live acceptance](docs/meeting-brief/cloud-acceptance-2026-11-09.md).
-
 ### Run Tests
 
 ```bash
