@@ -27,7 +27,8 @@ Vertex AI configuration. The team npm package definition and lock file are retai
 
 - Python 3.11+
 - Node.js 18+
-- A Gemini API key from [AI Studio](https://aistudio.google.com/apikey)
+- GCP project with Vertex AI and Firestore enabled
+- [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc) configured (`gcloud auth application-default login`)
 
 ### Setup
 
@@ -40,8 +41,12 @@ pip install -e .
 Create a `.env` file in the project root:
 
 ```
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
-GOOGLE_API_KEY=your-api-key-here
+GOOGLE_GENAI_USE_VERTEXAI=TRUE
+GOOGLE_CLOUD_PROJECT=self-improving-ai-513915
+GOOGLE_CLOUD_LOCATION=global
+SIA_GOOGLE_CLOUD_PROJECT=self-improving-ai-513915
+SIA_WORKSPACE_STORE=firestore
+SIA_OTEL_EXPORTER=gcp
 ```
 
 ### Run the Orchestrator (CLI)
@@ -50,7 +55,7 @@ GOOGLE_API_KEY=your-api-key-here
 python -m self_improving_ai "Get me ready for my 2pm with the Garcias"
 ```
 
-### Run the Dashboard
+### Run the Dashboard (Local)
 
 Start both the FastAPI backend and React frontend:
 
@@ -65,6 +70,8 @@ npx vite --port 5173
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+The app is also deployed on Cloud Run — see the [Deployment](#deployment) section.
 
 ### Run Tests
 
