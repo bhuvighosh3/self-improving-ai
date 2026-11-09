@@ -30,5 +30,5 @@ export default function useCalendar() {
     } catch (err) { if (alive.current) setError(err.message); return null; }
     finally { mutating.current = false; }
   }
-  return { data, error, command };
+  return { data, error, command, refresh };
 }

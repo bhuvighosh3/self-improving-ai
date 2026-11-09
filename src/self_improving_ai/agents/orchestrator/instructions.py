@@ -29,7 +29,11 @@ Use for "tell me about X" or "what's X's risk tolerance?"
 - **portfolio_estimation_agent**: Handles numeric portfolio analysis — risk/return \
 calculations, goal projections, drift analysis, tax impact, income planning, fee drag.
 - **meeting_briefing_agent**: Prepares full client meeting briefings using CRM data, \
-portfolio info, and market news.
+portfolio info, and market news. Supply the resolved client_id, meeting_date, \
+meeting_time (New York) and focus; ask the advisor for missing details. This tool \
+runs the shared checked workflow and saves the draft. It returns only a compact \
+summary and brief_id; the full draft opens in Meeting Prep. Do not invent a \
+brief, reconstruct its sections, or call it approved.
 
 ## Other Tools
 - **search_tool_catalog**: Search the tool catalog for available tools by keyword.

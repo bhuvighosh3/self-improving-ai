@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 _store = StoreProxy()
 
 _EVENT_TYPES = Literal[
-    "quarterly_review", "follow_up", "portfolio_review", "annual_review", "goal_review"
+    "general_meeting", "quarterly_review", "follow_up", "portfolio_review", "annual_review", "goal_review"
 ]
 
 
@@ -37,7 +37,7 @@ class CalendarEventCreate(BaseModel):
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     start_time: str = Field(pattern=r"^\d{2}:\d{2}$")
     end_time: str = Field(pattern=r"^\d{2}:\d{2}$")
-    type: _EVENT_TYPES
+    type: _EVENT_TYPES = "general_meeting"
     notes: str = Field(default="", max_length=1000)
     location: str = Field(default="", max_length=200)
 
@@ -84,19 +84,22 @@ async def get_event(event_id: str):
 
 @router.post("/events", status_code=201)
 async def create_event(body: CalendarEventCreate):
-    validate_event(body.model_dump())
+    await run_in_threadpool(validate_event, body.model_dump())
     result = await run_in_threadpool(_store.create_event, body.model_dump())
     invalidate_snapshots()
     return result
 
 
 @router.put("/events/{event_id}")
-async def update_event(event_id: str, body: CalendarEventUpdate):
+async def update_event(event_id: str, body: CalendarEventUpdate, request: Request):
     try:
         current = await run_in_threadpool(_store.get_event, event_id)
-        validate_event({**current, **body.model_dump(exclude_none=True)})
+        await run_in_threadpool(validate_event, {**current, **body.model_dump(exclude_none=True)})
         result = await run_in_threadpool(_store.update_event, event_id, body.model_dump(exclude_none=True))
         invalidate_snapshots()
+        monitor = getattr(request.app.state, "preparations", None)
+        if monitor is not None:
+            await monitor.meeting_changed(event_id)
         return result
     except LookupError:
         raise HTTPException(404, "Event not found")

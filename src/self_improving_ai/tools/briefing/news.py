@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import date
 
+from self_improving_ai.config import settings
 from self_improving_ai.tools.briefing.contracts import tool_error, valid_limit
 from self_improving_ai.tools.briefing.workspace_sources import current_scope
 
@@ -39,9 +40,22 @@ def search_market_news(query: str, max_results: int = 10) -> dict:
         return tool_error("INVALID_ARGUMENT", "Provide a nonempty query and an integer max_results from 0 to 100")
     scope = current_scope()
     cutoff = scope["as_of"] if scope else None
+    empty = {"status": "ok", "query": query, "results": [], "matched_ids": [],
+             "includes_distractors": False, "relevance_verified": False, "search_performed": False,
+             "availability": "not_configured",
+             "_provenance": {"source": "none", "as_of": cutoff or date.today().isoformat(),
+                             "synthetic": False, "read_only": True, "version": "news-api-v1"}}
+    if (_fixture_only.get() or settings.briefing_news_source == "fixture"
+            or scope is not None and not scope["ai_mode"]):
+        return {**empty, "availability": "offline"}
+    if max_results == 0:
+        return {**empty, "availability": "not_requested"}
     if os.environ.get("TWELVE_DATA_API_KEY"):
         from self_improving_ai.tools.briefing.news_api import fetch_market_news
         result = fetch_market_news(query, max_results)
+        if result.get("status") == "error":
+            return {**empty, **result, "availability": "provider_error",
+                    "_provenance": {**empty["_provenance"], "source": "twelve_data"}}
         if result.get("status") != "error":
             articles = [a for a in result["results"]
                         if a.get("date") and a["date"] <= (cutoff or date.today().isoformat())]
@@ -50,9 +64,9 @@ def search_market_news(query: str, max_results: int = 10) -> dict:
                        if terms & set(re.findall(r"[a-z0-9]+", (a["headline"] + " " + a["text"]).lower()))]
             return {**result, "status": "ok", "results": articles, "matched_ids": matched,
                     "includes_distractors": len(matched) < len(articles), "relevance_verified": False,
+                    "search_performed": True, "availability": "available",
                     "_provenance": {"source": "twelve_data", "as_of": cutoff or date.today().isoformat(),
                                     "synthetic": False, "read_only": True, "version": "news-api-v1"}}
-    return {"status": "ok", "query": query, "results": [], "matched_ids": [],
-            "includes_distractors": False, "relevance_verified": False,
-            "_provenance": {"source": "none", "as_of": cutoff or date.today().isoformat(),
-                            "synthetic": False, "read_only": True, "version": "news-api-v1"}}
+    if settings.briefing_news_source == "live":
+        return {**empty, **tool_error("NOT_CONFIGURED", "The news provider is not configured.")}
+    return empty

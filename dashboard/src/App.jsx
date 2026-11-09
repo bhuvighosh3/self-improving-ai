@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import MeetingPrep from "./MeetingPrep";
 import CopilotMeetingForm from "./CopilotMeetingForm";
 import PortfolioPanel from "./PortfolioPanel";
 import CalendarPage from "./CalendarPage";
@@ -7,6 +6,7 @@ import EmailPage from "./EmailPage";
 import MeetingPrepWorkspace from "./MeetingPrepWorkspace";
 import MeetingReadyDialog from "./MeetingReadyDialog";
 import { CalendarSymbol } from "./calendarFormat";
+import { eventJob } from "./calendarWorkflow";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -52,17 +52,17 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
     "Quick summary of the Thompson Trust",
   ];
 
-  async function send(txt,meeting=null,sourceIndex=null){
+  async function send(txt,meeting=null,sourceIndex=null,clientOverride=null){
     const t=txt||input;
     if(!t.trim())return;
     setInput("");
     setMsgs(p=>[...p,{role:"user",text:t,time:ts()}]);
     setBusy(true);
     try{
-      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:cid||null,meeting})});
+      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:clientOverride||cid||null,meeting})});
       const d=await r.json();
       if(!r.ok)throw new Error(typeof d.detail==="string"?d.detail:"Check the meeting details and try again.");
-      setMsgs(p=>[...p.map((m,index)=>index===sourceIndex&&d.brief?{...m,meetingCompleted:true}:m),{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,brief:d.brief,meetingDetails:d.meeting_details,time:ts()}]);
+      setMsgs(p=>[...p.map((m,index)=>index===sourceIndex&&(d.brief||d.meeting_details)?{...m,meetingCompleted:true}:m),{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,brief:d.brief,meetingDetails:d.meeting_details,meetingResolution:d.meeting_resolution,meetingChoices:d.meeting_choices,time:ts()}]);
     }catch(error){
       setMsgs(p=>[...p,{role:"err",text:error.message==="Failed to fetch"?"Could not reach the server. Please try again.":error.message,time:ts()}]);
     }
@@ -106,8 +106,8 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
                     </div>
                   )}
                   <div className="bubble-text" dangerouslySetInnerHTML={{__html:md(m.text)}}/>
-                  {m.meetingDetails&&!m.meetingCompleted&&<CopilotMeetingForm details={m.meetingDetails} clients={clients} busy={busy} onGenerate={details=>send(`Prepare the meeting brief for ${clients.find(client=>client.client_id===details.client_id)?.profile.name||details.client_id} on ${details.meeting_date} at ${details.meeting_time}. Focus: ${details.focus}`,details,i)}/>}
-                  {m.meetingCompleted&&<p className="co-meeting-confirmed">Meeting details confirmed.</p>}
+                  {m.meetingDetails&&!m.meetingCompleted&&<CopilotMeetingForm details={m.meetingDetails} clients={clients} busy={busy} resolution={m.meetingResolution} choices={m.meetingChoices} onLookup={clientId=>send("Prepare my next client meeting",null,i,clientId)} onGenerate={details=>send(`Prepare the meeting brief for ${clients.find(client=>client.client_id===details.client_id)?.profile.name||details.client_id} on ${details.meeting_date} at ${details.meeting_time}. Focus: ${details.focus}`,details,i)}/>}
+                  {m.meetingCompleted&&<p className="co-meeting-confirmed">Meeting request updated.</p>}
                   {m.brief&&<button className="meeting-btn primary co-open-brief" onClick={()=>onOpenBrief(m.brief)}>Open Meeting Brief</button>}
                   <div className="bubble-foot">
                     {m.intent&&<span className={`chip ${INTENT_CHIP[m.intent]||"chip-accent"}`}>{m.intent.replace(/_/g," ")}</span>}
@@ -249,7 +249,7 @@ function ClientDetail({client,onBack,onPrepare}){
           <div className="detail-name">{p.name}</div>
           <div className="detail-id">{client.client_id} &middot; {p.primary_contact}</div>
         </div>
-        <div className="meeting-actions"><span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span><button className="meeting-btn primary" onClick={()=>onPrepare(client)}>Generate Meeting Brief</button></div>
+        <div className="meeting-actions"><span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span><button className="meeting-btn primary" onClick={()=>onPrepare(client)}>View meeting prep</button></div>
       </div>
 
       <div className="detail-grid">
@@ -409,23 +409,30 @@ function humanAgent(id){return({request_orchestrator:"Orchestrator",portfolio_es
 function ts(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
 function md(t){
   if(!t)return"";
-  const lines=t
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g,"<em>$1</em>")
-    .split("\n");
-  let html="",inList=false;
+  const inline=text=>text.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>");
+  const lines=t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r\n?/g,"\n").split("\n");
+  let html="",listTag="",paragraph=[];
+  const closeList=()=>{if(listTag){html+=`</${listTag}>`;listTag="";}};
+  const closeParagraph=()=>{if(paragraph.length){html+=`<p>${paragraph.map(inline).join("<br/>")}</p>`;paragraph=[];}};
   for(const line of lines){
-    if(line.startsWith("- ")){
-      if(!inList)html+="<ul>";
-      inList=true;
-      html+=`<li>${line.slice(2)}</li>`;
+    const heading=line.match(/^ {0,3}(#{1,6})\s+(.+?)(?:\s+#+)?\s*$/);
+    const divider=/^ {0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line);
+    const item=line.match(/^ {0,3}(?:([-+*])|\d+[.)])\s+(.+)$/);
+    if(!line.trim()||heading||divider){
+      closeParagraph();closeList();
+      if(heading)html+=`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`;
+      else if(divider)html+="<hr/>";
+    }else if(item){
+      closeParagraph();
+      const nextTag=item[1]?"ul":"ol";
+      if(listTag!==nextTag){closeList();html+=`<${nextTag}>`;listTag=nextTag;}
+      html+=`<li>${inline(item[2])}</li>`;
     }else{
-      if(inList){html+="</ul>";inList=false}
-      html+=`${line}<br/>`;
+      closeList();paragraph.push(line);
     }
   }
-  return html+(inList?"</ul>":"");
+  closeParagraph();closeList();
+  return html;
 }
 
 /* ════ App ════ */
@@ -455,7 +462,7 @@ export default function App(){
   useEffect(()=>{
     const controller=new AbortController();
     const load=()=>fetch("/api/meeting-preparations",{signal:controller.signal}).then(r=>r.ok?r.json():null)
-      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.preparations.filter(job=>job.status==="ready"&&job.mode===state.mode&&state.events.some(event=>event.id===job.event_id&&event.version===job.version&&new Date(event.starts_at)>new Date(state.now))).sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
+      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.events.filter(event=>new Date(event.starts_at)>new Date(state.now)).map(event=>eventJob(state,event)).filter(job=>job?.status==="ready").sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
     load(); const timer=setInterval(load,1500);
     return()=>{controller.abort();clearInterval(timer);};
   },[]);
@@ -506,8 +513,6 @@ export default function App(){
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
-    {id:"news",ic:ic.news,label:"News"},
-    {id:"agents",ic:ic.bot,label:"Agents"},
   ];
 
   return(
@@ -523,9 +528,7 @@ export default function App(){
           <div className="nav-group-label">Data</div>
           {menu.slice(2,6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Advisor</div>
-          {menu.slice(6,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
-          <div className="nav-group-label">System</div>
-          {menu.slice(9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
@@ -543,7 +546,7 @@ export default function App(){
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
-          {page==="meeting"&&((incomingBrief||meetingClient)?<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>:<MeetingPrepWorkspace key={calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>)}
+          {page==="meeting"&&<MeetingPrepWorkspace key={incomingBrief?.id||meetingClient?.client_id||calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} incomingBrief={incomingBrief} selectedClient={meetingClient} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>}
           {page==="calendar"&&<CalendarPage clients={clients} onEditing={()=>{autoNoticeShown.current=true;}} onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
           {page==="email"&&<EmailPage clients={clients}/> }
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}

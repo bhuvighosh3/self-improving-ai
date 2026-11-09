@@ -7,6 +7,8 @@ import json
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -18,7 +20,8 @@ restore_connections()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 from google.adk import Runner
@@ -32,11 +35,19 @@ from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
-from self_improving_ai.dashboard.meeting_requests import collect_meeting_details, is_meeting_request
+from self_improving_ai.dashboard.meeting_requests import (
+    collect_meeting_details, is_meeting_request, resolve_calendar_meeting, short_preparation_target,
+)
 from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
 from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.agents.briefing.review import check_draft
+from self_improving_ai.agents.briefing.application import (
+    BriefingPreparationError, briefing_request_scope, prepare_brief,
+)
+from self_improving_ai.agents.model_errors import (
+    ModelOutputLimitError, model_error_code, model_error_message,
+)
 
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
@@ -181,43 +192,31 @@ def _generation_error(exc: BaseException, status: int, detail: str) -> HTTPExcep
                          headers={"X-Briefing-Run-ID": run_id} if run_id else None)
 
 
+def _preparation_clock():
+    """Use the same simulated date for all B entry points in this process."""
+    monitor = getattr(app.state, "preparations", None)
+    if monitor is None:
+        return None
+    with monitor.db() as db:
+        return json.loads(db.execute("SELECT state FROM calendar_simulation WHERE id=1").fetchone()[0])["now"][:10]
+
+
 @app.post("/api/briefings")
 async def create_meeting_brief(req: MeetingBriefRequest):
-    from contextlib import nullcontext
-    from self_improving_ai.tools.briefing.workspace_sources import operational_scope, client_mail_snapshot
-    monitor = getattr(app.state, "preparations", None)
-    scope = nullcontext()
-    if monitor is not None:
-        with monitor.db() as db:
-            clock = json.loads(db.execute("SELECT state FROM calendar_simulation WHERE id=1").fetchone()[0])["now"][:10]
     try:
-        if monitor is not None:
-            cutoff = min(clock, req.meeting_date.isoformat())
-            records = await asyncio.to_thread(client_mail_snapshot, req.client_id, cutoff)
-            scope = operational_scope(req.client_id, cutoff, ai_mode=req.mode == "agent", records=records)
-        with scope:
-            if req.mode == "agent":
-                from self_improving_ai.agents.briefing.runtime import generate_agent_brief
-                try:
-                    brief = await asyncio.wait_for(generate_agent_brief(req), timeout=180)
-                except APIError as primary:
-                    if primary.code != 503 or not settings.agent_model_fallback or settings.agent_model_fallback == settings.agent_model:
-                        raise
-                    brief = await asyncio.wait_for(generate_agent_brief(req, model=settings.agent_model_fallback),timeout=180)
-                    brief["workflow"]["model_fallback_from"] = settings.agent_model
-            else:
-                brief = await asyncio.to_thread(generate_meeting_brief, req)
-            await asyncio.to_thread(DraftStore().create, brief)
-            return brief
+        return await prepare_brief(req, as_of=_preparation_clock(), store=DraftStore(),
+                                   offline_generator=generate_meeting_brief)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ModelOutputLimitError as exc:
+        raise _generation_error(exc, 502, model_error_message("output_token_limit")) from exc
     except ValueError as exc:
         raise _generation_error(exc, 422, str(exc)) from exc
     except TimeoutError as exc:
         raise _generation_error(exc, 504, "Agent timed out; no approved brief was created.") from exc
     except APIError as exc:
-        if exc.code == 503:
-            raise _generation_error(exc, 503, "Gemini is temporarily busy. Please retry later; no approved brief was created.") from exc
+        if exc.code in (503, 504):
+            raise _generation_error(exc, exc.code, "Gemini is temporarily busy or timed out. Please retry later; no approved brief was created.") from exc
         if exc.code == 429:
             raise _generation_error(exc, 429, "Gemini quota or rate limit reached. Check your project's usage limits before retrying.") from exc
         if exc.code == 404:
@@ -227,10 +226,20 @@ async def create_meeting_brief(req: MeetingBriefRequest):
         raise _generation_error(exc, 502, "Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
 
 
+def _require_current_calendar(brief):
+    event = brief.get("calendar_event")
+    monitor = getattr(app.state, "preparations", None)
+    if event and monitor is not None and not any(
+        current["id"] == event["id"] and current["version"] == event["version"] for current in monitor.events
+    ):
+        raise ValueError("This meeting changed. Open its updated preparation before reviewing.")
+
+
 @app.post("/api/briefings/check")
 async def check_meeting_draft(req: CheckRequest):
     try:
         original = DraftStore().get(req.brief["id"])["brief"]
+        await asyncio.to_thread(_require_current_calendar, original)
         return await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -255,6 +264,7 @@ async def review_meeting_draft(req: ReviewRequest):
     try:
         store = DraftStore()
         original = store.get(req.brief["id"])["brief"]
+        await asyncio.to_thread(_require_current_calendar, original)
         report = await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
         if req.decision == "approve" and report["verdict"] != "pass":
             raise ValueError("Quality check requires revision before approval")
@@ -280,6 +290,14 @@ async def get_approved_brief(brief_id: str):
     if result["status"] != "approve":
         raise HTTPException(status_code=409, detail="This draft has not been approved")
     return result
+
+
+@app.get("/api/briefings/{brief_id}")
+async def get_saved_meeting_brief(brief_id: str):
+    try:
+        return await asyncio.to_thread(lambda: DraftStore().get(brief_id)["brief"])
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/briefings/export")
@@ -389,37 +407,80 @@ async def get_stats():
     }
 
 
+def _meeting_chat_response(brief, *, event=None):
+    sections = {section["id"]: section for section in brief["sections"]}
+    highlights = sections["portfolio"]["items"]
+    response_text = (
+        f"**Meeting brief prepared: {brief['client_name']}**\n\n"
+        f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
+        f"**Focus:** {brief['focus']}\n\n"
+        f"**Portfolio:** {highlights[0]['text'] if highlights else 'See the full brief for portfolio context.'}\n\n"
+        + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
+        + "**Discussion priorities:**\n"
+        + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
+        + "\n\nOpen this brief to inspect sources, edit, review, or export it."
+    )
+    steps = []
+    if event:
+        response_text = f"I found **{event['title']}** on your calendar and prepared the brief for that appointment.\n\n" + response_text
+        steps.append({"agent": "meeting_briefing_agent", "action": "resolve_calendar_meeting",
+                      "detail": "Found the matching client appointment and loaded its meeting details",
+                      "tools_called": [], "origin": "backend_calendar_lookup"})
+    return {
+        "response": response_text, "intent": "meeting_briefing",
+        "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
+        "agents_used": ["meeting_briefing_agent"],
+        "steps": steps + [{"agent": "meeting_briefing_agent", "action": "build_briefing",
+                   "detail": f"Prepared six sections from {len(brief['sources'])} retained sources",
+                   "tools_called": brief["tools_called"]}],
+    }
+
+
+def _meeting_workspace():
+    monitor = getattr(app.state, "preparations", None)
+    if monitor is not None:
+        return monitor.state()
+    from self_improving_ai.workspace_store import workspace_snapshot
+    return {"now": datetime.now(ZoneInfo("America/New_York")).isoformat(),
+            "mode": "agent", "events": workspace_snapshot("calendar")}
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     if req.meeting is not None:
-        brief = await create_meeting_brief(req.meeting)
-        sections = {section["id"]: section for section in brief["sections"]}
-        highlights = sections["portfolio"]["items"]
-        response_text = (
-            f"**Meeting brief prepared: {brief['client_name']}**\n\n"
-            f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
-            f"**Focus:** {brief['focus']}\n\n"
-            f"**Portfolio:** {highlights[0]['text'] if highlights else 'See the full brief for portfolio context.'}\n\n"
-            + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
-            + "**Discussion priorities:**\n"
-            + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
-            + "\n\nOpen this brief to inspect sources, edit, review, or export it."
-        )
-        return {
-            "response": response_text, "intent": "meeting_briefing",
-            "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
-            "agents_used": ["meeting_briefing_agent"],
-            "steps": [{"agent": "meeting_briefing_agent", "action": "build_briefing",
-                       "detail": f"Prepared six sections from {len(brief['sources'])} retained sources",
-                       "tools_called": brief["tools_called"]}],
-        }
+        return _meeting_chat_response(await create_meeting_brief(req.meeting))
 
-    if is_meeting_request(req.message):
-        details = collect_meeting_details(req.message, await run_in_threadpool(_load_clients), req.client_id)
+    clients = None
+    if is_meeting_request(req.message) or short_preparation_target(req.message):
+        clients = await run_in_threadpool(_load_clients)
+    if is_meeting_request(req.message, clients):
+        try:
+            workspace = await run_in_threadpool(_meeting_workspace)
+        except Exception as exc:
+            raise HTTPException(503, "I couldn't read your calendar. Check the workspace connection and try again.") from exc
+        now = datetime.fromisoformat(workspace["now"])
+        details = collect_meeting_details(req.message, clients, req.client_id, today=now.date())
+        resolved = resolve_calendar_meeting(details, workspace["events"], now)
+        if resolved["reason"] == "resolved":
+            meeting = MeetingBriefRequest(**resolved["details"], mode=workspace["mode"])
+            brief = await create_meeting_brief(meeting)
+            return _meeting_chat_response(brief, event=resolved.get("event"))
+        messages = {
+            "client_required": "Which client should I prepare for? Choose the client and I can look up their next meeting.",
+            "meeting_not_found": "I couldn't find a matching upcoming appointment for this client. Add the meeting details below to save it to Calendar and prepare its brief.",
+            "multiple_meetings": "I found multiple matching appointments. Which one should I prepare for?",
+        }
         return {
-            "response": "Confirm the client, New York meeting time and focus, then choose how to prepare the brief.",
+            "response": messages[resolved["reason"]],
             "intent": "meeting_briefing", "client_id": details["client_id"] or None,
-            "meeting_details": details, "agents_used": [], "steps": [], "mode": "confirmation",
+            "meeting_details": {**details, "mode": workspace["mode"]},
+            "meeting_resolution": resolved["reason"],
+            "meeting_choices": [{"calendar_event_id": event["id"], "client_id": event["client_id"],
+                "title": event["title"], "meeting_date": event["date"], "meeting_time": event["start_time"][:5],
+                "focus": details["focus"] or (event.get("notes") or "").strip() or event["title"],
+                "meeting_type": event.get("meeting_type", "general_meeting"), "mode": workspace["mode"]}
+                for event in resolved.get("choices", [])],
+            "agents_used": [], "steps": [], "mode": "confirmation",
         }
 
     user_id = "advisor-001"
@@ -431,46 +492,38 @@ async def chat(req: ChatRequest):
 
     steps = []
     response_parts = []
+    error_code = None
 
-    try:
-        result = await run_copilot(
-            runner=_runner,
-            message=message,
-            session_id=session_id,
-            user_id=user_id,
-        )
-        steps = result["steps"]
-        response_parts = result["response_parts"]
-    except Exception as exc:
-        err = str(exc)
-        if "503" in err or "UNAVAILABLE" in err:
-            log.warning("Primary model unavailable, trying fallback model")
-            try:
-                result = await run_copilot(
-                    runner=_get_fallback_runner(),
-                    message=message,
-                    session_id=session_id,
-                    user_id=user_id,
-                )
-                steps = result["steps"]
-                response_parts = result["response_parts"]
-            except Exception as fallback_exc:
-                log.exception("Fallback model also failed")
-                fallback_err = str(fallback_exc)
-                if "429" in fallback_err or "RESOURCE_EXHAUSTED" in fallback_err:
-                    response_parts.append("Rate limit reached — please wait a moment and try again.")
-                elif "503" in fallback_err or "UNAVAILABLE" in fallback_err:
-                    response_parts.append("The AI service is temporarily busy. Please try again in a minute.")
-                else:
-                    response_parts.append("Something went wrong. Please try again.")
-        elif "429" in err or "RESOURCE_EXHAUSTED" in err:
-            response_parts.append("Rate limit reached — please wait a moment and try again.")
-        elif "max_llm_calls" in err.lower() or "exceeded" in err.lower():
-            log.warning("Orchestrator hit LLM call budget: %s", err)
-            response_parts.append("That request needed more steps than I could complete in one pass. Try asking about fewer clients at once, or be more specific about what you need.")
-        else:
-            log.exception("Orchestrator error")
-            response_parts.append("Something went wrong. Please try again.")
+    with briefing_request_scope(_preparation_clock()) as preparation:
+        try:
+            result = await run_copilot(
+                runner=_runner, message=message, session_id=session_id, user_id=user_id,
+            )
+            steps = result["steps"]
+            response_parts = result["response_parts"]
+        except Exception as exc:
+            code = model_error_code(exc)
+            # B already owns its retries and fallback; do not regenerate it by
+            # restarting the parent after a delegated failure.
+            if code in {"service_busy", "timeout"} and not isinstance(exc, BriefingPreparationError):
+                log.warning("Primary model unavailable or timed out, trying fallback model")
+                try:
+                    result = await run_copilot(
+                        runner=_get_fallback_runner(), message=message,
+                        session_id=session_id, user_id=user_id,
+                    )
+                    steps = result["steps"]
+                    response_parts = result["response_parts"]
+                except Exception as fallback_exc:
+                    log.exception("Fallback model also failed")
+                    error_code = model_error_code(fallback_exc)
+                    response_parts.append(model_error_message(error_code))
+            else:
+                log.exception("Copilot request failed (%s)", code)
+                error_code = code
+                response_parts.append(model_error_message(code))
+
+    prepared = next(reversed(preparation.briefs.values()), None)
 
     agents_used = list({s["agent"] for s in steps})
     if not agents_used:
@@ -480,12 +533,26 @@ async def chat(req: ChatRequest):
 
     return {
         "response": response_text,
-        "intent": "gemini",
+        "intent": "meeting_briefing" if prepared else "gemini",
         "agents_used": agents_used,
         "client_id": req.client_id,
         "steps": steps,
         "mode": "live",
+        **({"brief": prepared} if prepared else {}),
+        **({"error_code": error_code} if error_code else {}),
     }
+
+
+_FRONTEND_DIR = Path.cwd() / "dashboard" / "dist"
+if not _FRONTEND_DIR.is_dir():
+    _FRONTEND_DIR = Path(__file__).resolve().parents[3] / "dashboard" / "dist"
+if _FRONTEND_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIR / "assets"), name="static")
+
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the dashboard entry page."""
+        return FileResponse(_FRONTEND_DIR / "index.html")
 
 
 if __name__ == "__main__":

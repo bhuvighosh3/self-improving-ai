@@ -86,7 +86,7 @@ test("teammate Inbox retains read and archive operations", async ({ page, reques
   await request.patch("/api/email/messages/EML-a3b4c5d6", { data: { folder: "inbox" } });
   await page.goto("/");
   await expect(page.locator(".topbar-title")).toHaveText("Inbox");
-  await expect(page.locator(".email-simulation-note")).toContainText("Simulated Inbox");
+  await expect(page.getByText("Simulated Inbox · Messages stay in this workspace", { exact: true })).toHaveCount(0);
   await page.locator(".email-item").filter({ hasText: "Down payment" }).click();
   await expect(page.locator(".email-detail-body")).toContainText("mid-December");
   await page.locator(".email-detail-actions").getByRole("button", { name: "Archive", exact: true }).click();

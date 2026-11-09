@@ -1,12 +1,31 @@
 import { test, expect } from "@playwright/test";
 
-test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page }) => {
+test.beforeEach(async ({ page }) => {
+  // Exercise browser workflows without consuming provider quota.
+  await page.route("**/api/briefings", async route => {
+    const payload = route.request().postDataJSON();
+    await route.continue({ postData: JSON.stringify({ ...payload, mode: "simulation" }) });
+  });
+  await page.route("**/api/chat", async route => {
+    const payload = route.request().postDataJSON();
+    await route.continue({ postData: JSON.stringify(payload.meeting
+      ? { ...payload, meeting: { ...payload.meeting, mode: "simulation" } } : payload) });
+  });
+});
+
+async function openPreparedMeeting(page, request, client, eventId, date, time, focus) {
+  const response = await request.post("/api/briefings", { data: { client_id: client, calendar_event_id: eventId,
+    meeting_date: date, meeting_time: time, focus, mode: "simulation" } });
+  expect(response.ok()).toBe(true);
   await page.goto("/");
   await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
-  await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
-  await page.getByLabel("Client", { exact: true }).selectOption("CLI-004");
-  await page.getByLabel("Meeting date", { exact: true }).fill("2026-10-30");
-  await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+  const list = page.getByRole("complementary", { name: "Client meetings" });
+  await list.getByRole("button", { name: "All meetings", exact: true }).click();
+  await list.getByRole("button", { name: `Open preparation for ${client === "CLI-004" ? "Okafor Family" : "Thompson Trust"} on ${date}`, exact: true }).click();
+}
+
+test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page, request }) => {
+  await openPreparedMeeting(page, request, "CLI-004", "EVT-a3b4c5d6", "2026-11-20", "15:30", "Confirm current home funding plans");
   const process = page.locator("summary").filter({ hasText: "Preparation process" });
   await expect(process).toContainText("changed");
   await process.click();
@@ -23,27 +42,68 @@ test("meeting workflow exposes evidence coverage and persists local demo review"
   await expect(process).toContainText("recheck required");
 });
 
-test("limited historical coverage retains routine review and agent mode is explicit", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
-  await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
-  await page.getByLabel("Client", { exact: true }).selectOption("CLI-002");
-  await page.getByLabel("Meeting date", { exact: true }).fill("2026-10-30");
-  await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+test("limited historical coverage retains routine review for a calendar meeting", async ({ page, request }) => {
+  await openPreparedMeeting(page, request, "CLI-002", "EVT-e5f6a7b8", "2026-11-14", "10:00", "Review bond duration and client questions");
   await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("insufficient information");
   await expect(page.getByRole("heading", { name: "Routine meeting review" })).toBeVisible();
-  await page.getByLabel("Generation mode").selectOption("agent");
-  await expect(page.getByText("Meeting inputs changed.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("article", { name: "Meeting briefing" })).toContainText("Thompson Trust");
 });
 
+test("Copilot asks only for the client before looking up the next appointment", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Copilot", exact: true }).click();
+  await page.locator(".co-textarea").fill("Prepare my next meeting");
+  await page.locator(".co-send").click();
+  const form = page.locator(".co-meeting-form");
+  await expect(form).toBeVisible();
+  await expect(form.getByLabel("Meeting date")).toHaveCount(0);
+  await expect(form.getByLabel("Meeting focus")).toHaveCount(0);
+  await form.getByLabel("Client", { exact: true }).selectOption("CLI-002");
+  await page.screenshot({ path: testInfo.outputPath("client-only-lookup.png"), fullPage: true });
+  await form.getByRole("button", { name: "Find next meeting", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Open Meeting Brief", exact: true })).toBeVisible();
+  await expect(form).toHaveCount(0);
+  await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
+});
+
+for (const width of [1280, 390]) {
+test(`Only calendar appointments appear in meeting preparation at ${width}px`, async ({ page }, testInfo) => {
+  const calendarEvent = { id: "CALENDAR-GARCIA", version: "calendar-v1", client_id: "CLI-001", client_name: "Garcia Family",
+    title: "Calendar review", focus: "Retirement review", starts_at: "2026-11-12T14:00:00-05:00", date: "2026-11-12", start_time: "14:00", duration_minutes: 60, prep_required: true };
+  const saved = { id: "saved:UNLINKED", version: "UNLINKED", brief_id: "UNLINKED", kind: "saved_brief", client_id: "CLI-004", client_name: "Okafor Family",
+    title: "Unscheduled funding brief", focus: "Unscheduled funding brief", starts_at: "2026-11-12T14:00:00-05:00", date: "2026-11-12", start_time: "14:00", mode: "simulation", prep_required: true };
+  const state = { now: "2026-11-11T15:00:00-05:00", enabled: false, mode: "simulation", events: [calendarEvent], saved_meetings: [saved], preparations: [] };
+  await page.route("**/api/meeting-preparations", route => route.fulfill({ json: state }));
+  await page.route("**/api/briefings/UNLINKED", route => route.fulfill({ json: {
+    id: "UNLINKED", client_id: saved.client_id, client_name: saved.client_name, contact: "Synthetic client", meeting_date: saved.date,
+    meeting_time: saved.start_time, focus: saved.focus, mode: "simulation", data_as_of: "2026-11-11", news: [], sources: [{ id: "PROFILE", title: "Synthetic profile" }],
+    sections: [{ id: "priorities", title: "Discussion Priorities", items: [{ id: "priority-1", title: "Confirm funding plans", text: "Confirm the client's current plans.", why: "Plans need confirmation.", question: "What changed?", source_ids: ["PROFILE"] }] }],
+  } }));
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto("/");
+  if (width < 768) await page.getByLabel("Navigate to page").selectOption("meeting");
+  else await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
+  const list = page.getByRole("complementary", { name: "Client meetings" });
+  await expect(list.getByText("Calendar review", { exact: true })).toBeVisible();
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await list.getByRole("button", { name: "All meetings", exact: true }).click();
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("calendar-aligned-meetings.png"), fullPage: true });
+  await list.getByRole("button", { name: "Saved briefs", exact: true }).click();
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await expect(list.getByText("Briefs without a calendar meeting", { exact: true })).toHaveCount(0);
+  await expect(list.getByRole("button", { name: "Prepare another meeting", exact: true })).toHaveCount(0);
+});
+}
+
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
-  test(`Copilot hands off one retained brief at ${viewport.width}px`, async ({ page }) => {
+  test(`Copilot prepares from calendar without a form at ${viewport.width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const generations = [];
     page.on("request", request => {
       if (request.method() === "POST" && (request.url().endsWith("/api/briefings")
-          || request.url().endsWith("/api/chat") && request.postDataJSON()?.meeting)) {
+          || request.url().endsWith("/api/chat"))) {
         generations.push(request.url());
       }
     });
@@ -51,25 +111,37 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     if (viewport.width < 768) await page.getByLabel("Navigate to page").selectOption("copilot");
     else await page.getByRole("button", { name: "Copilot", exact: true }).click();
     await page.locator(".co-textarea").fill(
-      "Prepare a meeting for Okafor on 2026-11-11 at 2pm — Home purchase funding");
+      "prepare a meeting prep for Thompson Trust");
+    const completed = page.waitForResponse(response => response.url().endsWith("/api/chat") && response.request().method() === "POST");
     await page.locator(".co-send").click();
+    const briefId = (await (await completed).json()).brief.id;
     const form = page.locator(".co-meeting-form");
-    await expect(form).toBeVisible();
-    await expect(form.getByLabel("Client", { exact: true })).toHaveValue("CLI-004");
-    await expect(form.getByLabel("Meeting date")).toHaveValue("2026-11-11");
-    await expect(form.getByLabel("Generation mode")).toHaveValue("simulation");
-    await form.getByLabel("Generation mode").selectOption("agent");
-    await expect(form.getByLabel("Generation mode")).toHaveValue("agent");
-    // The browser smoke test is explicitly offline; real acceptance is a separate command.
-    await form.getByLabel("Generation mode").selectOption("simulation");
-    await form.getByLabel("Meeting type").selectOption("goal_review");
-    await form.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Open Meeting Brief", exact: true })).toBeVisible();
+    await expect(form).toHaveCount(0);
+    await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
+    await page.screenshot({ path: testInfo.outputPath("automatic-preparation.png"), fullPage: true });
     await page.getByRole("button", { name: "Open Meeting Brief", exact: true }).click();
-    await expect(page.getByLabel("Meeting type")).toHaveValue("goal_review");
-    await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("changed");
+    await expect(page.getByRole("region", { name: "Meeting preparation workspace" })).toBeVisible();
+    await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", briefId);
+    await expect(page.getByLabel("Meeting type")).toHaveCount(0);
+    await expect(page.getByLabel("Meeting date", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Meeting at a glance" })).toContainText("Rate impact analysis on bond portfolio");
+    await page.screenshot({ path: testInfo.outputPath("unified-meeting-prep.png"), fullPage: true });
+    await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("Check: pass");
     await page.getByRole("button", { name: "Check draft", exact: true }).click();
     await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
     await expect(page.locator(".meeting-toolbar")).toContainText("Reviewed");
+    if (viewport.width < 768) {
+      await page.getByLabel("Navigate to page").selectOption("email");
+      await page.getByLabel("Navigate to page").selectOption("meeting");
+    } else {
+      await page.getByRole("button", { name: "Inbox", exact: true }).first().click();
+      await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
+    }
+    const row = page.getByRole("button", { name: "Open preparation for Thompson Trust on 2026-11-14", exact: true });
+    await expect(row).toContainText("Reviewed");
+    await row.click();
+    await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", briefId);
     expect(generations).toHaveLength(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });

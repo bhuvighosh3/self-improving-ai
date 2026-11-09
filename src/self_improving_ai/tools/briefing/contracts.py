@@ -18,6 +18,7 @@ def valid_limit(value) -> bool:
 def provenance(source: str, *_args, **_kwargs) -> dict:
     """Use the CRM settings cutoff from Firestore."""
     from self_improving_ai.crm_store import CrmStore
-    settings = CrmStore().get_settings()
+    from self_improving_ai.tools.briefing.workspace_sources import scoped_crm_read
+    settings = scoped_crm_read("settings", lambda: CrmStore().get_settings())
     return {"source": source, "as_of": settings["data_as_of"], "synthetic": False,
             "version": "briefing-tools-v1", "read_only": True}

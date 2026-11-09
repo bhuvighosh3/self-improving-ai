@@ -15,6 +15,11 @@ def check_work(work: dict, evidence: dict, calculations: list[dict]) -> dict:
         findings.append({"code": code, "location": location, "reason": reason,
                          "severity": "blocking"})
 
+    if "invalid_content" in work:
+        return {"verdict": "revise", "findings": [{"code": "SCHEMA", "severity": "blocking",
+                "location": "work", "reason": work.get("validation_error", "Content failed canonical validation")}],
+                "reviewer": "objective_rules"}
+
     try:
         parsed = AgentWork.model_validate(work)
     except ValidationError as exc:

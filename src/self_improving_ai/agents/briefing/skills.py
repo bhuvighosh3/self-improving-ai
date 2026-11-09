@@ -1,6 +1,9 @@
 """Three reusable business skills loaded into the ADK briefing agent."""
 
 ROUTINES = {
+    "general_meeting": ["Confirm the meeting purpose and client priorities",
+                        "Review relevant updates, unfinished commitments and evidence gaps",
+                        "Agree discussion questions, next steps and responsibilities"],
     "quarterly_review": ["Review goal progress and liquidity", "Review allocation and plan execution",
                          "Follow up unfinished commitments and service needs"],
     "annual_review": ["Confirm goals and household circumstances", "Review allocation and liquidity",
@@ -19,7 +22,10 @@ is not full minutes. Record coverage and missing information. The routine templa
 is a proposal for this synthetic prototype, not an approved industry standard.
 Do not interpret missing updates or no search results as unchanged circumstances.
 Return context_summary, changes (field, old_value, new_value, both source_ids and
-certainty confirmed/tentative/conflicting) and change_status: changed, unchanged, or
+certainty confirmed/tentative/conflicting). Each change needs at least two distinct
+original sources supporting the old and new values. If that comparison is unavailable,
+omit the change and describe the evidence gap in context_summary; do not cite one source
+twice. Set change_status to insufficient_information when appropriate. Return change_status: changed, unchanged, or
 insufficient_information. Use unchanged only with explicit supporting evidence
 for the scope being assessed; disclose remaining coverage limitations.
 """

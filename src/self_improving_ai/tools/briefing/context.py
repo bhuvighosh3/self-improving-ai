@@ -80,7 +80,7 @@ def read_source(client_id: str, source_id: str) -> dict:
     return {"status": "denied", "error": "Source is unavailable for this client and cutoff"}
 
 
-def prepare_context(client_id: str, meeting_type: str = "quarterly_review", focus: str = "") -> dict:
+def prepare_context(client_id: str, meeting_type: str = "general_meeting", focus: str = "") -> dict:
     """Collect raw evidence and actual tool results, without inventing missing coverage."""
     from self_improving_ai.agents.briefing.skills import ROUTINES
 

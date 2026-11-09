@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from google.cloud import firestore
-
-from self_improving_ai.config import settings
+from self_improving_ai.firestore_connection import get_firestore_client
 
 _COLLECTION = "clients"
 
 
 class ClientStore:
     def __init__(self, project: str | None = None):
-        self.db = firestore.Client(project=project or settings.google_cloud_project or None)
+        self.db = get_firestore_client(project)
         self.collection = self.db.collection(_COLLECTION)
 
     def _doc_to_dict(self, doc) -> dict:

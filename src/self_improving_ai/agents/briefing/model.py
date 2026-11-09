@@ -3,6 +3,7 @@
 from google.adk.models.google_llm import Gemini
 from google.genai import types
 import httpx
+from self_improving_ai.agents.model_errors import reject_truncated_response
 
 
 def wire_schema(value):
@@ -38,6 +39,8 @@ class BriefingGemini(Gemini):
             "timeout": self.request_timeout_ms, "retry_options": self.retry_options})
         try:
             async for response in super().generate_content_async(llm_request, stream=stream):
+                reject_truncated_response(response, model=self.model,
+                                          output_limit=llm_request.config.max_output_tokens)
                 yield response
         except httpx.TimeoutException as exc:
             raise TimeoutError("Gemini request exceeded its configured timeout") from exc

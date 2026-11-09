@@ -21,7 +21,8 @@ fixture-based descriptions below are historical until independently rerun.
   item/claim/finding IDs and evidence links; Gemini writes atomic sourced content.
   Prepared context and verified metrics are supplied before writing, so the normal
   path needs one native structured writing call and one independent reviewer call.
-  The raw ADK delegation interface remains available to C with its existing tools.
+  C delegates through a bounded tool that calls this same checked, persisted
+  workflow and returns a compact summary with the retained draft ID.
 - A simulated calendar worker prepares upcoming meetings autonomously within a
   24-hour window and posts an advisor notification. It shares the existing B
   service, checks and draft store; it never creates a second UI-specific brief.
@@ -88,15 +89,100 @@ For live generation, configure `GOOGLE_API_KEY` and
 The `.env.example` contains placeholders only. No key is required for Offline demo.
 The model and reviewer incur API usage when AI mode is selected.
 
-Explicit Copilot preparation requests open the existing confirmation form, with
-meeting type and generation mode selectors. Confirming calls the same generation,
-server persistence and error handling as Meeting Prep; opening the returned brief
-does not generate it again. Both entry points default to Offline demo. Other
+Explicit Copilot preparation requests resolve the client's next matching Calendar
+appointment and call the same generation, server persistence and error handling as
+Meeting Prep. The meeting date, New York time and focus come from the appointment;
+opening the returned brief does not generate it again. Preparation follows the
+current Calendar AI Agent/Offline demo setting. Other
 Copilot requests continue to use C's live orchestrator. This narrow UI handoff does
 does not itself schedule work. The separate simulated calendar worker provides
-proactive preparation; there is no external email/calendar connection. Direct ADK delegation loads
-the same skills/tools, but the bounded independent-review/repair service is the
-dashboard AI path; do not treat raw CLI output as approved delivery.
+proactive preparation; there is no external email/calendar connection. C's ADK tool
+delegation also calls the bounded independent-review/repair service. The full
+draft reaches the browser separately from the compact tool response returned to
+the parent model. See [Copilot limit fix](copilot-limit-fix.md) for error handling
+and offline verification. Generated drafts still require advisor review.
+
+### Focus-based setup (2026-11-09)
+
+Meeting Prep and Copilot no longer ask the advisor to choose a meeting type. The
+focus is the single editable description of the meeting's purpose. New requests
+default to `general_meeting`, whose routine covers relevant updates, open
+commitments, missing information and next steps. The writer uses the focus and
+authorized evidence to choose discussion priorities; routine templates do not
+restrict supported topics. Existing quarterly, annual and goal-review metadata
+remains valid, including retained drafts. Unrecognized Calendar categories use
+the general baseline without modifying the original event. Changing the client
+or appointment in a manual form does not inherit the previous draft's type.
+
+The form keeps the existing three-column desktop and stacked mobile layout.
+Removing the duplicate choice leaves client/date/time together, followed by focus
+and the preparation action. Existing browser workflow checks explicitly route
+generation to Offline demo; they do not consume Gemini quota.
+
+Verification: 64 related offline tests and 14 subtests passed; six browser
+workflow checks passed at desktop/mobile widths, with screenshots inspected.
+The production frontend build and scoped design detector passed. A broader run
+also reproduced two unchanged baseline failures: a legacy news-fixture expectation
+after the news provider migration, and a missing `TemporaryDirectory` import in
+an existing workflow test. Both fail on the original main checkout as well.
+
+### Automatic Copilot preparation (2026-11-09)
+
+Client-only requests such as `prepare a meeting prep for Thompson Trust` no longer
+stop at an empty confirmation form. The backend resolves the next matching client
+appointment using the workspace clock, preserves explicit advisor date/time/focus
+overrides, and passes the calendar event ID to the existing B preparation service.
+The response names the matched appointment and opens the retained brief.
+
+Only unresolved information requires input. An unknown client produces a client
+selector and **Find next meeting**; overlapping appointments or several matches
+on a specified day produce appointment choices. Missing appointments expose the
+manual form with known fields retained. Calendar connection failures remain
+visible errors rather than being mistaken for missing user input. No calendar
+events are changed, and this automatic lookup does not alter A or C agent logic.
+
+The screenshot's exact Thompson Trust request is covered by the real local HTTP
+and desktop/mobile browser flow in Offline demo mode. Offline backend checks
+also verify that AI mode delegates once to the shared service, with the correct
+calendar ID, date, time and focus. These checks do not claim a new live Gemini run.
+
+### Shared saved-brief workspace (2026-11-09)
+
+All preparation entry points now persist through one saved-brief store. The
+application service captures the matching Calendar appointment and frozen Inbox
+revision before generation. Saving the brief and linking it into the calendar
+preparation index happen in one SQLite transaction. Direct Copilot delegation,
+automatic calendar preparation and manual generation therefore expose the same
+retained draft ID. Opening a ready result reads that snapshot without preparing
+it again.
+
+Copilot's **Open Meeting Brief** and client-detail preparation both enter the
+list-and-detail workspace. The old standalone page is no longer a separate route.
+The workspace includes **Saved briefs**, including manual briefs without calendar
+appointments; saving such a brief does not create a calendar event. Available
+drafts remain visible across AI/Offline mode changes, while the mode still selects
+the engine for new preparation. Local edits and review state stay keyed by brief
+ID. A changed appointment or source revision invalidates the old calendar link.
+
+Earlier unlinked drafts are recovered only when client/date/time identify one
+appointment, the evidence cutoff matches, and the appointment and linked emails
+have not changed since generation. Recovery adds an index entry without rewriting
+the original brief, review status or approval digest. Other unlinked drafts remain
+available as saved snapshots.
+
+Regression checks reproduce both original failures: a Copilot result absent from
+the calendar preparation index, and the open action bypassing the workspace. The
+fixed browser flow checks the same brief ID before and after navigation, preserved
+review state, and one generation call on desktop and mobile. Backend checks cover
+legacy recovery, source-change invalidation, standalone persistence and mode
+switches using synthetic records without provider calls.
+
+Upcoming and This week use only canonical Calendar appointments, including their
+original date, New York time and title. Standalone saved briefs are excluded from
+these schedule views and remain under Saved briefs in a separate **Not linked to
+Calendar** group. Their rows and detail headers identify them as saved briefs,
+not scheduled appointments. Switching ranges selects an item from that range;
+opening a saved draft does not leave it displayed as a phantom upcoming meeting.
 
 ## Independent evaluation
 
