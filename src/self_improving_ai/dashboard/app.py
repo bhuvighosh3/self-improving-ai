@@ -201,7 +201,7 @@ async def create_meeting_brief(req: MeetingBriefRequest):
                 try:
                     brief = await asyncio.wait_for(generate_agent_brief(req), timeout=180)
                 except APIError as primary:
-                    if primary.code != 503 or not settings.agent_model_fallback or settings.agent_model_fallback == settings.agent_model:
+                    if primary.code not in (503, 504) or not settings.agent_model_fallback or settings.agent_model_fallback == settings.agent_model:
                         raise
                     brief = await asyncio.wait_for(generate_agent_brief(req, model=settings.agent_model_fallback),timeout=180)
                     brief["workflow"]["model_fallback_from"] = settings.agent_model
@@ -216,8 +216,8 @@ async def create_meeting_brief(req: MeetingBriefRequest):
     except TimeoutError as exc:
         raise _generation_error(exc, 504, "Agent timed out; no approved brief was created.") from exc
     except APIError as exc:
-        if exc.code == 503:
-            raise _generation_error(exc, 503, "Gemini is temporarily busy. Please retry later; no approved brief was created.") from exc
+        if exc.code in (503, 504):
+            raise _generation_error(exc, exc.code, "Gemini is temporarily busy or timed out. Please retry later; no approved brief was created.") from exc
         if exc.code == 429:
             raise _generation_error(exc, 429, "Gemini quota or rate limit reached. Check your project's usage limits before retrying.") from exc
         if exc.code == 404:
@@ -443,8 +443,8 @@ async def chat(req: ChatRequest):
         response_parts = result["response_parts"]
     except Exception as exc:
         err = str(exc)
-        if "503" in err or "UNAVAILABLE" in err:
-            log.warning("Primary model unavailable, trying fallback model")
+        if any(code in err for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED")):
+            log.warning("Primary model unavailable or timed out, trying fallback model")
             try:
                 result = await run_copilot(
                     runner=_get_fallback_runner(),
@@ -459,8 +459,8 @@ async def chat(req: ChatRequest):
                 fallback_err = str(fallback_exc)
                 if "429" in fallback_err or "RESOURCE_EXHAUSTED" in fallback_err:
                     response_parts.append("Rate limit reached — please wait a moment and try again.")
-                elif "503" in fallback_err or "UNAVAILABLE" in fallback_err:
-                    response_parts.append("The AI service is temporarily busy. Please try again in a minute.")
+                elif any(code in fallback_err for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED")):
+                    response_parts.append("The AI service is temporarily busy or timed out. Please try again in a minute.")
                 else:
                     response_parts.append("Something went wrong. Please try again.")
         elif "429" in err or "RESOURCE_EXHAUSTED" in err:
