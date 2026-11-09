@@ -102,7 +102,7 @@ def test_catalog_ownership_matches_real_exported_functions_and_adk_contracts():
         assert set(properties) == set(entry["parameters"])
 
 
-def test_actual_adk_runner_executes_all_four_tools_without_network():
+def test_actual_adk_runner_executes_all_catalog_tools_without_network():
     import asyncio
     from google.adk import Agent
     from google.adk.models.base_llm import BaseLlm
@@ -113,7 +113,9 @@ def test_actual_adk_runner_executes_all_four_tools_without_network():
     calls = [("get_client_profile", {"client_id": "CLI-005"}),
              ("get_crm_notes", {"client_id": "CLI-005", "limit": 2}),
              ("search_market_news", {"query": "RMD", "max_results": 2}),
-             ("check_compliance_flags", {"client_id": "CLI-005"})]
+             ("check_compliance_flags", {"client_id": "CLI-005"}),
+             ("get_crm_context", {"client_id": "CLI-005"}),
+             ("get_crm_records", {"client_id": "CLI-005"})]
 
     class LocalToolModel(BaseLlm):
         turn: int = 0
@@ -128,7 +130,7 @@ def test_actual_adk_runner_executes_all_four_tools_without_network():
             yield LlmResponse(content=types.Content(role="model", parts=[part]))
 
     agent = Agent(name="briefing_tool_contract_test", model=LocalToolModel(model="offline-test"),
-                  instruction="Exercise the four read-only tool contracts.", tools=list(BRIEFING_TOOLS.values()))
+                  instruction="Exercise every read-only catalog tool contract.", tools=list(BRIEFING_TOOLS.values()))
     trace = []
     output, _ = asyncio.run(run_adk(agent, "Prepare the Patel meeting", {}, trace))
     assert output == {"checked": True}

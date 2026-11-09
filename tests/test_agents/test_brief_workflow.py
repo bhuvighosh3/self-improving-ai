@@ -5,6 +5,8 @@ from self_improving_ai.agents.briefing.contract import content_from_work
 from copy import deepcopy
 import json
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, patch
 
 from self_improving_ai.agents.briefing.schemas import MeetingBriefRequest

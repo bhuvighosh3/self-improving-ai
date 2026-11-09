@@ -9,7 +9,12 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
   const [reviewedAt, setReviewedAt] = useState(saved?.reviewedAt || null);
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
-  const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
+  const [quality, setQuality] = useState(() => {
+    if (saved?.checkFailed) return null;
+    if (saved && "quality" in saved) return saved.quality;
+    return saved?.edited ? null : saved?.brief.workflow?.quality || null;
+  });
+  const [checkFailed, setCheckFailed] = useState(Boolean(saved?.checkFailed));
   const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,9 +36,9 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
 
   useEffect(() => {
     if (!brief) return;
-    const stored = saveMeetingDraft({ brief, reviewedAt, revision, edited, serverRevision });
+    const stored = saveMeetingDraft({ brief, reviewedAt, revision, edited, serverRevision, checkFailed, quality });
     setNotice(stored ? "" : "Browser storage is unavailable. Keep this page open or export your brief before leaving.");
-  }, [brief, reviewedAt, revision, edited, serverRevision]);
+  }, [brief, reviewedAt, revision, edited, serverRevision, checkFailed, quality]);
 
   useEffect(() => {
     const afterPrint = () => document.body.classList.remove("printing-meeting");
@@ -50,6 +55,7 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
     }) }));
     setReviewedAt(null);
     setQuality(null);
+    setCheckFailed(false);
     setEdited(true);
     setRevision(current => current + 1);
   }
@@ -72,9 +78,10 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
       });
       const result = await response.json();
       if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Review failed.");
+      setCheckFailed(false);
       if (approve) { setReviewedAt(result.reviewed_at); setServerRevision(result.revision); }
       else setQuality(result);
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err.message); setQuality(null); setCheckFailed(true); }
     finally { setBusy(false); }
   }
 
@@ -135,7 +142,7 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
           <div className="meeting-actions">
             <button className="meeting-btn" onClick={() => setEditing(!editing)} disabled={busy}>{editing ? "Done editing" : "Edit draft"}</button>
             <button className="meeting-btn" title="Check references and content quality. This does not regenerate the brief." onClick={() => checkOrReview(false)} disabled={busy || stale || editing || hasEmptyFields}>Check draft</button>
-            <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields}>Mark as reviewed</button>
+            <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields || checkFailed || quality?.verdict === "revise"}>Mark as reviewed</button>
             <button className="meeting-btn" onClick={printBrief} disabled={busy || stale || editing || hasEmptyFields}>Print</button>
             <button className="meeting-btn primary" onClick={downloadPdf} disabled={busy || exporting || stale || editing || hasEmptyFields}>{exporting ? "Exporting…" : "Download PDF"}</button>
           </div>
@@ -143,7 +150,7 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
         {stale && <p className="meeting-message no-meeting-print" role="status">Meeting inputs changed. Generate a new brief to review or export these inputs. The previous draft is shown below.</p>}
         {editing && <p className="meeting-message no-meeting-print">Edits are saved in this browser and reset the review status. References stay attached to their original records; verify that they support your edited text.</p>}
         {brief.workflow && <details className="card meeting-process no-meeting-print" style={{ padding: 16, marginBottom: 16 }}>
-          <summary>Preparation process · {brief.workflow.work.change_status.replaceAll("_", " ")} · {quality ? `Check: ${quality.verdict}` : "Edited: recheck required"}</summary>
+          <summary>Preparation process · {brief.workflow.work.change_status.replaceAll("_", " ")} · {checkFailed ? "Check unavailable · retry required" : quality ? `Check: ${quality.verdict}` : "Edited: recheck required"}</summary>
           <p>{brief.mode === "agent" ? "Gemini agent with an independent model reviewer." : "Deterministic demonstration; not model-reviewed."} Review records are local demo records, without authenticated advisor identity.</p>
           <p>{brief.workflow.work.context_summary}</p>
           <ul>{Object.entries(brief.workflow.evidence.coverage).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")}: {value}</li>)}</ul>
