@@ -506,8 +506,6 @@ export default function App(){
     {id:"copilot",ic:ic.copilot,label:"Copilot"},
     {id:"meeting",ic:ic.inbox,label:"Meeting Prep"},
     {id:"portfolio",ic:ic.wrench,label:"Portfolio Analysis"},
-    {id:"news",ic:ic.news,label:"News"},
-    {id:"agents",ic:ic.bot,label:"Agents"},
   ];
 
   return(
