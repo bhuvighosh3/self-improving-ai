@@ -492,12 +492,9 @@ _FRONTEND_DIR = Path(__file__).resolve().parents[3] / "dashboard" / "dist"
 if _FRONTEND_DIR.is_dir():
     app.mount("/assets", StaticFiles(directory=_FRONTEND_DIR / "assets"), name="static")
 
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        """Serve the React SPA for any non-API route."""
-        file = _FRONTEND_DIR / full_path
-        if file.is_file():
-            return FileResponse(file)
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the dashboard entry page."""
         return FileResponse(_FRONTEND_DIR / "index.html")
 
 
