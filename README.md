@@ -56,11 +56,9 @@ npx playwright test
 
 The app is deployed on **GCP Cloud Run** with continuous deployment from the `main` branch. Every push triggers a build via the multi-stage Dockerfile (Node frontend + Python backend).
 
-**Live URL:** `https://self-improving-ai-git-470264573612.europe-west1.run.app`
+**Live URL:** [self-improving-ai-git-470264573612.europe-west1.run.app](https://self-improving-ai-git-470264573612.europe-west1.run.app)
 
 **Observability:** All copilot requests are traced via **GCP Cloud Trace**. Each trace captures the full request lifecycle — query text, tool calls with arguments and results, completion checker verdicts, loop count, timing, and the final response. View traces at [Cloud Trace Explorer](https://console.cloud.google.com/traces/list?project=self-improving-ai-513915).
-
-**GCP Project:** `self-improving-ai-513915`
 
 ## Architecture
 
