@@ -409,23 +409,30 @@ function humanAgent(id){return({request_orchestrator:"Orchestrator",portfolio_es
 function ts(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
 function md(t){
   if(!t)return"";
-  const lines=t
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g,"<em>$1</em>")
-    .split("\n");
-  let html="",inList=false;
+  const inline=text=>text.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>");
+  const lines=t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r\n?/g,"\n").split("\n");
+  let html="",listTag="",paragraph=[];
+  const closeList=()=>{if(listTag){html+=`</${listTag}>`;listTag="";}};
+  const closeParagraph=()=>{if(paragraph.length){html+=`<p>${paragraph.map(inline).join("<br/>")}</p>`;paragraph=[];}};
   for(const line of lines){
-    if(line.startsWith("- ")){
-      if(!inList)html+="<ul>";
-      inList=true;
-      html+=`<li>${line.slice(2)}</li>`;
+    const heading=line.match(/^ {0,3}(#{1,6})\s+(.+?)(?:\s+#+)?\s*$/);
+    const divider=/^ {0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line);
+    const item=line.match(/^ {0,3}(?:([-+*])|\d+[.)])\s+(.+)$/);
+    if(!line.trim()||heading||divider){
+      closeParagraph();closeList();
+      if(heading)html+=`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`;
+      else if(divider)html+="<hr/>";
+    }else if(item){
+      closeParagraph();
+      const nextTag=item[1]?"ul":"ol";
+      if(listTag!==nextTag){closeList();html+=`<${nextTag}>`;listTag=nextTag;}
+      html+=`<li>${inline(item[2])}</li>`;
     }else{
-      if(inList){html+="</ul>";inList=false}
-      html+=`${line}<br/>`;
+      closeList();paragraph.push(line);
     }
   }
-  return html+(inList?"</ul>":"");
+  closeParagraph();closeList();
+  return html;
 }
 
 /* ════ App ════ */
