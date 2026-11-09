@@ -488,7 +488,9 @@ async def chat(req: ChatRequest):
     }
 
 
-_FRONTEND_DIR = Path(__file__).resolve().parents[3] / "dashboard" / "dist"
+_FRONTEND_DIR = Path.cwd() / "dashboard" / "dist"
+if not _FRONTEND_DIR.is_dir():
+    _FRONTEND_DIR = Path(__file__).resolve().parents[3] / "dashboard" / "dist"
 if _FRONTEND_DIR.is_dir():
     app.mount("/assets", StaticFiles(directory=_FRONTEND_DIR / "assets"), name="static")
 
