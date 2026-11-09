@@ -523,9 +523,7 @@ export default function App(){
           <div className="nav-group-label">Data</div>
           {menu.slice(2,6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
           <div className="nav-group-label">Advisor</div>
-          {menu.slice(6,9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
-          <div className="nav-group-label">System</div>
-          {menu.slice(9).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
+          {menu.slice(6).map(m=><button key={m.id} className={`nav-btn ${page===m.id?"active":""}`} onClick={()=>nav(m.id)}><Ic d={m.ic}/>{m.label}</button>)}
         </nav>
         <div className="sidebar-bottom">
           <div className={`pulse-dot ${health?.status==="ok"?"":"off"}`}/>
