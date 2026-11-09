@@ -39,7 +39,8 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
   const requestRef = useRef(null);
-  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus);
+  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus
+    || Boolean(calendarEvent?.version && brief.calendar_event?.version && calendarEvent.version !== brief.calendar_event.version));
 
   useEffect(() => {
     if (selectedClient) {
@@ -224,7 +225,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
         </details>}
 
         <div className="meeting-workspace">
-          <article id="meeting-full-brief" className="card meeting-sheet" aria-label="Meeting briefing">
+          <article id="meeting-full-brief" className="card meeting-sheet" aria-label="Meeting briefing" data-brief-id={brief.id}>
             <header className="meeting-sheet-header">
               <div className="meeting-sheet-title"><h2>{brief.client_name}</h2><span className="chip chip-violet">Meeting Brief</span></div>
               <p>{brief.contact} · {brief.meeting_date} at {brief.meeting_time} · New York</p>

@@ -146,6 +146,37 @@ and desktop/mobile browser flow in Offline demo mode. Offline backend checks
 also verify that AI mode delegates once to the shared service, with the correct
 calendar ID, date, time and focus. These checks do not claim a new live Gemini run.
 
+### Shared saved-brief workspace (2026-11-09)
+
+All preparation entry points now persist through one saved-brief store. The
+application service captures the matching Calendar appointment and frozen Inbox
+revision before generation. Saving the brief and linking it into the calendar
+preparation index happen in one SQLite transaction. Direct Copilot delegation,
+automatic calendar preparation and manual generation therefore expose the same
+retained draft ID. Opening a ready result reads that snapshot without preparing
+it again.
+
+Copilot's **Open Meeting Brief** and client-detail preparation both enter the
+list-and-detail workspace. The old standalone page is no longer a separate route.
+The workspace includes **Saved briefs**, including manual briefs without calendar
+appointments; saving such a brief does not create a calendar event. Available
+drafts remain visible across AI/Offline mode changes, while the mode still selects
+the engine for new preparation. Local edits and review state stay keyed by brief
+ID. A changed appointment or source revision invalidates the old calendar link.
+
+Earlier unlinked drafts are recovered only when client/date/time identify one
+appointment, the evidence cutoff matches, and the appointment and linked emails
+have not changed since generation. Recovery adds an index entry without rewriting
+the original brief, review status or approval digest. Other unlinked drafts remain
+available as saved snapshots.
+
+Regression checks reproduce both original failures: a Copilot result absent from
+the calendar preparation index, and the open action bypassing the workspace. The
+fixed browser flow checks the same brief ID before and after navigation, preserved
+review state, and one generation call on desktop and mobile. Backend checks cover
+legacy recovery, source-change invalidation, standalone persistence and mode
+switches using synthetic records without provider calls.
+
 ## Independent evaluation
 
 Keep a reference file outside agent-visible data, for example:

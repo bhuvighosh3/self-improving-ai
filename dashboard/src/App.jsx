@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import MeetingPrep from "./MeetingPrep";
 import CopilotMeetingForm from "./CopilotMeetingForm";
 import PortfolioPanel from "./PortfolioPanel";
 import CalendarPage from "./CalendarPage";
@@ -7,6 +6,7 @@ import EmailPage from "./EmailPage";
 import MeetingPrepWorkspace from "./MeetingPrepWorkspace";
 import MeetingReadyDialog from "./MeetingReadyDialog";
 import { CalendarSymbol } from "./calendarFormat";
+import { eventJob } from "./calendarWorkflow";
 
 const COLORS = ["#3563e9","#7c3aed","#16a34a","#ca8a04","#dc2626","#db2777","#0284c7","#ea580c"];
 const TICKER_C = {VTSAX:"#3563e9",VTIAX:"#7c3aed",BND:"#16a34a",AAPL:"#dc2626",QQQ:"#ca8a04",ARKK:"#db2777",TSLA:"#0284c7",MUB:"#ea580c",VYM:"#6d28d9",VTIP:"#0d9488"};
@@ -462,7 +462,7 @@ export default function App(){
   useEffect(()=>{
     const controller=new AbortController();
     const load=()=>fetch("/api/meeting-preparations",{signal:controller.signal}).then(r=>r.ok?r.json():null)
-      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.preparations.filter(job=>job.status==="ready"&&job.mode===state.mode&&state.events.some(event=>event.id===job.event_id&&event.version===job.version&&new Date(event.starts_at)>new Date(state.now))).sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
+      .then(state=>{if(state&&!controller.signal.aborted){setCalendarEvents(state.events);setReadyPreparations(state.events.filter(event=>new Date(event.starts_at)>new Date(state.now)).map(event=>eventJob(state,event)).filter(job=>job?.status==="ready").sort((a,b)=>new Date(state.events.find(event=>event.id===a.event_id).starts_at)-new Date(state.events.find(event=>event.id===b.event_id).starts_at)));}}).catch(()=>{});
     load(); const timer=setInterval(load,1500);
     return()=>{controller.abort();clearInterval(timer);};
   },[]);
@@ -546,7 +546,7 @@ export default function App(){
         </div>
         <div className={page==="copilot"?"page-flush":"page"}>
           {page==="copilot"&&<Copilot clients={clients} msgs={chatMessages} setMsgs={setChatMessages} busy={chatBusy} setBusy={setChatBusy} onOpenBrief={openMeetingBrief}/>}
-          {page==="meeting"&&((incomingBrief||meetingClient)?<MeetingPrep key={incomingBrief?.id||"meeting-default"} clients={clients} selectedClient={meetingClient} incomingBrief={incomingBrief}/>:<MeetingPrepWorkspace key={calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>)}
+          {page==="meeting"&&<MeetingPrepWorkspace key={incomingBrief?.id||meetingClient?.client_id||calendarMeeting?.id||"meeting-hub"} clients={clients} initialEvent={calendarMeeting} incomingBrief={incomingBrief} selectedClient={meetingClient} onBackToCalendar={event=>{if(event)setCalendarMeeting(event);setPage("calendar")}} onOpened={markPreparationSeen}/>}
           {page==="calendar"&&<CalendarPage clients={clients} onEditing={()=>{autoNoticeShown.current=true;}} onOpenEvent={openCalendarMeeting} onReplay={setActivePreparation} preferredDate={calendarMeeting?.starts_at} onOpenPreparations={()=>nav("meeting")}/>}
           {page==="email"&&<EmailPage clients={clients}/> }
           {page==="dashboard"&&<Dashboard stats={stats} clients={clients} requests={requests} news={news}/>}

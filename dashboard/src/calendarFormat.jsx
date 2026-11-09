@@ -22,6 +22,7 @@ export function timeRange(event) {
   const format = value => new Intl.DateTimeFormat("en-US", {
     timeZone: CALENDAR_ZONE, hour: "numeric", minute: "2-digit",
   }).format(new Date(value));
+  if (event.kind === "saved_brief") return format(event.starts_at);
   return `${format(event.starts_at)} – ${format(new Date(event.starts_at).getTime() + (event.duration_minutes || 60) * 60000)}`;
 }
 export function meetingLabel(event) {

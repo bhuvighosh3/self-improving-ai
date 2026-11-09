@@ -15,6 +15,7 @@ from self_improving_ai.tools.briefing.workspace_sources import operational_scope
 from self_improving_ai.tools.briefing.context import load_context, search_sources, read_source
 from self_improving_ai.agents.briefing.schemas import MeetingBriefRequest
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
+from self_improving_ai.agents.briefing.store import DraftStore
 
 EVENT = {"title":"Home funding confirmation", "client_id":"CLI-004", "date":"2026-11-12",
          "start_time":"16:00", "end_time":"16:45", "type":"goal_review", "notes":"Confirm current purchase timing"}
@@ -57,6 +58,58 @@ def test_calendar_crud_and_preparation_use_one_event_record(workspace):
     assert http.get(f"/api/meeting-preparations/{queued['id']}/brief").status_code == 409
     assert http.delete(f"/api/calendar/events/{event['id']}").status_code == 204
     assert http.post(f"/api/meeting-preparations/events/{event['id']}").status_code == 404
+
+
+def test_copilot_saved_brief_is_visible_in_meeting_workspace_without_regeneration(workspace):
+    http, monitor = workspace
+    before = http.get("/api/calendar/events?year=2026&month=11").json()
+    response = http.post("/api/chat", json={"message": "prepare a meeting prep for Thompson Trust"})
+    assert response.status_code == 200, response.text
+    brief = response.json()["brief"]
+    state = monitor.state()
+    jobs = [job for job in state["preparations"] if job["event_id"] == "EVT-e5f6a7b8" and job["status"] == "ready"]
+    assert len(jobs) == 1, "The calendar preparation index must include a brief generated in Copilot"
+    assert jobs[0]["brief_id"] == brief["id"]
+    with patch("self_improving_ai.dashboard.app.generate_meeting_brief") as generate:
+        reopened = http.get(f"/api/meeting-preparations/{jobs[0]['id']}/brief")
+        assert reopened.status_code == 200, reopened.text
+        assert reopened.json()["id"] == brief["id"]
+        generate.assert_not_called()
+    assert http.get("/api/calendar/events?year=2026&month=11").json() == before
+    switched = http.post("/api/meeting-preparations/simulation", json={"action": "pause", "mode": "agent"}).json()
+    assert any(job["brief_id"] == brief["id"] and job["status"] == "ready" for job in switched["preparations"])
+
+
+def test_unlinked_earlier_brief_is_recovered_without_changing_reviewed_content(workspace):
+    http, monitor = workspace
+    request = MeetingBriefRequest(client_id="CLI-002", meeting_date="2026-11-14", meeting_time="10:00", focus="Bond discussion")
+    with operational_scope(request.client_id, "2026-11-11"):
+        brief = generate_meeting_brief(request)
+    store = DraftStore(settings.db_path)
+    store.create(brief)
+    before = store.get(brief["id"])
+    store.review(brief, 1, 1, "approve", "Reviewed before calendar linking")
+    state = monitor.state()
+    job = next(job for job in state["preparations"] if job["brief_id"] == brief["id"])
+    assert job["event_id"] == "EVT-e5f6a7b8" and job["status"] == "ready"
+    assert store.get(brief["id"])["digest"] == before["digest"]
+    assert store.get(brief["id"])["status"] == "approve"
+    assert http.get(f"/api/meeting-preparations/{job['id']}/brief").json() == brief
+    http.put("/api/calendar/events/EVT-e5f6a7b8", json={"notes": "A changed meeting topic"})
+    assert http.get(f"/api/meeting-preparations/{job['id']}/brief").status_code == 409
+
+
+def test_manual_brief_without_calendar_event_is_listed_without_creating_an_appointment(workspace):
+    http, monitor = workspace
+    before = http.get("/api/calendar/events?year=2026&month=11").json()
+    response = http.post("/api/briefings", json={"client_id": "CLI-002", "meeting_date": "2026-11-16",
+        "meeting_time": "13:15", "focus": "Discuss new client questions", "mode": "simulation"})
+    assert response.status_code == 200, response.text
+    brief = response.json()
+    row = next(event for event in monitor.state()["saved_meetings"] if event["brief_id"] == brief["id"])
+    assert row["kind"] == "saved_brief"
+    assert http.get(f"/api/briefings/{brief['id']}").json()["id"] == brief["id"]
+    assert http.get("/api/calendar/events?year=2026&month=11").json() == before
 
 
 @pytest.mark.parametrize("change", [{"date":"2026-02-30"},{"start_time":"27:00"},{"end_time":"15:00"},{"client_id":"CLI-999"}])

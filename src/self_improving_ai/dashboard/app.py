@@ -280,6 +280,14 @@ async def get_approved_brief(brief_id: str):
     return result
 
 
+@app.get("/api/briefings/{brief_id}")
+async def get_saved_meeting_brief(brief_id: str):
+    try:
+        return await asyncio.to_thread(lambda: DraftStore().get(brief_id)["brief"])
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.post("/api/briefings/export")
 async def export_meeting_brief(req: BriefExportRequest):
     try:

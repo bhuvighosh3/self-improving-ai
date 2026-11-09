@@ -5,23 +5,36 @@ import MeetingPrep from "./MeetingPrep";
 import { addDays, CalendarSymbol, dateKey, dayLabel, meetingLabel, weekStart } from "./calendarFormat";
 import { clientMeetings, preparationState, relativeDay } from "./calendarWorkflow";
 
-export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCalendar, onOpened }) {
+export default function MeetingPrepWorkspace({ clients, initialEvent, incomingBrief, selectedClient, onBackToCalendar, onOpened }) {
   const { data, error } = useCalendar();
-  const [selection, setSelection] = useState(initialEvent?.id || null);
-  const [showDetail, setShowDetail] = useState(Boolean(initialEvent) || window.matchMedia("(min-width: 769px)").matches);
-  const [manualOpen, setManualOpen] = useState(false), [manualStarted, setManualStarted] = useState(false);
+  const [selection, setSelection] = useState(incomingBrief?.calendar_event?.id || initialEvent?.id || null);
+  const [showDetail, setShowDetail] = useState(Boolean(initialEvent || incomingBrief || selectedClient) || window.matchMedia("(min-width: 769px)").matches);
+  const [manualOpen, setManualOpen] = useState(Boolean(selectedClient)), [manualStarted, setManualStarted] = useState(Boolean(selectedClient));
   const manualHeading = useRef(null);
+  const selectedRow = useRef(null), opened = useRef(onOpened);
+  opened.current = onOpened;
   useEffect(() => {
     if (manualOpen && showDetail) manualHeading.current?.focus();
   }, [manualOpen, showDetail]);
-  const [range, setRange] = useState("upcoming"), [search, setSearch] = useState("");
+  const [range, setRange] = useState(incomingBrief ? "saved" : "upcoming"), [search, setSearch] = useState("");
+  const incomingJobId = data?.preparations.find(job => job.brief_id === incomingBrief?.id)?.id;
+  useEffect(() => { if (incomingJobId) opened.current?.(incomingJobId); }, [incomingJobId]);
+  useEffect(() => {
+    if (!manualOpen && (window.matchMedia("(min-width: 769px)").matches || !showDetail)) {
+      selectedRow.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [Boolean(data), selection, range, manualOpen, showDetail]);
   if (!data) return <section className="prep-hub"><h2>Meeting Prep</h2>{error ? <p className="meeting-error" role="alert">{error}</p> : <div className="prep-loading" role="status">Loading your meeting briefs…</div>}</section>;
-  const all = clientMeetings(data), monday = weekStart(data.now);
+  const all = clientMeetings(data, true), monday = weekStart(data.now);
+  const incomingEvent = incomingBrief && (all.find(event => event.id === incomingBrief.calendar_event?.id)
+    || all.find(event => event.brief_id === incomingBrief.id)
+    || all.find(event => event.client_id === incomingBrief.client_id && dateKey(event.starts_at) === incomingBrief.meeting_date && event.start_time?.slice(0,5) === incomingBrief.meeting_time?.slice(0,5)));
   const upcoming = all.filter(event => new Date(event.starts_at) > new Date(data.now));
-  const visible = all.filter(event => range === "upcoming" ? new Date(event.starts_at) > new Date(data.now)
-    : dateKey(event.starts_at) >= monday && dateKey(event.starts_at) < addDays(monday, 5))
+  const visible = all.filter(event => range === "saved" ? preparationState(data, event).job?.status === "ready"
+    : range === "upcoming" ? new Date(event.starts_at) > new Date(data.now)
+    : dateKey(event.starts_at) >= monday && dateKey(event.starts_at) < addDays(monday, 7))
     .filter(event => `${event.client_name} ${event.title}`.toLowerCase().includes(search.toLowerCase()));
-  const selected = all.find(event => event.id === selection) || upcoming.find(event => preparationState(data, event).tone === "ready") || upcoming[0];
+  const selected = all.find(event => event.id === selection) || incomingEvent || upcoming.find(event => preparationState(data, event).tone === "ready") || upcoming[0] || all[0];
   const ready = upcoming.filter(event => preparationState(data, event).tone === "ready").length;
   const groups = [...new Set(visible.map(event => dateKey(event.starts_at)))];
   function select(event) { setManualOpen(false); setSelection(event.id); setShowDetail(true); }
@@ -33,11 +46,11 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCa
     <div className="prep-hub-layout">
       <aside className="prep-meeting-list" aria-label="Client meetings">
         <div className="prep-list-tools"><h3>Your meetings</h3><label className="prep-search"><CalendarSymbol name="search" size={16}/><input aria-label="Search client meetings" placeholder="Search client or meeting" value={search} onChange={event => setSearch(event.target.value)}/></label>
-          <div className="prep-list-tabs" aria-label="Meeting range"><button aria-pressed={range === "upcoming"} onClick={() => setRange("upcoming")}>Upcoming</button><button aria-pressed={range === "week"} onClick={() => setRange("week")}>This week</button></div>
+          <div className="prep-list-tabs" aria-label="Meeting range"><button aria-pressed={range === "upcoming"} onClick={() => setRange("upcoming")}>Upcoming</button><button aria-pressed={range === "week"} onClick={() => setRange("week")}>This week</button><button aria-pressed={range === "saved"} onClick={() => setRange("saved")}>Saved briefs</button></div>
         </div>
         <div className="prep-list-scroll">{groups.map(day => <section key={day} className="prep-date-group"><h4>{relativeDay({ starts_at: `${day}T12:00:00-05:00` }, data.now) || dayLabel(day, { weekday: "short", month: "short", day: "numeric" })}</h4>{visible.filter(event => dateKey(event.starts_at) === day).map(event => {
           const state = preparationState(data, event);
-          return <button className={`prep-meeting-row ${!manualOpen && selected?.id === event.id ? "is-selected" : ""}`} key={event.id} aria-label={`Open preparation for ${event.client_name} on ${dateKey(event.starts_at)}`} aria-pressed={!manualOpen && selected?.id === event.id} onClick={() => select(event)}>
+          return <button ref={!manualOpen && selected?.id === event.id ? selectedRow : null} className={`prep-meeting-row ${!manualOpen && selected?.id === event.id ? "is-selected" : ""}`} key={event.id} aria-label={`Open preparation for ${event.client_name} on ${dateKey(event.starts_at)}`} aria-pressed={!manualOpen && selected?.id === event.id} onClick={() => select(event)}>
             <span className="prep-row-time">{new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(new Date(event.starts_at))}</span><strong>{event.client_name}</strong><span className="prep-row-topic">{event.title}</span><span className={`prep-state state-${state.tone}`}>{state.label}</span><CalendarSymbol name="next" size={14}/>
           </button>;
         })}</section>)}{!visible.length && <div className="prep-no-results"><h4>No matching meetings</h4><p>{search ? "Try another client or clear your search." : "Choose This week to see recent client meetings, or return to Calendar."}</p>{search && <button className="meeting-btn" onClick={() => setSearch("")}>Clear search</button>}</div>}</div>
@@ -47,10 +60,12 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCa
         <button className="calendar-back prep-mobile-back" onClick={() => setShowDetail(false)}><CalendarSymbol name="previous" size={14}/>All meetings</button>
         {manualStarted && <section className="prep-manual-panel" aria-label="Prepare another meeting" hidden={!manualOpen || !showDetail}>
           <header className="prep-manual-heading"><h3 ref={manualHeading} tabIndex={-1}>Prepare another meeting</h3><button className="meeting-btn" onClick={cancelManual}>Cancel</button></header>
-          <MeetingPrep clients={clients} freshDraft embedded defaultDate={addDays(dateKey(data.now), 1)}/>
+          <MeetingPrep clients={clients} selectedClient={selectedClient} freshDraft embedded defaultDate={addDays(dateKey(data.now), 1)}/>
         </section>}
         <div key={selected?.id || "empty"} hidden={manualOpen}>
-        {selected && showDetail && !manualOpen ? <PreparationDetail autoOpen={initialEvent?.id === selected.id} event={selected} data={data} clients={clients} onBackToCalendar={() => onBackToCalendar(selected)} onOpened={onOpened}/>
+        {selected && showDetail && !manualOpen ? incomingBrief && incomingEvent?.id === selected.id
+          ? <MeetingPrep key={incomingBrief.id} clients={clients} incomingBrief={incomingBrief} calendarEvent={selected} onBackToCalendar={() => onBackToCalendar(selected)}/>
+          : <PreparationDetail autoOpen={initialEvent?.id === selected.id} event={selected} data={data} clients={clients} onBackToCalendar={() => onBackToCalendar(selected)} onOpened={onOpened}/>
           : <div className="prep-scheduled"><CalendarSymbol name="calendar" size={30}/><h3>Your next meeting will appear here</h3><p>Client meetings on Calendar receive a brief 24 hours before they start.</p><button className="meeting-btn" onClick={() => onBackToCalendar(selected)}>View calendar</button></div>}
         </div>
       </div>
@@ -61,6 +76,6 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, onBackToCa
 function PreparationDetail({ event, data, clients, onBackToCalendar, onOpened, autoOpen }) {
   const [prepareNow, setPrepareNow] = useState(false);
   const state = preparationState(data, event);
-  if (state.job || prepareNow || autoOpen) return <CalendarMeeting key={`${event.id}:${event.version}:${data.mode}`} event={event} clients={clients} onBack={onBackToCalendar} onOpened={onOpened}/>;
+  if (state.job || prepareNow || autoOpen) return <CalendarMeeting key={`${event.id}:${event.version}`} event={event} preparation={state.job} clients={clients} onBack={onBackToCalendar} onOpened={onOpened}/>;
   return <section className="prep-scheduled" aria-label="Scheduled preparation"><CalendarSymbol name="document" size={30}/><span className="prep-state state-scheduled">{state.label}</span><h3>{event.client_name}</h3><h4>{event.title}</h4><p>{meetingLabel(event)}</p><p>{event.focus}</p><div className="prep-scheduled-note">{state.tone === "past" ? "This meeting has passed. You can still prepare a brief from the available client records." : `Your brief will be prepared automatically 24 hours before this meeting${data.enabled ? "." : " when automatic prep resumes."}`}</div><button className="meeting-btn primary" onClick={() => setPrepareNow(true)}>Prepare {state.tone === "past" ? "brief" : "early"}<CalendarSymbol name="next" size={14}/></button>{data.mode === "agent" && <p className="meeting-muted">Uses the configured Gemini API quota.</p>}</section>;
 }

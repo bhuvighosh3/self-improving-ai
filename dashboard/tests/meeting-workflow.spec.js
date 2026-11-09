@@ -82,21 +82,36 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     else await page.getByRole("button", { name: "Copilot", exact: true }).click();
     await page.locator(".co-textarea").fill(
       "prepare a meeting prep for Thompson Trust");
+    const completed = page.waitForResponse(response => response.url().endsWith("/api/chat") && response.request().method() === "POST");
     await page.locator(".co-send").click();
+    const briefId = (await (await completed).json()).brief.id;
     const form = page.locator(".co-meeting-form");
     await expect(page.getByRole("button", { name: "Open Meeting Brief", exact: true })).toBeVisible();
     await expect(form).toHaveCount(0);
     await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
     await page.screenshot({ path: testInfo.outputPath("automatic-preparation.png"), fullPage: true });
     await page.getByRole("button", { name: "Open Meeting Brief", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Meeting preparation workspace" })).toBeVisible();
+    await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", briefId);
     await expect(page.getByLabel("Meeting type")).toHaveCount(0);
-    await expect(page.getByLabel("Meeting date", { exact: true })).toHaveValue("2026-11-14");
-    await expect(page.getByLabel("Time · New York", { exact: true })).toHaveValue("10:00");
-    await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveValue("Rate impact analysis on bond portfolio");
+    await expect(page.getByLabel("Meeting date", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Meeting at a glance" })).toContainText("Rate impact analysis on bond portfolio");
+    await page.screenshot({ path: testInfo.outputPath("unified-meeting-prep.png"), fullPage: true });
     await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("Check: pass");
     await page.getByRole("button", { name: "Check draft", exact: true }).click();
     await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
     await expect(page.locator(".meeting-toolbar")).toContainText("Reviewed");
+    if (viewport.width < 768) {
+      await page.getByLabel("Navigate to page").selectOption("email");
+      await page.getByLabel("Navigate to page").selectOption("meeting");
+    } else {
+      await page.getByRole("button", { name: "Inbox", exact: true }).first().click();
+      await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
+    }
+    const row = page.getByRole("button", { name: "Open preparation for Thompson Trust on 2026-11-14", exact: true });
+    await expect(row).toContainText("Reviewed");
+    await row.click();
+    await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", briefId);
     expect(generations).toHaveLength(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });

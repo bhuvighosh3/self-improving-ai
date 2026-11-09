@@ -86,7 +86,9 @@ class MeetingPreparationMonitor:
                 and item.get("created_at",item["date"])[:10] <= min(cutoff, record["date"])]
             revision = hashlib.sha256(json.dumps(sorted((item["id"],content_version(item)) for item in related)).encode()).hexdigest()[:20]
             try:
-                events.append(normalize_event(record,self.client_names,revision))
+                event = normalize_event(record,self.client_names,revision)
+                event["context_updated_at"] = max([record.get("updated_at", "")] + [item.get("updated_at", "") for item in related])
+                events.append(event)
             except (ValueError,KeyError):
                 continue
         return sorted(events,key=lambda event:event["starts_at"])
@@ -103,11 +105,68 @@ class MeetingPreparationMonitor:
             rows = db.execute("SELECT id,event_id,version,mode,status,brief_id,error,run_id FROM calendar_preparations "
                               "WHERE mode!='agent' OR pipeline_version=?", (agent_pipeline(),)).fetchall()
         events = self.events_at(state["now"])
+        store = DraftStore(self.path)
+        saved = store.summaries()
+        indexed = {row[5] for row in rows if row[4] == "ready"}
+        claimed = {(row[1], row[2], row[3]) for row in rows if row[4] == "ready"}
+        legacy_slots = set()
+        recovered = False
+        for brief in saved:
+            if brief["id"] in indexed or brief.get("calendar_event"):
+                continue
+            slot = (brief["client_id"], brief["meeting_date"], brief["meeting_time"], brief["mode"])
+            if slot in legacy_slots:
+                continue
+            legacy_slots.add(slot)
+            matches = [event for event in events if event["client_id"] == brief["client_id"]
+                       and event["date"] == brief["meeting_date"] and event["start_time"][:5] == brief["meeting_time"][:5]]
+            if len(matches) != 1 or not brief.get("generated_at"):
+                continue
+            event = matches[0]
+            key = (event["id"], event["version"], brief["mode"])
+            if key in claimed:
+                continue
+            updated = event.get("context_updated_at")
+            if not updated or datetime.fromisoformat(brief["generated_at"]) < datetime.fromisoformat(updated):
+                continue
+            if brief.get("data_as_of") != min(state["now"][:10], event["date"]):
+                continue
+            # Recover earlier saved drafts only while the appointment and mail
+            # are unchanged since generation. Never rewrite reviewed content.
+            store.link_calendar({**brief, "calendar_event": event})
+            indexed.add(brief["id"])
+            claimed.add(key)
+            recovered = True
+        if recovered:
+            with self.db() as db:
+                rows = db.execute("SELECT id,event_id,version,mode,status,brief_id,error,run_id FROM calendar_preparations "
+                                  "WHERE mode!='agent' OR pipeline_version=?", (agent_pipeline(),)).fetchall()
         current = {(event["id"],str(event["version"])) for event in events}
+        linked = {row[5] for row in rows if row[4] == "ready"}
+        linked_slots = {(brief["client_id"], brief["meeting_date"], brief["meeting_time"]) for brief in saved if brief["id"] in linked}
+        saved_meetings = []
+        saved_slots = set()
+        for brief in saved:
+            if brief["id"] in linked or brief.get("calendar_event"):
+                continue
+            slot = (brief["client_id"], brief["meeting_date"], brief["meeting_time"])
+            if slot in linked_slots or slot in saved_slots:
+                continue
+            saved_slots.add(slot)
+            start = datetime.fromisoformat(brief["meeting_date"] + "T" + brief["meeting_time"]).replace(tzinfo=NY)
+            saved_meetings.append({"id": "saved:" + brief["id"], "version": brief["id"], "brief_id": brief["id"],
+                "kind": "saved_brief", "prep_required": True, "client_id": brief["client_id"],
+                "client_name": brief["client_name"], "title": brief["focus"], "focus": brief["focus"],
+                "starts_at": start.isoformat(), "date": brief["meeting_date"], "start_time": brief["meeting_time"],
+                "mode": brief["mode"], "review_status": brief["review_status"]})
         state.update(lookahead_hours=24, processing=self.processing, timezone="America/New_York",
-                     storage=settings.workspace_store, events=events, preparations=[dict(zip(
+                     storage=settings.workspace_store, events=events, saved_meetings=saved_meetings, preparations=[dict(zip(
                          ("id", "event_id", "version", "mode", "status", "brief_id", "error", "run_id"), row)) for row in rows
                          if (row[1],str(row[2])) in current])
+        by_id = {brief["id"]: brief for brief in saved}
+        for job in state["preparations"]:
+            summary = by_id.get(job["brief_id"], {})
+            job.update(generated_at=summary.get("generated_at"), review_status=summary.get("review_status"))
         return state
 
     async def command(self, command: SimulationCommand):
