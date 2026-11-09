@@ -1,5 +1,18 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  // Exercise browser workflows without consuming provider quota.
+  await page.route("**/api/briefings", async route => {
+    const payload = route.request().postDataJSON();
+    await route.continue({ postData: JSON.stringify({ ...payload, mode: "simulation" }) });
+  });
+  await page.route("**/api/chat", async route => {
+    const payload = route.request().postDataJSON();
+    await route.continue({ postData: JSON.stringify(payload.meeting
+      ? { ...payload, meeting: { ...payload.meeting, mode: "simulation" } } : payload) });
+  });
+});
+
 test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
@@ -23,7 +36,7 @@ test("meeting workflow exposes evidence coverage and persists local demo review"
   await expect(process).toContainText("recheck required");
 });
 
-test("limited historical coverage retains routine review and agent mode is explicit", async ({ page }) => {
+test("limited historical coverage retains routine review and focus edits invalidate the draft", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
   await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
@@ -32,7 +45,7 @@ test("limited historical coverage retains routine review and agent mode is expli
   await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
   await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("insufficient information");
   await expect(page.getByRole("heading", { name: "Routine meeting review" })).toBeVisible();
-  await page.getByLabel("Generation mode").selectOption("agent");
+  await page.getByLabel("Meeting focus", { exact: true }).fill("Confirm current goals and open questions");
   await expect(page.getByText("Meeting inputs changed.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
 });
@@ -57,15 +70,12 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await expect(form).toBeVisible();
     await expect(form.getByLabel("Client", { exact: true })).toHaveValue("CLI-004");
     await expect(form.getByLabel("Meeting date")).toHaveValue("2026-11-11");
-    await expect(form.getByLabel("Generation mode")).toHaveValue("simulation");
-    await form.getByLabel("Generation mode").selectOption("agent");
-    await expect(form.getByLabel("Generation mode")).toHaveValue("agent");
-    // The browser smoke test is explicitly offline; real acceptance is a separate command.
-    await form.getByLabel("Generation mode").selectOption("simulation");
-    await form.getByLabel("Meeting type").selectOption("goal_review");
+    await expect(form.getByLabel("Meeting type")).toHaveCount(0);
+    await expect(form.getByLabel("Meeting focus")).toHaveValue("Home purchase funding");
     await form.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
     await page.getByRole("button", { name: "Open Meeting Brief", exact: true }).click();
-    await expect(page.getByLabel("Meeting type")).toHaveValue("goal_review");
+    await expect(page.getByLabel("Meeting type")).toHaveCount(0);
+    await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveValue("Home purchase funding");
     await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("changed");
     await page.getByRole("button", { name: "Check draft", exact: true }).click();
     await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();

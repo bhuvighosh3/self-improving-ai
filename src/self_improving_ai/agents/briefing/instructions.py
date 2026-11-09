@@ -19,6 +19,10 @@ Use exact source IDs from the evidence; never invent or rename an ID. Read the
 actual JSON field paths before calling calculate_metrics (for example, a nested
 holding field is not a top-level field). Reuse registered calculations.
 Keep the complete brief concise: usually 1-2 items per section and 2-3 priorities.
+Use the meeting focus and authorized client evidence to choose relevant questions
+and discussion priorities. Routine items are a starting checklist, not a restriction
+on the meeting topic. A general_meeting does not imply a quarterly or annual review;
+retain uncertainty about the purpose when the calendar and correspondence are unclear.
 Use short claims and avoid repeating the same fact across claims and findings.
 Every priorities item MUST have nonempty why and question fields, in addition to
 its text, source_ids and claim_ids. Preserve gaps and tentative intentions.

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 export default function CopilotMeetingForm({ details, clients, busy, onGenerate }) {
-  const [fields, setFields] = useState({ mode: "agent", meeting_type: "quarterly_review", ...details });
+  const [fields, setFields] = useState({ mode: "agent", ...details });
   const update = (field, value) => setFields(current => ({ ...current, [field]: value }));
   return (
     <form className="co-meeting-form" onSubmit={event => { event.preventDefault(); onGenerate(fields); }}>
@@ -12,11 +12,6 @@ export default function CopilotMeetingForm({ details, clients, busy, onGenerate 
         </select></label>
         <label>Meeting date<input required type="date" value={fields.meeting_date} disabled={busy} onChange={event => update("meeting_date", event.target.value)} /></label>
         <label>Time · New York<input required type="time" value={fields.meeting_time} disabled={busy} onChange={event => update("meeting_time", event.target.value)} /></label>
-        <label>Meeting type<select value={fields.meeting_type} disabled={busy} onChange={event => update("meeting_type", event.target.value)}>
-          <option value="quarterly_review">Quarterly review</option>
-          <option value="annual_review">Annual review</option>
-          <option value="goal_review">Goal review</option>
-        </select></label>
         <label className="meeting-focus">Meeting focus<input required minLength={3} maxLength={500} value={fields.focus} disabled={busy} placeholder="What should this meeting focus on?" onChange={event => update("focus", event.target.value)} /></label>
         <button type="submit" className="meeting-btn primary" disabled={busy}>{busy ? "Preparing brief…" : "Generate Meeting Brief"}</button>
       </div>

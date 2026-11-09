@@ -152,6 +152,8 @@ async def test_api_and_copilot_share_frozen_workspace_and_persistence(api, tmp_p
     observed = []
 
     async def generate(request):
+        assert request.meeting_type == "general_meeting"
+        assert request.focus == REQUEST["focus"]
         observed.append(deepcopy(current_scope()))
         return synthetic_brief()
 
@@ -164,6 +166,21 @@ async def test_api_and_copilot_share_frozen_workspace_and_persistence(api, tmp_p
     assert observed[0]["mail"] == records
     assert current_scope() is None
     assert store.get(result["id"])["status"] == "draft"
+
+
+def test_focus_only_requests_and_existing_calendar_types_are_compatible():
+    from self_improving_ai.calendar_adapter import normalize_event
+
+    request = MeetingBriefRequest(**{**REQUEST, "focus": "Equity compensation discussion"})
+    assert request.meeting_type == "general_meeting"
+    for meeting_type in ("quarterly_review", "annual_review", "goal_review"):
+        assert MeetingBriefRequest(**REQUEST, meeting_type=meeting_type).meeting_type == meeting_type
+    event = {"id": "SYNTHETIC-EVENT", "title": "Equity compensation discussion", "client_id": REQUEST["client_id"],
+             "date": REQUEST["meeting_date"], "start_time": "14:00", "end_time": "14:30", "type": "custom_topic"}
+    normalized = normalize_event(event, {REQUEST["client_id"]: "Synthetic Client"})
+    assert normalized["meeting_type"] == "general_meeting"
+    assert normalized["focus"] == event["title"]
+    assert event["type"] == "custom_topic"
 
 
 @pytest.mark.parametrize("truncated", [False, True])

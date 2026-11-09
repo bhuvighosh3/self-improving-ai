@@ -25,7 +25,7 @@ class MeetingBriefRequest(BaseModel):
     meeting_date: date
     meeting_time: time
     focus: str = Field(min_length=3, max_length=500)
-    meeting_type: Literal["quarterly_review", "annual_review", "goal_review"] = "quarterly_review"
+    meeting_type: Literal["general_meeting", "quarterly_review", "annual_review", "goal_review"] = "general_meeting"
     mode: Literal["simulation", "agent"] = "simulation"
 
 

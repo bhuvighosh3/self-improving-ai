@@ -1,6 +1,9 @@
 """Three reusable business skills loaded into the ADK briefing agent."""
 
 ROUTINES = {
+    "general_meeting": ["Confirm the meeting purpose and client priorities",
+                        "Review relevant updates, unfinished commitments and evidence gaps",
+                        "Agree discussion questions, next steps and responsibilities"],
     "quarterly_review": ["Review goal progress and liquidity", "Review allocation and plan execution",
                          "Follow up unfinished commitments and service needs"],
     "annual_review": ["Confirm goals and household circumstances", "Review allocation and liquidity",

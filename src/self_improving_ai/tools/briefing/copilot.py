@@ -20,7 +20,7 @@ async def meeting_briefing_agent(
     meeting_time: str,
     focus: str,
     tool_context: ToolContext,
-    meeting_type: Literal["quarterly_review", "annual_review", "goal_review"] = "quarterly_review",
+    meeting_type: Literal["general_meeting", "quarterly_review", "annual_review", "goal_review"] = "general_meeting",
     calendar_event_id: str = "",
 ) -> dict:
     """Prepare and save a checked meeting draft for confirmed client/date/time/focus.

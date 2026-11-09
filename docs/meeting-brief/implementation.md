@@ -90,7 +90,7 @@ The `.env.example` contains placeholders only. No key is required for Offline de
 The model and reviewer incur API usage when AI mode is selected.
 
 Explicit Copilot preparation requests open the existing confirmation form, with
-meeting type and generation mode selectors. Confirming calls the same generation,
+client, date, New York time and meeting focus. Confirming calls the same generation,
 server persistence and error handling as Meeting Prep; opening the returned brief
 does not generate it again. Both entry points default to Offline demo. Other
 Copilot requests continue to use C's live orchestrator. This narrow UI handoff does
@@ -100,6 +100,30 @@ delegation also calls the bounded independent-review/repair service. The full
 draft reaches the browser separately from the compact tool response returned to
 the parent model. See [Copilot limit fix](copilot-limit-fix.md) for error handling
 and offline verification. Generated drafts still require advisor review.
+
+### Focus-based setup (2026-11-09)
+
+Meeting Prep and Copilot no longer ask the advisor to choose a meeting type. The
+focus is the single editable description of the meeting's purpose. New requests
+default to `general_meeting`, whose routine covers relevant updates, open
+commitments, missing information and next steps. The writer uses the focus and
+authorized evidence to choose discussion priorities; routine templates do not
+restrict supported topics. Existing quarterly, annual and goal-review metadata
+remains valid, including retained drafts. Unrecognized Calendar categories use
+the general baseline without modifying the original event. Changing the client
+or appointment in a manual form does not inherit the previous draft's type.
+
+The form keeps the existing three-column desktop and stacked mobile layout.
+Removing the duplicate choice leaves client/date/time together, followed by focus
+and the preparation action. Existing browser workflow checks explicitly route
+generation to Offline demo; they do not consume Gemini quota.
+
+Verification: 64 related offline tests and 14 subtests passed; six browser
+workflow checks passed at desktop/mobile widths, with screenshots inspected.
+The production frontend build and scoped design detector passed. A broader run
+also reproduced two unchanged baseline failures: a legacy news-fixture expectation
+after the news provider migration, and a missing `TemporaryDirectory` import in
+an existing workflow test. Both fail on the original main checkout as well.
 
 ## Independent evaluation
 

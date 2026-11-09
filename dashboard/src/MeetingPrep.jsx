@@ -28,7 +28,6 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
   const [mode] = useState("agent");
-  const [meetingType, setMeetingType] = useState(saved?.brief.meeting_type || "quarterly_review");
   const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
   const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
   const [editing, setEditing] = useState(false);
@@ -40,12 +39,12 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
   const requestRef = useRef(null);
-  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus || meetingType !== (brief.meeting_type || "quarterly_review"));
+  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus);
 
   useEffect(() => {
     if (selectedClient) {
       setClientId(selectedClient.client_id);
-      setFocus(FOCUS[selectedClient.client_id] || "Quarterly portfolio and goals review");
+      setFocus(FOCUS[selectedClient.client_id] || "Client priorities and open follow-ups");
     }
   }, [selectedClient]);
 
@@ -79,10 +78,11 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
     const controller = new AbortController();
     requestRef.current = controller;
     try {
+      const sameMeeting = brief?.client_id === clientId && brief.meeting_date === meetingDate && brief.meeting_time === meetingTime;
       const response = await fetch("/api/briefings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId, meeting_date: meetingDate, meeting_time: meetingTime, focus: focus.trim(), mode, meeting_type: meetingType }),
+        body: JSON.stringify({ client_id: clientId, meeting_date: meetingDate, meeting_time: meetingTime, focus: focus.trim(), mode, meeting_type: sameMeeting ? brief.meeting_type : undefined }),
         signal: controller.signal,
       });
       const result = await response.json();
@@ -179,8 +179,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
 
       {!calendarEvent && <form className="card meeting-form no-meeting-print" onSubmit={generate}>
         <div className="card-body meeting-fields">
-          <label>Meeting type<select value={meetingType} onChange={event => setMeetingType(event.target.value)} disabled={busy}><option value="quarterly_review">Quarterly review</option><option value="annual_review">Annual review</option><option value="goal_review">Goal review</option></select></label>
-          <label>Client<select aria-label="Client" value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Quarterly portfolio and goals review"); }} disabled={busy} required>
+          <label>Client<select aria-label="Client" value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Client priorities and open follow-ups"); }} disabled={busy} required>
             {!clients.length && <option value="">Loading clients…</option>}
             {clients.map(client => <option value={client.client_id} key={client.client_id}>{client.profile.name}</option>)}
           </select></label>
