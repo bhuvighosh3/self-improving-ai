@@ -57,6 +57,15 @@ class CopilotMeetingTests(unittest.TestCase):
                                   ("Prepare a meeting for Chen", "CLI-001")]:
             self.assertEqual(collect_meeting_details(message, CLIENTS, selected)["client_id"], "")
 
+    def test_short_preparation_commands_cover_clients_without_capturing_financial_tasks(self):
+        for client in CLIENTS:
+            for prefix in ("prepare for", "prep"):
+                message = f"{prefix} {client['profile']['name']}"
+                with self.subTest(message=message):
+                    self.assertTrue(is_meeting_request(message, CLIENTS))
+        for message in ("Prepare for retirement spending", "Prepare tax estimates for Patel"):
+            self.assertFalse(is_meeting_request(message, CLIENTS))
+
     def test_selected_client_and_supported_clock_formats(self):
         details = collect_meeting_details("Meeting today at 09:30, focus on college funding", CLIENTS,
                                           "CLI-001", today=date(2026, 10, 28))

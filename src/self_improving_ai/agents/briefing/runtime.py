@@ -193,6 +193,15 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
             evidence = state["meeting_evidence"]
             calculations = state.get("meeting_calculations", [])
             if phase == "generate":
+                from self_improving_ai.agents.briefing.repairs import repair_judgment_boundaries
+
+                repaired = await repair_judgment_boundaries(
+                    work, reports[-1], evidence, calculations, trace, model=selected_model, run=run_adk,
+                ) if reports and "invalid_content" not in work else None
+                if repaired is not None:
+                    work = repaired
+                    phase = "review"
+            if phase == "generate":
                 prompt = {"task": task}
                 if reports:
                     previous = work["invalid_content"] if "invalid_content" in work else content_from_work(work)

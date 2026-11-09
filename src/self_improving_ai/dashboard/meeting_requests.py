@@ -7,7 +7,12 @@ from zoneinfo import ZoneInfo
 from self_improving_ai.calendar_adapter import TYPE_MAP
 
 
-def is_meeting_request(message: str) -> bool:
+def short_preparation_target(message: str) -> str:
+    match = re.fullmatch(r"\s*(?:please\s+)?(?:prepare|prep)\s+(?:for\s+)?(.+?)\s*[.!?]?\s*", message, re.IGNORECASE)
+    return match.group(1).strip().casefold().rstrip(".!?").strip() if match else ""
+
+
+def is_meeting_request(message: str, clients: list[dict] | None = None) -> bool:
     """Route explicit preparation requests to the shared, reviewable B workflow.
 
     This is a UI handoff, not a replacement for C's general intent planner.
@@ -16,6 +21,13 @@ def is_meeting_request(message: str) -> bool:
     text = message.lower()
     preparation = r"\b(?:prepare|prep|brief|briefing|agenda|ready)\b"
     meeting = r"\b(?:meeting|meetings|appointment|review)\b"
+    target = short_preparation_target(message)
+    for client in clients or []:
+        profile = client["profile"]
+        surname = profile["primary_contact"].split()[-1]
+        aliases = (client["client_id"], profile["name"], profile["primary_contact"], surname, surname + "s")
+        if target and target in {alias.casefold() for alias in aliases}:
+            return True
     return bool(
         re.search(preparation, text) and re.search(meeting, text)
         or re.search(r"\bget me ready\b", text)

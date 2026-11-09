@@ -208,6 +208,23 @@ async def test_client_only_copilot_request_looks_up_next_calendar_meeting(api):
     assert request.mode == "agent"
 
 
+async def test_prepare_for_named_client_does_not_fall_through_to_general_copilot(api):
+    client = {"client_id": "CLI-005", "profile": {"name": "Patel Retirement Account", "primary_contact": "Priya Patel"}}
+    event = {"id": "PATEL-MEETING", "client_id": client["client_id"], "title": "Withdrawal planning",
+             "date": "2026-11-22", "start_time": "09:00", "notes": "Sustainable withdrawals and inherited IRA", "type": "follow_up"}
+    brief = {**synthetic_brief(), "client_id": client["client_id"], "client_name": client["profile"]["name"]}
+    with patch.object(api, "_load_clients", return_value=[client]), \
+         patch.object(api, "_meeting_workspace", return_value={
+             "now": "2026-11-11T15:00:00-05:00", "mode": "agent", "events": [event]}), \
+         patch.object(api, "create_meeting_brief", new=AsyncMock(return_value=brief)) as generate, \
+         patch.object(api, "_get_or_create_session", new=AsyncMock(return_value="offline")), \
+         patch.object(api, "run_copilot", new=AsyncMock(side_effect=RuntimeError("Unexpected general route"))) as copilot:
+        result = await api.chat(api.ChatRequest(message="prepare for Patel Retirement Account"))
+    assert result.get("brief", {}).get("id") == brief["id"]
+    assert generate.await_args.args[0].calendar_event_id == event["id"]
+    copilot.assert_not_awaited()
+
+
 def test_calendar_resolution_respects_explicit_details_and_asks_on_ambiguity():
     from self_improving_ai.dashboard.meeting_requests import resolve_calendar_meeting
 
@@ -320,7 +337,8 @@ async def test_truncated_brief_is_rejected_without_saving_or_offline_fallback(ap
          pytest.raises(HTTPException) as caught:
         await api.create_meeting_brief(MeetingBriefRequest(**REQUEST))
     assert caught.value.status_code == 502
-    assert "output token limit" in caught.value.detail
+    assert "could not finish" in caught.value.detail
+    assert "narrower" not in caught.value.detail
     assert caught.value.headers["X-Briefing-Run-ID"] == error.briefing_run_id
     assert "Progress is saved" in caught.value.detail
     generate.assert_awaited_once()

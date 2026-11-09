@@ -36,7 +36,7 @@ from self_improving_ai.agents.briefing.schemas import BriefExportRequest, Meetin
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
 from self_improving_ai.dashboard.meeting_requests import (
-    collect_meeting_details, is_meeting_request, resolve_calendar_meeting,
+    collect_meeting_details, is_meeting_request, resolve_calendar_meeting, short_preparation_target,
 )
 from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
@@ -438,8 +438,10 @@ async def chat(req: ChatRequest):
     if req.meeting is not None:
         return _meeting_chat_response(await create_meeting_brief(req.meeting))
 
-    if is_meeting_request(req.message):
+    clients = None
+    if is_meeting_request(req.message) or short_preparation_target(req.message):
         clients = await run_in_threadpool(_load_clients)
+    if is_meeting_request(req.message, clients):
         try:
             workspace = await run_in_threadpool(_meeting_workspace)
         except Exception as exc:

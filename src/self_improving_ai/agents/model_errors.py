@@ -62,7 +62,7 @@ def model_error_code(exc):
 
 def model_error_message(code):
     return {
-        "output_token_limit": "Gemini reached its output token limit. The incomplete response was rejected. Please retry with a narrower request.",
+        "output_token_limit": "The AI could not finish its response. Please retry; matching saved meeting progress will be reused.",
         "input_context_limit": "The request exceeded Gemini's input context limit. Try fewer clients or a shorter request.",
         "llm_call_limit": "That request needed more steps than I could complete in one pass. Try asking about fewer clients at once, or be more specific about what you need.",
         "rate_limit": "Rate limit reached — please wait a moment and try again.",

@@ -76,3 +76,36 @@ Next deployment validation: replay the reported Copilot request on staging when
 available, verify that a retained brief opens, and inspect finish reason/usage if
 the provider rejects the request. Treat provider capacity and quota separately
 from token-limit failures.
+
+## Patel repair-stage follow-up
+
+The local `prepare for Patel Retirement Account` incident on 2026-11-09 exposed a
+separate repair-stage problem. The provider returned 7,982 output tokens against
+an 8,000-token limit, with 5,662 input tokens. The saved checkpoint showed that the
+first writer response used only 1,188 output tokens and produced all six sections.
+Its sole objective blocker was `JUDGMENT_BOUNDARY` on `CLAIM-priorities-1`: missing
+rationale or uncertainty. Rewriting the complete draft to fix that field triggered
+the observed truncation. These counts come from the actual local provider trace.
+
+The bounded repair path now requests only the missing rationale/uncertainty for
+the flagged claim IDs, with a 1,200-token budget. It preserves text, original
+sources, calculation links, sections and all already nonempty fields. Duplicate,
+missing or unknown patch targets are rejected. The entire work product still goes
+through the objective checker and independent semantic reviewer before saving;
+other defect classes keep the normal repair path. Existing discovery results and
+calculations remain reusable through the checkpoint.
+
+The compact writer's instructions also stop requesting the canonical graph IDs
+owned by Python. Judgment items explicitly require rationale and uncertainty.
+Short commands such as `prepare for Patel Retirement Account` and `prep Patel`
+use the calendar preparation flow when the target is a known client alias;
+financial-analysis requests are not captured by this shortcut. Output truncation
+no longer asks the advisor to narrow an already short request.
+
+Both regressions were red before the fix: the short command took the general
+Copilot route, and the field-repair replay requested a full second writer response
+and reproduced `MAX_TOKENS`. The focused regressions and 73 related offline tests
+(24 subtests) pass after the fix. An additional live Gemini replay was blocked by
+automatic approval review because the earlier authorization covered one already
+used synthetic case. No additional provider call was made; live follow-up remains
+pending fresh user authorization.
