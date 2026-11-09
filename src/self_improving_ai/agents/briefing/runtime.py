@@ -16,6 +16,7 @@ from self_improving_ai.agents.briefing.model import create_model
 from self_improving_ai.agents.briefing.runs import BriefRunStore
 from self_improving_ai.agents.briefing.preflight import prepare_snapshot_total
 from self_improving_ai.tools.briefing.context import prepare_context
+from self_improving_ai.agents.model_errors import ModelOutputLimitError, reject_truncated_response
 
 
 class ReviewFinding(BaseModel):
@@ -59,6 +60,7 @@ async def run_adk(agent, message: str, state: dict, trace: list, *, max_llm_call
             new_message=types.Content(role="user", parts=[types.Part(text=message)]),
             run_config=RunConfig(max_llm_calls=max_llm_calls),
         ):
+            reject_truncated_response(event, model=agent.name)
             for part in event.content.parts if event.content else []:
                 if part.function_call:
                     trace.append({"event": "tool_call", "tool": part.function_call.name,
@@ -71,6 +73,11 @@ async def run_adk(agent, message: str, state: dict, trace: list, *, max_llm_call
             if event.usage_metadata:
                 trace.append({"event": "usage", "agent": agent.name,
                               "usage": event.usage_metadata.model_dump(mode="json")})
+    except ModelOutputLimitError as exc:
+        trace.append({"event": "model_limit", "agent": agent.name, "model": exc.model,
+                      "finish_reason": "MAX_TOKENS", "output_limit": exc.output_limit,
+                      "usage": exc.usage})
+        raise
     finally:
         # Preserve completed tool work even if a later model request fails.
         updated = await sessions.get_session(app_name=agent.name, user_id="local-advisor", session_id=session.id)

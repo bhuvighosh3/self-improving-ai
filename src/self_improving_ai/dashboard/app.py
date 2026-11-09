@@ -38,6 +38,12 @@ from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
 from self_improving_ai.agents.briefing.store import DraftStore
 from self_improving_ai.agents.briefing.review import check_draft
+from self_improving_ai.agents.briefing.application import (
+    BriefingPreparationError, briefing_request_scope, prepare_brief,
+)
+from self_improving_ai.agents.model_errors import (
+    ModelOutputLimitError, model_error_code, model_error_message,
+)
 
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
@@ -110,7 +116,7 @@ def _get_fallback_runner():
         from google.adk.tools.agent_tool import AgentTool
         from self_improving_ai.agents.orchestrator.instructions import ORCHESTRATOR_INSTRUCTION
         from self_improving_ai.agents.portfolio.agent import create_portfolio_agent
-        from self_improving_ai.agents.briefing.agent import briefing_agent
+        from self_improving_ai.tools.briefing.copilot import meeting_briefing_agent
 
         from self_improving_ai.tools.orchestrator.workspace import (
             get_client_holdings, get_client_info, get_crm_summary,
@@ -124,7 +130,7 @@ def _get_fallback_runner():
                 get_upcoming_events, get_recent_emails, get_client_info,
                 get_crm_summary, get_client_holdings,
                 AgentTool(agent=create_portfolio_agent(settings.agent_model_fallback)),
-                AgentTool(agent=briefing_agent),
+                meeting_briefing_agent,
                 search_tool_catalog,
             ],
             output_key="orchestrator_result",
@@ -181,36 +187,24 @@ def _generation_error(exc: BaseException, status: int, detail: str) -> HTTPExcep
                          headers={"X-Briefing-Run-ID": run_id} if run_id else None)
 
 
+def _preparation_clock():
+    """Use the same simulated date for all B entry points in this process."""
+    monitor = getattr(app.state, "preparations", None)
+    if monitor is None:
+        return None
+    with monitor.db() as db:
+        return json.loads(db.execute("SELECT state FROM calendar_simulation WHERE id=1").fetchone()[0])["now"][:10]
+
+
 @app.post("/api/briefings")
 async def create_meeting_brief(req: MeetingBriefRequest):
-    from contextlib import nullcontext
-    from self_improving_ai.tools.briefing.workspace_sources import operational_scope, client_mail_snapshot
-    monitor = getattr(app.state, "preparations", None)
-    scope = nullcontext()
-    if monitor is not None:
-        with monitor.db() as db:
-            clock = json.loads(db.execute("SELECT state FROM calendar_simulation WHERE id=1").fetchone()[0])["now"][:10]
     try:
-        if monitor is not None:
-            cutoff = min(clock, req.meeting_date.isoformat())
-            records = await asyncio.to_thread(client_mail_snapshot, req.client_id, cutoff)
-            scope = operational_scope(req.client_id, cutoff, ai_mode=req.mode == "agent", records=records)
-        with scope:
-            if req.mode == "agent":
-                from self_improving_ai.agents.briefing.runtime import generate_agent_brief
-                try:
-                    brief = await asyncio.wait_for(generate_agent_brief(req), timeout=180)
-                except APIError as primary:
-                    if primary.code not in (503, 504) or not settings.agent_model_fallback or settings.agent_model_fallback == settings.agent_model:
-                        raise
-                    brief = await asyncio.wait_for(generate_agent_brief(req, model=settings.agent_model_fallback),timeout=180)
-                    brief["workflow"]["model_fallback_from"] = settings.agent_model
-            else:
-                brief = await asyncio.to_thread(generate_meeting_brief, req)
-            await asyncio.to_thread(DraftStore().create, brief)
-            return brief
+        return await prepare_brief(req, as_of=_preparation_clock(), store=DraftStore(),
+                                   offline_generator=generate_meeting_brief)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ModelOutputLimitError as exc:
+        raise _generation_error(exc, 502, model_error_message("output_token_limit")) from exc
     except ValueError as exc:
         raise _generation_error(exc, 422, str(exc)) from exc
     except TimeoutError as exc:
@@ -431,46 +425,38 @@ async def chat(req: ChatRequest):
 
     steps = []
     response_parts = []
+    error_code = None
 
-    try:
-        result = await run_copilot(
-            runner=_runner,
-            message=message,
-            session_id=session_id,
-            user_id=user_id,
-        )
-        steps = result["steps"]
-        response_parts = result["response_parts"]
-    except Exception as exc:
-        err = str(exc)
-        if any(code in err for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED")):
-            log.warning("Primary model unavailable or timed out, trying fallback model")
-            try:
-                result = await run_copilot(
-                    runner=_get_fallback_runner(),
-                    message=message,
-                    session_id=session_id,
-                    user_id=user_id,
-                )
-                steps = result["steps"]
-                response_parts = result["response_parts"]
-            except Exception as fallback_exc:
-                log.exception("Fallback model also failed")
-                fallback_err = str(fallback_exc)
-                if "429" in fallback_err or "RESOURCE_EXHAUSTED" in fallback_err:
-                    response_parts.append("Rate limit reached — please wait a moment and try again.")
-                elif any(code in fallback_err for code in ("503", "504", "UNAVAILABLE", "DEADLINE_EXCEEDED")):
-                    response_parts.append("The AI service is temporarily busy or timed out. Please try again in a minute.")
-                else:
-                    response_parts.append("Something went wrong. Please try again.")
-        elif "429" in err or "RESOURCE_EXHAUSTED" in err:
-            response_parts.append("Rate limit reached — please wait a moment and try again.")
-        elif "max_llm_calls" in err.lower() or "exceeded" in err.lower():
-            log.warning("Orchestrator hit LLM call budget: %s", err)
-            response_parts.append("That request needed more steps than I could complete in one pass. Try asking about fewer clients at once, or be more specific about what you need.")
-        else:
-            log.exception("Orchestrator error")
-            response_parts.append("Something went wrong. Please try again.")
+    with briefing_request_scope(_preparation_clock()) as preparation:
+        try:
+            result = await run_copilot(
+                runner=_runner, message=message, session_id=session_id, user_id=user_id,
+            )
+            steps = result["steps"]
+            response_parts = result["response_parts"]
+        except Exception as exc:
+            code = model_error_code(exc)
+            # B already owns its retries and fallback; do not regenerate it by
+            # restarting the parent after a delegated failure.
+            if code in {"service_busy", "timeout"} and not isinstance(exc, BriefingPreparationError):
+                log.warning("Primary model unavailable or timed out, trying fallback model")
+                try:
+                    result = await run_copilot(
+                        runner=_get_fallback_runner(), message=message,
+                        session_id=session_id, user_id=user_id,
+                    )
+                    steps = result["steps"]
+                    response_parts = result["response_parts"]
+                except Exception as fallback_exc:
+                    log.exception("Fallback model also failed")
+                    error_code = model_error_code(fallback_exc)
+                    response_parts.append(model_error_message(error_code))
+            else:
+                log.exception("Copilot request failed (%s)", code)
+                error_code = code
+                response_parts.append(model_error_message(code))
+
+    prepared = next(reversed(preparation.briefs.values()), None)
 
     agents_used = list({s["agent"] for s in steps})
     if not agents_used:
@@ -480,11 +466,13 @@ async def chat(req: ChatRequest):
 
     return {
         "response": response_text,
-        "intent": "gemini",
+        "intent": "meeting_briefing" if prepared else "gemini",
         "agents_used": agents_used,
         "client_id": req.client_id,
         "steps": steps,
         "mode": "live",
+        **({"brief": prepared} if prepared else {}),
+        **({"error_code": error_code} if error_code else {}),
     }
 
 

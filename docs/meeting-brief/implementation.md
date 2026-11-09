@@ -21,7 +21,8 @@ fixture-based descriptions below are historical until independently rerun.
   item/claim/finding IDs and evidence links; Gemini writes atomic sourced content.
   Prepared context and verified metrics are supplied before writing, so the normal
   path needs one native structured writing call and one independent reviewer call.
-  The raw ADK delegation interface remains available to C with its existing tools.
+  C delegates through a bounded tool that calls this same checked, persisted
+  workflow and returns a compact summary with the retained draft ID.
 - A simulated calendar worker prepares upcoming meetings autonomously within a
   24-hour window and posts an advisor notification. It shares the existing B
   service, checks and draft store; it never creates a second UI-specific brief.
@@ -94,9 +95,11 @@ server persistence and error handling as Meeting Prep; opening the returned brie
 does not generate it again. Both entry points default to Offline demo. Other
 Copilot requests continue to use C's live orchestrator. This narrow UI handoff does
 does not itself schedule work. The separate simulated calendar worker provides
-proactive preparation; there is no external email/calendar connection. Direct ADK delegation loads
-the same skills/tools, but the bounded independent-review/repair service is the
-dashboard AI path; do not treat raw CLI output as approved delivery.
+proactive preparation; there is no external email/calendar connection. C's ADK tool
+delegation also calls the bounded independent-review/repair service. The full
+draft reaches the browser separately from the compact tool response returned to
+the parent model. See [Copilot limit fix](copilot-limit-fix.md) for error handling
+and offline verification. Generated drafts still require advisor review.
 
 ## Independent evaluation
 
