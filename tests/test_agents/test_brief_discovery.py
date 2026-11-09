@@ -25,6 +25,7 @@ BASELINE = [("get_client_profile", {}), ("get_crm_notes", {"limit": 100}),
 
 class InvestigatorModel(BaseLlm):
     turn: int = 0
+    purpose: str | None = None
 
     async def generate_content_async(self, llm_request, stream=False):
         self.turn += 1
@@ -35,7 +36,10 @@ class InvestigatorModel(BaseLlm):
             parts = [types.Part(function_call=types.FunctionCall(name="read_source", args={"client_id": "CLI-004", "source_id": "EMAIL-004"})),
                      types.Part(function_call=types.FunctionCall(name="search_market_news", args={"query": "housing", "max_results": 2}))]
         else:
-            parts = [types.Part(text='{"summary":"Read the original tentative update and retained the funding gap as unknown."}')]
+            result = {"summary": "Read the original tentative update and retained the funding gap as unknown."}
+            if self.purpose is not None:
+                result.update(meeting_type=self.purpose, meeting_type_reason="The focus and client update concern home purchase funding.")
+            parts = [types.Part(text=json.dumps(result))]
         yield LlmResponse(content=types.Content(role="model", parts=parts))
 
 
@@ -55,6 +59,22 @@ def test_actual_adk_investigator_selects_tools_and_registers_only_read_originals
     assert "may buy" in next(source["content"] for source in evidence["sources"] if source["id"] == "EMAIL-004")
     assert saved and any(snapshot["meeting_discovery"]["executions"] for snapshot in saved)
     assert any(event.get("event") == "tool_response" and event["tool"] == "read_source" for event in trace)
+
+
+@pytest.mark.parametrize("purpose,expected,origin", [
+    ("goal_review", "goal_review", "agent"),
+    ("invalid_routine", "general_meeting", "default"),
+    (None, "general_meeting", "default"),
+])
+def test_agent_selects_preparation_routine_independently_of_legacy_calendar_type(purpose, expected, origin):
+    task = {**TASK, "meeting_type": "quarterly_review"}
+    state = {"meeting_discovery": discovery.initial_discovery(task, load_context("CLI-004")), "meeting_calculations": []}
+    with patch.object(discovery, "create_model", return_value=InvestigatorModel(model="offline-discovery", purpose=purpose)):
+        evidence = asyncio.run(discovery.investigate(task, state, [], lambda status: None))
+    assert evidence["meeting_type"] == expected
+    assert evidence["routine_items"] == discovery.ROUTINES[expected]
+    assert evidence["meeting_type_selection"]["origin"] == origin
+    assert task["meeting_type"] == "quarterly_review"
 
 
 def test_cross_client_and_unavailable_originals_never_enter_the_registry():

@@ -37,12 +37,6 @@
 .cal-modal-delete { background: var(--red-soft); color: var(--red); border: 1px solid transparent; }
 .cal-modal-delete:hover { opacity: 0.78; }
 
-/* ── Legend ── */
-.cal-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
-.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-3); }
-.cal-legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
-
-
 /* The week is a view of the existing records, with no drag-to-reschedule behavior. */
 .cal-preparation-heading {display:flex;align-items:center;gap:18px;margin-bottom:16px;font-size:12px;color:var(--text-3);flex-wrap:wrap;}
 .cal-preparation-heading>.calendar-back {margin-left:auto;}
@@ -69,7 +63,7 @@
 .cal-day-column.is-today {background:var(--accent-soft);}
 .cal-hour-line {position:absolute;width:100%;height:var(--cal-hour-height);border-top:1px solid var(--border-subtle);pointer-events:none;}
 .cal-hour-line::after {content:"";position:absolute;top:50%;width:100%;border-top:1px dotted var(--border-subtle);}
-.cal-event-entry {position:absolute;display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;z-index:1;}
+.cal-event-entry {background:var(--accent-soft);color:var(--accent);position:absolute;display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;z-index:1;}
 .cal-event-chip {display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:0;overflow:hidden;padding:6px 7px 2px;text-align:left;background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;}
 .cal-event-chip strong {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:600;line-height:1.4;}
 .cal-event-time {font-size:10px;line-height:1.4;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
@@ -85,17 +79,10 @@
 .cal-event-entry.is-short .cal-event-chip {justify-content:center;padding:0 4px;}
 .cal-event-entry.is-short .cal-event-time,.cal-event-entry.is-short .cal-prep-link>span {display:none;}
 .cal-event-entry.is-short .cal-prep-link {padding:0 4px;}
-.cal-chip-quarterly_review {background:var(--accent-soft);color:var(--accent);}
-.cal-chip-follow_up {background:var(--green-soft);color:#117334;}
-.cal-chip-portfolio_review {background:var(--violet-soft);color:var(--violet);}
-.cal-chip-annual_review {background:var(--amber-soft);color:#865800;}
-.cal-chip-goal_review {background:var(--teal-soft);color:#0b746b;}
 .cal-now-line {position:absolute;left:0;right:0;border-top:1px solid #c44747;z-index:2;pointer-events:none;}
 .cal-now-line::before {content:"";position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:#c44747;}
 .cal-week-empty,.cal-day-empty {padding:10px 16px;border-bottom:1px solid var(--border-subtle);color:var(--text-3);font-size:12px;line-height:1.6;}
 .cal-day-empty {display:none;}
-.cal-selected-event {padding:12px 14px;margin-bottom:8px;}
-.cal-event-actions {display:flex;gap:8px;margin-top:10px;}
 .cal-error {color:var(--red);background:var(--red-soft);padding:12px;border-radius:6px;font-size:12px;line-height:1.6;margin-bottom:14px;}
 .calendar-loading {padding:24px;color:var(--text-3);font-size:13px;}
 .cal-modal-dialog {margin:auto;border:0;padding:0;background:transparent;color:var(--text);max-width:94vw;}

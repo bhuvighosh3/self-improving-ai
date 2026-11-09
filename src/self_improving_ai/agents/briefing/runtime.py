@@ -202,7 +202,7 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
                     work = repaired
                     phase = "review"
             if phase == "generate":
-                prompt = {"task": task}
+                prompt = {"task": {**task, "meeting_type": evidence["meeting_type"]}}
                 if reports:
                     previous = work["invalid_content"] if "invalid_content" in work else content_from_work(work)
                     prompt.update(previous_draft=previous, quality_feedback={
@@ -259,7 +259,7 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
     return {"id": str(uuid4()), "client_id": request.client_id, "client_name": profile["name"],
             "contact": profile["primary_contact"], "meeting_date": str(request.meeting_date),
             "meeting_time": request.meeting_time.strftime("%H:%M"), "timezone": "America/New_York",
-            "meeting_type": request.meeting_type, "focus": request.focus.strip(),
+            "meeting_type": evidence["meeting_type"], "focus": request.focus.strip(),
             "data_as_of": evidence["as_of"], "previous_meeting": evidence["previous_meeting"],
             "generated_at": datetime.now(timezone.utc).isoformat(), "mode": "agent",
             "sources": evidence["sources"], "sections": sections, "news": [],

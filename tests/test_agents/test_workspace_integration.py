@@ -60,6 +60,20 @@ def test_calendar_crud_and_preparation_use_one_event_record(workspace):
     assert http.post(f"/api/meeting-preparations/events/{event['id']}").status_code == 404
 
 
+def test_calendar_type_is_optional_and_existing_metadata_survives_editing(workspace):
+    http, _ = workspace
+    untyped = {key: value for key, value in EVENT.items() if key != "type"}
+    created = http.post("/api/calendar/events", json=untyped)
+    assert created.status_code == 201, created.text
+    assert created.json()["type"] == "general_meeting"
+    legacy = http.post("/api/calendar/events", json=EVENT).json()
+    edited = http.put(f"/api/calendar/events/{legacy['id']}", json={"title": "Updated meeting title"})
+    assert edited.status_code == 200
+    assert edited.json()["type"] == EVENT["type"]
+    assert edited.json()["date"] == EVENT["date"]
+    assert edited.json()["start_time"] == EVENT["start_time"]
+
+
 def test_copilot_saved_brief_is_visible_in_meeting_workspace_without_regeneration(workspace):
     http, monitor = workspace
     before = http.get("/api/calendar/events?year=2026&month=11").json()

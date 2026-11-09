@@ -9,21 +9,12 @@ import { addDays, CalendarSymbol, dayLabel, meetingLabel, weekStart } from "./ca
 import CalendarWeek from "./CalendarWeek.jsx";
 import { calendarMonths } from "./calendarLayout";
 
-const EVENT_TYPES = [
-  { value: "quarterly_review", label: "Quarterly Review" },
-  { value: "follow_up", label: "Follow-Up" },
-  { value: "portfolio_review", label: "Portfolio Review" },
-  { value: "annual_review", label: "Annual Review" },
-  { value: "goal_review", label: "Goal Review" },
-];
-const TYPE_LABELS = Object.fromEntries(EVENT_TYPES.map(t => [t.value, t.label]));
-
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-const EMPTY_FORM = { title: "", client_id: "", date: "", start_time: "09:00", end_time: "10:00", type: "quarterly_review", notes: "", location: "" };
+const EMPTY_FORM = { title: "", client_id: "", date: "", start_time: "09:00", end_time: "10:00", notes: "", location: "" };
 
 export default function CalendarPage({ clients, onOpenEvent, onReplay, preferredDate, onOpenPreparations, onEditing }) {
   const { data, error: preparationError, command } = useCalendar();
@@ -93,7 +84,7 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
   const openEdit = (evt) => {
     onEditing?.();
     setFormError("");
-    setForm({ title: evt.title, client_id: evt.client_id, date: evt.date, start_time: evt.start_time, end_time: evt.end_time, type: evt.type, notes: evt.notes || "", location: evt.location || "" });
+    setForm({ title: evt.title, client_id: evt.client_id, date: evt.date, start_time: evt.start_time, end_time: evt.end_time, notes: evt.notes || "", location: evt.location || "" });
     setModal(evt.id);
   };
 
@@ -132,13 +123,11 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
     const event = normalized(evt);
     if (event) { setModal(null); onOpenEvent(event); }
   }
-  const eventsByDate = {};
-  (events || []).forEach(e => { (eventsByDate[e.date] ||= []).push(e); });
   const clientMap = {};
   (clients || []).forEach(c => { clientMap[c.client_id] = c.profile?.name || c.client_id; });
 
   const f = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
-  const canSave = form.title && form.client_id && form.date && form.start_time && form.end_time && form.type;
+  const canSave = form.title && form.client_id && form.date && form.start_time && form.end_time;
 
   return (
     <section className="calendar" aria-label="Client calendar">
@@ -167,38 +156,6 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
 
       <CalendarWeek days={days} events={weekEvents} now={data?.now || `${clockDate}T12:00:00-05:00`} selected={selected} onSelect={setSelected} onEdit={openEdit} onPrepare={openPreparation} normalized={normalized} clientMap={clientMap} data={data} loading={!events || loadedMonths !== monthKeys}/>
 
-      <div className="cal-legend">
-        {EVENT_TYPES.map(t => (
-          <div key={t.value} className="cal-legend-item">
-            <div className={`cal-legend-swatch cal-chip-${t.value}`} />
-            <span>{t.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {selected && weekDays.includes(selected) && eventsByDate[selected]?.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-            {new Date(selected + "T00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </h4>
-          {eventsByDate[selected].map(evt => (
-            <div key={evt.id} className="card cal-selected-event">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>{evt.title}</span>
-                <span className={`chip cal-chip-${evt.type}`} style={{ fontSize: 10.5 }}>{TYPE_LABELS[evt.type]}</span>
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 3 }}>
-                {evt.start_time} – {evt.end_time} · {clientMap[evt.client_id] || evt.client_id} · {evt.location || "No location"}
-              </div>
-              <div className="cal-event-actions">
-                <button className="cal-today-btn" onClick={() => openEdit(evt)}>Edit event</button>
-                <button className="cal-today-btn" disabled={!normalized(evt)} onClick={() => openPreparation(evt)}>View meeting prep</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {modal && (
         <dialog ref={modalRef} className="cal-modal-dialog" aria-label={modal === "create" ? "New Event" : "Edit Event"} onCancel={() => setModal(null)} onClick={e => { if (e.target === modalRef.current) setModal(null); }}>
           <div className="cal-modal">
@@ -225,11 +182,6 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
                   <input type="time" value={form.end_time} onChange={e => f("end_time", e.target.value)} />
                 </label>
               </div>
-              <label>Type
-                <select aria-label="Type" value={form.type} onChange={e => f("type", e.target.value)}>
-                  {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </label>
               <label>Location
                 <input value={form.location} onChange={e => f("location", e.target.value)} placeholder="Conference Room A" />
               </label>

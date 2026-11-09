@@ -39,7 +39,7 @@ export default function CalendarWeek({ days, events, now, selected, onSelect, on
               const preparedEvent = normalized(event);
               const status = preparedEvent && preparationState(data, preparedEvent);
               const duration = ends - begins;
-              return <article key={event.id} className={`cal-event-entry cal-chip-${event.type}${duration < 60 ? " is-compact" : ""}${duration < 30 ? " is-short" : ""}`} style={{ top: (begins - start * 60) / 60 * HOUR_HEIGHT + 1, height: Math.max(22, duration / 60 * HOUR_HEIGHT - 2), left: `calc(${lane / columns * 100}% + 4px)`, width: `calc(${100 / columns}% - 8px)` }}>
+              return <article key={event.id} className={`cal-event-entry${duration < 60 ? " is-compact" : ""}${duration < 30 ? " is-short" : ""}`} style={{ top: (begins - start * 60) / 60 * HOUR_HEIGHT + 1, height: Math.max(22, duration / 60 * HOUR_HEIGHT - 2), left: `calc(${lane / columns * 100}% + 4px)`, width: `calc(${100 / columns}% - 8px)` }}>
                 <button className="cal-event-chip" title={`${event.start_time}–${event.end_time} ${event.title}`} aria-label={`Edit event: ${event.title}, ${event.date} at ${event.start_time}`} onClick={() => onEdit(event)}>
                   <strong>{clientMap[event.client_id] || event.title}</strong><span className="cal-event-time">{event.start_time} – {event.end_time}</span><span className="cal-event-topic">{event.title}</span>
                 </button>

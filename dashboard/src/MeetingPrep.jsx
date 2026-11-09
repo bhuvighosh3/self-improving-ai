@@ -173,7 +173,7 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
       {calendarEvent ? <header className="calendar-prep-context no-meeting-print">
         <button className="calendar-back" onClick={onBackToCalendar}><CalendarSymbol name="previous" size={16}/>Back to calendar</button>
         <div><h2>{calendarEvent.client_name}</h2><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft for your review"}</span></div>
-        <p>{calendarEvent.title} · {calendarEvent.kind === "saved_brief" ? "Saved brief · Not linked to Calendar" : meetingLabel(calendarEvent)}</p>
+        <p>{calendarEvent.title} · {calendarEvent.kind === "saved_brief" ? "Saved brief · No calendar meeting" : meetingLabel(calendarEvent)}</p>
       </header> : !embedded && <div className="meeting-heading no-meeting-print">
         <div><h2>Meeting Prep</h2></div>
       </div>}

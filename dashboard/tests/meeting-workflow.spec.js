@@ -92,7 +92,7 @@ test(`Calendar appointments and unlinked saved briefs stay separate at ${width}p
   await page.screenshot({ path: testInfo.outputPath("calendar-aligned-meetings.png"), fullPage: true });
   await list.getByRole("button", { name: "Saved briefs", exact: true }).click();
   await expect(list.getByText(saved.title, { exact: true })).toBeVisible();
-  await expect(list.getByRole("heading", { name: "Not linked to Calendar", exact: true })).toBeVisible();
+  await expect(list.getByRole("heading", { name: "Briefs without a calendar meeting", exact: true })).toBeVisible();
   await list.getByRole("button", { name: "Open saved brief for Okafor Family", exact: true }).click();
   await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", "UNLINKED");
 });
