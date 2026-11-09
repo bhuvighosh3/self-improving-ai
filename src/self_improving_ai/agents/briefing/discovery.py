@@ -1,8 +1,10 @@
 """Bounded, client-locked ADK investigation with durable completed tool results."""
 
+import asyncio
 from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timezone
+from functools import wraps
 import json
 from typing import Callable
 
@@ -21,6 +23,7 @@ MAX_EXECUTIONS = 10
 MAX_REQUESTS = 18
 MAX_TURNS = 4
 _checkpoint: ContextVar[Callable | None] = ContextVar("briefing_discovery_checkpoint", default=None)
+_execution_lock: ContextVar[asyncio.Lock | None] = ContextVar("briefing_discovery_execution_lock", default=None)
 
 
 class DiscoveryBudgetExceeded(ValueError):
@@ -133,8 +136,21 @@ def read_source(client_id: str, source_id: str, tool_context: ToolContext) -> di
     return execute_tool("read_source", {"client_id": client_id, "source_id": source_id}, tool_context.state)
 
 
-TOOLS = [get_client_profile, get_crm_notes, check_compliance_flags, search_market_news,
-         get_holdings, list_previous_meetings, list_client_tasks, search_sources, read_source]
+def nonblocking_tool(function):
+    """Keep synchronous store reads off the event loop and serialize trace writes."""
+    @wraps(function)
+    async def run(*args, **kwargs):
+        lock = _execution_lock.get()
+        if lock is None:
+            raise RuntimeError("Discovery tools require an active investigation")
+        async with lock:
+            return await asyncio.to_thread(function, *args, **kwargs)
+    return run
+
+
+TOOLS = [nonblocking_tool(function) for function in
+         [get_client_profile, get_crm_notes, check_compliance_flags, search_market_news,
+          get_holdings, list_previous_meetings, list_client_tasks, search_sources, read_source]]
 
 
 def before_model(callback_context, llm_request):
@@ -256,6 +272,7 @@ async def investigate(task, state, trace, checkpoint):
         state["meeting_discovery"] = deepcopy(current["meeting_discovery"])
         checkpoint("running")
     token = _checkpoint.set(persist)
+    execution_token = _execution_lock.set(asyncio.Lock())
     try:
         agent = Agent(name="meeting_context_investigator", model=create_model(task.get("model", settings.agent_model)),
             instruction=INSTRUCTION, tools=TOOLS, before_model_callback=before_model,
@@ -267,7 +284,7 @@ async def investigate(task, state, trace, checkpoint):
             max_llm_calls=MAX_TURNS)
         if not any(entry["origin"] == "model_selected" for entry in state["meeting_discovery"]["executions"]):
             raise ValueError("Investigator did not execute any authorized tools")
-        coverage_gate(state)
+        await asyncio.to_thread(coverage_gate, state)
         completion = summary if isinstance(summary, dict) else {}
         purpose = completion.get("meeting_type")
         reason = completion.get("meeting_type_reason")
@@ -292,4 +309,5 @@ async def investigate(task, state, trace, checkpoint):
     except LlmCallsLimitExceededError as exc:
         raise DiscoveryBudgetExceeded("Investigation reached its model-turn budget") from exc
     finally:
+        _execution_lock.reset(execution_token)
         _checkpoint.reset(token)

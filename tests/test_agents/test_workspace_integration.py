@@ -161,6 +161,26 @@ def test_editing_a_prepared_meeting_refreshes_the_same_meeting_even_outside_the_
     assert DraftStore(settings.db_path).get(old["id"])["brief"] == old
 
 
+def test_notes_only_edit_regenerates_the_existing_calendar_meeting(workspace):
+    http, monitor = workspace
+    event = http.get("/api/calendar/events/EVT-a1b2c3d4").json()
+    before = http.post("/api/briefings", json={"client_id": event["client_id"], "calendar_event_id": event["id"],
+        "meeting_date": event["date"], "meeting_time": event["start_time"], "focus": event["notes"], "mode": "simulation"})
+    assert before.status_code == 200, before.text
+    before = before.json()
+    notes = "Discuss retirement projections only"
+    edited = http.put(f"/api/calendar/events/{event['id']}", json={"notes": notes}).json()
+    assert edited["id"] == event["id"]
+    assert (edited["date"], edited["start_time"]) == (event["date"], event["start_time"])
+    current = next(row for row in monitor.state()["preparations"] if row["event_id"] == event["id"])
+    assert current["status"] == "queued" and current["version"] != before["calendar_event"]["version"]
+    asyncio.run(monitor.tick())
+    after = http.get(f"/api/meeting-preparations/{current['id']}/brief").json()
+    assert after["id"] != before["id"]
+    assert after["focus"] == notes and after["calendar_event"]["notes"] == notes
+    assert after["calendar_event"]["id"] == event["id"]
+
+
 def test_edit_during_generation_does_not_publish_an_obsolete_brief(workspace):
     http, monitor = workspace
     event = http.post("/api/calendar/events", json=EVENT).json()

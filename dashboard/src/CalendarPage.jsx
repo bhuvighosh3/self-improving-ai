@@ -76,10 +76,13 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
   const normalized = evt => data?.events.find(event => event.id === evt.id);
   const upcoming = data && clientMeetings(data).find(event => new Date(event.starts_at) > new Date(data.now));
   const nextState = upcoming && preparationState(data, upcoming);
-  function openPreparation(evt) {
-    const event = normalized(evt);
-    if (event) { setModal(null); onOpenEvent(event); }
+  async function openPreparation(evt) {
+    const current = await requestJson("/api/meeting-preparations");
+    const event = current.events.find(item => item.id === evt.id);
+    if (!event) throw new Error("This meeting is no longer on Calendar. Refresh your calendar and try again.");
+    setModal(null); onOpenEvent(event);
   }
+  const showPreparation = event => { openPreparation(event).catch(err => setError(err.message)); };
   const clientMap = {};
   (clients || []).forEach(c => { clientMap[c.client_id] = c.profile?.name || c.client_id; });
 
@@ -94,7 +97,7 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
       {upcoming && <div className="calendar-next-meeting">
         <CalendarSymbol name="document" size={20}/><div><span>Next client meeting · {meetingLabel(upcoming)}</span><strong>{upcoming.client_name} <span>· {upcoming.title}</span></strong></div>
         <span className={`prep-state state-${nextState.tone}`}>{nextState.label}</span>
-        <button className="meeting-btn primary" onClick={() => onOpenEvent(upcoming)}>View meeting prep<CalendarSymbol name="next" size={14}/></button>
+        <button className="meeting-btn primary" onClick={() => showPreparation(upcoming)}>View meeting prep<CalendarSymbol name="next" size={14}/></button>
       </div>}
       <div className="cal-header">
         <div className="cal-nav">
@@ -108,11 +111,11 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
         </div>
       </div>
 
-      <CalendarWeek days={days} events={weekEvents} now={data?.now || `${clockDate}T12:00:00-05:00`} selected={selected} onSelect={setSelected} onEdit={openEdit} onPrepare={openPreparation} normalized={normalized} clientMap={clientMap} data={data} loading={!events || loadedMonths !== monthKeys}/>
+      <CalendarWeek days={days} events={weekEvents} now={data?.now || `${clockDate}T12:00:00-05:00`} selected={selected} onSelect={setSelected} onEdit={openEdit} onPrepare={showPreparation} normalized={normalized} clientMap={clientMap} data={data} loading={!events || loadedMonths !== monthKeys}/>
 
       {modal && <CalendarEventDialog clients={clients} event={modal.event} defaultDate={modal.date}
         onClose={() => setModal(null)} onSaved={() => { setModal(null); fetchEvents(); }}
-        onPrepare={modal.event && normalized(modal.event) ? () => openPreparation(modal.event) : undefined}/>}
+        onPrepare={modal.event && normalized(modal.event) ? openPreparation : undefined}/>}
 
     </section>
   );

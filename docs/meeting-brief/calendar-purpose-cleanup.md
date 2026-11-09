@@ -39,11 +39,19 @@ with current preparation; outdated snapshots cannot be newly checked or approved
 Historical drafts and review records remain retained on the server. The product
 shows one current preparation entry per Calendar event.
 
+The Edit Event preparation action also submits unsaved changes. Its label becomes
+Save & view prep when fields differ, and navigation waits for a successful save.
+Calendar preparation links fetch the current normalized appointment rather than
+using the previous polling snapshot. Both save-and-open and save-first/immediate-open
+have browser regressions, including changed Notes with unchanged date and time.
+Check draft validates retained content and references; it does not regenerate from
+new Calendar notes, as its tooltip now explains.
+
 Validation: creation, repeated preparation, editing outside the time window, and
-editing during generation have offline API regressions. The related 79 tests and
-24 subtests pass. Seven mocked desktop/mobile browser checks cover the shared
+editing during generation have offline API regressions. The related 84 tests and
+24 subtests pass. Nine mocked desktop/mobile browser checks cover the shared
 editor, Calendar visibility, stale Copilot replacement, category removal, and the
 absence of orphaned briefs. The frontend build passes and the UI detector reports
-no findings. No additional live Gemini call was made. Local acceptance uses the
-synthetic workspace; deployed Firestore behavior and live model completion were
-not revalidated in this change.
+no findings. The initial interface checks used the local synthetic workspace. Subsequent
+explicitly authorized Firestore and Gemini acceptance passed; see
+[the cloud acceptance record](cloud-acceptance-2026-11-09.md).

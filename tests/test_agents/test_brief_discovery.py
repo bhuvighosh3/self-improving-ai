@@ -3,6 +3,7 @@
 import asyncio
 from copy import deepcopy
 import json
+import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -59,6 +60,30 @@ def test_actual_adk_investigator_selects_tools_and_registers_only_read_originals
     assert "may buy" in next(source["content"] for source in evidence["sources"] if source["id"] == "EMAIL-004")
     assert saved and any(snapshot["meeting_discovery"]["executions"] for snapshot in saved)
     assert any(event.get("event") == "tool_response" and event["tool"] == "read_source" for event in trace)
+
+
+def test_blocking_cloud_tool_keeps_the_event_loop_responsive():
+    state, started, release = initial_state(), threading.Event(), threading.Event()
+    original = discovery.crm.get_client_profile
+
+    def blocking_profile(client_id):
+        started.set()
+        assert release.wait(1), "A cloud read blocked the event loop"
+        return original(client_id)
+
+    async def run():
+        async def heartbeat():
+            while not started.is_set():
+                await asyncio.sleep(0)
+            release.set()
+        await asyncio.wait_for(asyncio.gather(
+            discovery.investigate(TASK, state, [], lambda status: None), heartbeat()), timeout=5)
+
+    with patch.object(discovery, "create_model", return_value=InvestigatorModel(model="offline-discovery")), \
+         patch.object(discovery.crm, "get_client_profile", side_effect=blocking_profile):
+        asyncio.run(run())
+    assert state["meeting_discovery"]["complete"]
+    assert len(state["meeting_discovery"]["executions"]) == 9
 
 
 @pytest.mark.parametrize("purpose,expected,origin", [

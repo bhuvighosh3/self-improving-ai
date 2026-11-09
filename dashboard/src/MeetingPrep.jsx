@@ -134,7 +134,7 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
           <div aria-live="polite"><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft · Needs review"}</span><span className="meeting-muted">Revision {revision}{edited ? " · Advisor edited" : ""}</span></div>
           <div className="meeting-actions">
             <button className="meeting-btn" onClick={() => setEditing(!editing)} disabled={busy}>{editing ? "Done editing" : "Edit draft"}</button>
-            <button className="meeting-btn" onClick={() => checkOrReview(false)} disabled={busy || stale || editing || hasEmptyFields}>Check draft</button>
+            <button className="meeting-btn" title="Check references and content quality. This does not regenerate the brief." onClick={() => checkOrReview(false)} disabled={busy || stale || editing || hasEmptyFields}>Check draft</button>
             <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields}>Mark as reviewed</button>
             <button className="meeting-btn" onClick={printBrief} disabled={busy || stale || editing || hasEmptyFields}>Print</button>
             <button className="meeting-btn primary" onClick={downloadPdf} disabled={busy || exporting || stale || editing || hasEmptyFields}>{exporting ? "Exporting…" : "Download PDF"}</button>

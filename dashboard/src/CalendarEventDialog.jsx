@@ -11,16 +11,21 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
     start_time: "09:00", end_time: "10:00", location: "", notes: "" });
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const title = event ? "Edit Event" : "New Event";
+  const changed = Boolean(event && Object.keys(form).some(key => form[key] !== (event[key] || "")));
   useEffect(() => { dialog.current.showModal(); }, []);
   const update = (key, value) => setForm(current => ({ ...current, [key]: value }));
   async function save(submission) {
     submission.preventDefault();
     setBusy(true); setError("");
     try {
+      const prepare = submission.nativeEvent.submitter?.value === "prepare";
+      if (prepare && !changed) { await onPrepare(event); return; }
       const record = await requestJson(event ? `/api/calendar/events/${event.id}` : "/api/calendar/events", {
+        timeoutMs: 30000, timeoutMessage: "Saving took longer than expected. Check Calendar before retrying, as the meeting may already have been saved.",
         method: event ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
       });
-      onSaved(record);
+      if (prepare) await onPrepare(record);
+      else await onSaved(record);
     } catch (err) { setError(err.message); setBusy(false); }
   }
   async function remove() {
@@ -49,7 +54,7 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
         <label>Notes<textarea maxLength={1000} rows={3} disabled={busy} value={form.notes} onChange={e => update("notes", e.target.value)} placeholder="What should this meeting cover?"/></label>
       </div>
       <div className="cal-modal-actions">
-        {onPrepare && <button type="button" className="cal-modal-cancel" disabled={busy} onClick={onPrepare}>Meeting prep</button>}
+        {onPrepare && <button type="submit" value="prepare" className="cal-modal-cancel" disabled={busy}>{changed ? "Save & view prep" : "View meeting prep"}</button>}
         {event && <button type="button" className="cal-modal-delete" disabled={busy} onClick={remove}>Delete</button>}
         <button type="button" className="cal-modal-cancel" disabled={busy} onClick={onClose}>Cancel</button>
         <button className="cal-modal-save" disabled={busy}>{busy ? "Saving…" : "Save"}</button>

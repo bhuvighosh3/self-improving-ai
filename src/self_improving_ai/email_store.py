@@ -9,7 +9,7 @@ def FieldFilter(*args, **kwargs):
     from google.cloud.firestore_v1.base_query import FieldFilter as CloudFilter
     return CloudFilter(*args, **kwargs)
 
-from self_improving_ai.config import settings
+from self_improving_ai.firestore_connection import get_firestore_client
 
 _COLLECTION = "emails"
 
@@ -100,7 +100,7 @@ class EmailStore:
     def __init__(self, project: str | None = None):
         from google.cloud import firestore
         self.firestore = firestore
-        self.db = firestore.Client(project=project or settings.google_cloud_project or None)
+        self.db = get_firestore_client(project)
         self.collection = self.db.collection(_COLLECTION)
         self._seed_if_empty()
 

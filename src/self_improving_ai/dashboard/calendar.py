@@ -84,7 +84,7 @@ async def get_event(event_id: str):
 
 @router.post("/events", status_code=201)
 async def create_event(body: CalendarEventCreate):
-    validate_event(body.model_dump())
+    await run_in_threadpool(validate_event, body.model_dump())
     result = await run_in_threadpool(_store.create_event, body.model_dump())
     invalidate_snapshots()
     return result
@@ -94,7 +94,7 @@ async def create_event(body: CalendarEventCreate):
 async def update_event(event_id: str, body: CalendarEventUpdate, request: Request):
     try:
         current = await run_in_threadpool(_store.get_event, event_id)
-        validate_event({**current, **body.model_dump(exclude_none=True)})
+        await run_in_threadpool(validate_event, {**current, **body.model_dump(exclude_none=True)})
         result = await run_in_threadpool(_store.update_event, event_id, body.model_dump(exclude_none=True))
         invalidate_snapshots()
         monitor = getattr(request.app.state, "preparations", None)

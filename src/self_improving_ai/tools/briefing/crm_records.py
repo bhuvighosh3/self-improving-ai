@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from self_improving_ai.crm_store import CrmStore
 from self_improving_ai.tools.briefing.contracts import tool_error, valid_client_id
+from self_improving_ai.tools.briefing.workspace_sources import current_scope, scoped_crm_read
 
 
 def get_crm_context(client_id: str) -> dict:
@@ -17,11 +18,13 @@ def get_crm_context(client_id: str) -> dict:
     """
     if not valid_client_id(client_id):
         return tool_error("INVALID_ARGUMENT", "client_id must be a nonempty string")
-    store = CrmStore()
-    ctx = store.get_client_context(client_id)
+    scope = current_scope()
+    if scope and scope["client_id"] != client_id:
+        raise ValueError("Client is locked to the operational snapshot")
+    ctx = scoped_crm_read("context:" + client_id, lambda: CrmStore().get_client_context(client_id))
     if ctx is None:
         return tool_error("CLIENT_NOT_FOUND", f"No CRM context for {client_id}")
-    global_settings = store.get_settings()
+    global_settings = scoped_crm_read("settings", lambda: CrmStore().get_settings())
     return {
         "status": "ok",
         "client_id": client_id,
@@ -45,8 +48,10 @@ def get_crm_records(client_id: str, kind: str | None = None) -> dict:
     """
     if not valid_client_id(client_id):
         return tool_error("INVALID_ARGUMENT", "client_id must be a nonempty string")
-    store = CrmStore()
-    records = store.list_records(client_id)
+    scope = current_scope()
+    if scope and scope["client_id"] != client_id:
+        raise ValueError("Client is locked to the operational snapshot")
+    records = scoped_crm_read("records:" + client_id, lambda: CrmStore().list_records(client_id))
     if kind:
         records = [r for r in records if r.get("kind") == kind]
     return {
