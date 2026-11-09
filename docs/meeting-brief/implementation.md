@@ -177,6 +177,13 @@ review state, and one generation call on desktop and mobile. Backend checks cove
 legacy recovery, source-change invalidation, standalone persistence and mode
 switches using synthetic records without provider calls.
 
+Upcoming and This week use only canonical Calendar appointments, including their
+original date, New York time and title. Standalone saved briefs are excluded from
+these schedule views and remain under Saved briefs in a separate **Not linked to
+Calendar** group. Their rows and detail headers identify them as saved briefs,
+not scheduled appointments. Switching ranges selects an item from that range;
+opening a saved draft does not leave it displayed as a phantom upcoming meeting.
+
 ## Independent evaluation
 
 Keep a reference file outside agent-visible data, for example:

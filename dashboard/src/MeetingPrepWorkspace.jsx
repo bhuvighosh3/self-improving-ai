@@ -29,29 +29,33 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, incomingBr
   const incomingEvent = incomingBrief && (all.find(event => event.id === incomingBrief.calendar_event?.id)
     || all.find(event => event.brief_id === incomingBrief.id)
     || all.find(event => event.client_id === incomingBrief.client_id && dateKey(event.starts_at) === incomingBrief.meeting_date && event.start_time?.slice(0,5) === incomingBrief.meeting_time?.slice(0,5)));
-  const upcoming = all.filter(event => new Date(event.starts_at) > new Date(data.now));
-  const visible = all.filter(event => range === "saved" ? preparationState(data, event).job?.status === "ready"
-    : range === "upcoming" ? new Date(event.starts_at) > new Date(data.now)
-    : dateKey(event.starts_at) >= monday && dateKey(event.starts_at) < addDays(monday, 7))
-    .filter(event => `${event.client_name} ${event.title}`.toLowerCase().includes(search.toLowerCase()));
-  const selected = all.find(event => event.id === selection) || incomingEvent || upcoming.find(event => preparationState(data, event).tone === "ready") || upcoming[0] || all[0];
-  const ready = upcoming.filter(event => preparationState(data, event).tone === "ready").length;
-  const groups = [...new Set(visible.map(event => dateKey(event.starts_at)))];
+  const scheduled = clientMeetings(data);
+  const upcoming = scheduled.filter(event => new Date(event.starts_at) > new Date(data.now));
+  const rangeEvents = range === "saved" ? all.filter(event => preparationState(data, event).job?.status === "ready")
+    : range === "upcoming" ? upcoming
+    : scheduled.filter(event => dateKey(event.starts_at) >= monday && dateKey(event.starts_at) < addDays(monday, 7));
+  const visible = rangeEvents.filter(event => `${event.client_name} ${event.title}`.toLowerCase().includes(search.toLowerCase()));
+  const selected = rangeEvents.find(event => event.id === selection) || rangeEvents.find(event => event.id === incomingEvent?.id)
+    || rangeEvents.find(event => preparationState(data, event).tone === "ready") || rangeEvents[0];
+  const ready = (range === "saved" ? rangeEvents : upcoming).filter(event => preparationState(data, event).tone === "ready").length;
+  const groupKey = event => event.kind === "saved_brief" ? "unlinked" : dateKey(event.starts_at);
+  const groups = [...new Set(visible.filter(event => event.kind !== "saved_brief").map(groupKey)),
+    ...(visible.some(event => event.kind === "saved_brief") ? ["unlinked"] : [])];
   function select(event) { setManualOpen(false); setSelection(event.id); setShowDetail(true); }
   function openManual() { setManualStarted(true); setManualOpen(true); setShowDetail(true); }
   function cancelManual() { setManualOpen(false); setShowDetail(window.matchMedia("(min-width: 769px)").matches); }
   return <section className={`prep-hub ${showDetail ? "is-detail-open" : ""}`} aria-label="Meeting preparation workspace">
-    <header className="prep-hub-heading"><div><h2>Meeting Prep</h2><p>{ready ? `${ready} ${ready === 1 ? "brief is" : "briefs are"} ready for your review.` : "Your client meetings and their preparation, together."} {data.enabled ? "Briefs are prepared 24 hours before each client meeting." : "Automatic preparation is paused. Existing briefs remain available."}</p></div><button className="meeting-btn" onClick={() => onBackToCalendar(selected)}><CalendarSymbol size={15}/>Calendar</button></header>
+    <header className="prep-hub-heading"><div><h2>Meeting Prep</h2><p>{ready ? `${ready} ${ready === 1 ? "brief is" : "briefs are"} ready for your review.` : "Your client meetings and their preparation, together."} {range !== "saved" && (data.enabled ? "Briefs are prepared 24 hours before each client meeting." : "Automatic preparation is paused. Existing briefs remain available.")}</p></div><button className="meeting-btn" onClick={() => onBackToCalendar(selected)}><CalendarSymbol size={15}/>Calendar</button></header>
     {error && <p className="meeting-error" role="alert">{error}</p>}
     <div className="prep-hub-layout">
       <aside className="prep-meeting-list" aria-label="Client meetings">
         <div className="prep-list-tools"><h3>Your meetings</h3><label className="prep-search"><CalendarSymbol name="search" size={16}/><input aria-label="Search client meetings" placeholder="Search client or meeting" value={search} onChange={event => setSearch(event.target.value)}/></label>
           <div className="prep-list-tabs" aria-label="Meeting range"><button aria-pressed={range === "upcoming"} onClick={() => setRange("upcoming")}>Upcoming</button><button aria-pressed={range === "week"} onClick={() => setRange("week")}>This week</button><button aria-pressed={range === "saved"} onClick={() => setRange("saved")}>Saved briefs</button></div>
         </div>
-        <div className="prep-list-scroll">{groups.map(day => <section key={day} className="prep-date-group"><h4>{relativeDay({ starts_at: `${day}T12:00:00-05:00` }, data.now) || dayLabel(day, { weekday: "short", month: "short", day: "numeric" })}</h4>{visible.filter(event => dateKey(event.starts_at) === day).map(event => {
+        <div className="prep-list-scroll">{groups.map(day => <section key={day} className="prep-date-group"><h4>{day === "unlinked" ? "Not linked to Calendar" : relativeDay({ starts_at: `${day}T12:00:00-05:00` }, data.now) || dayLabel(day, { weekday: "short", month: "short", day: "numeric" })}</h4>{visible.filter(event => groupKey(event) === day).map(event => {
           const state = preparationState(data, event);
-          return <button ref={!manualOpen && selected?.id === event.id ? selectedRow : null} className={`prep-meeting-row ${!manualOpen && selected?.id === event.id ? "is-selected" : ""}`} key={event.id} aria-label={`Open preparation for ${event.client_name} on ${dateKey(event.starts_at)}`} aria-pressed={!manualOpen && selected?.id === event.id} onClick={() => select(event)}>
-            <span className="prep-row-time">{new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(new Date(event.starts_at))}</span><strong>{event.client_name}</strong><span className="prep-row-topic">{event.title}</span><span className={`prep-state state-${state.tone}`}>{state.label}</span><CalendarSymbol name="next" size={14}/>
+          return <button ref={!manualOpen && selected?.id === event.id ? selectedRow : null} className={`prep-meeting-row ${!manualOpen && selected?.id === event.id ? "is-selected" : ""}`} key={event.id} aria-label={event.kind === "saved_brief" ? `Open saved brief for ${event.client_name}` : `Open preparation for ${event.client_name} on ${dateKey(event.starts_at)}`} aria-pressed={!manualOpen && selected?.id === event.id} onClick={() => select(event)}>
+            <span className="prep-row-time">{event.kind === "saved_brief" ? "Saved brief" : new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(new Date(event.starts_at))}</span><strong>{event.client_name}</strong><span className="prep-row-topic">{event.title}</span><span className={`prep-state state-${state.tone}`}>{state.label}</span><CalendarSymbol name="next" size={14}/>
           </button>;
         })}</section>)}{!visible.length && <div className="prep-no-results"><h4>No matching meetings</h4><p>{search ? "Try another client or clear your search." : "Choose This week to see recent client meetings, or return to Calendar."}</p>{search && <button className="meeting-btn" onClick={() => setSearch("")}>Clear search</button>}</div>}</div>
         <button className="prep-manual-link" aria-pressed={manualOpen} onClick={openManual}><CalendarSymbol name="plus" size={15}/>Prepare another meeting</button>

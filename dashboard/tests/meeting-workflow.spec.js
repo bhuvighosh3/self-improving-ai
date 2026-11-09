@@ -67,6 +67,37 @@ test("Copilot asks only for the client before looking up the next appointment", 
   await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
 });
 
+for (const width of [1280, 390]) {
+test(`Calendar appointments and unlinked saved briefs stay separate at ${width}px`, async ({ page }, testInfo) => {
+  const calendarEvent = { id: "CALENDAR-GARCIA", version: "calendar-v1", client_id: "CLI-001", client_name: "Garcia Family",
+    title: "Calendar review", focus: "Retirement review", starts_at: "2026-11-12T14:00:00-05:00", date: "2026-11-12", start_time: "14:00", duration_minutes: 60, prep_required: true };
+  const saved = { id: "saved:UNLINKED", version: "UNLINKED", brief_id: "UNLINKED", kind: "saved_brief", client_id: "CLI-004", client_name: "Okafor Family",
+    title: "Unscheduled funding brief", focus: "Unscheduled funding brief", starts_at: "2026-11-12T14:00:00-05:00", date: "2026-11-12", start_time: "14:00", mode: "simulation", prep_required: true };
+  const state = { now: "2026-11-11T15:00:00-05:00", enabled: false, mode: "simulation", events: [calendarEvent], saved_meetings: [saved], preparations: [] };
+  await page.route("**/api/meeting-preparations", route => route.fulfill({ json: state }));
+  await page.route("**/api/briefings/UNLINKED", route => route.fulfill({ json: {
+    id: "UNLINKED", client_id: saved.client_id, client_name: saved.client_name, contact: "Synthetic client", meeting_date: saved.date,
+    meeting_time: saved.start_time, focus: saved.focus, mode: "simulation", data_as_of: "2026-11-11", news: [], sources: [{ id: "PROFILE", title: "Synthetic profile" }],
+    sections: [{ id: "priorities", title: "Discussion Priorities", items: [{ id: "priority-1", title: "Confirm funding plans", text: "Confirm the client's current plans.", why: "Plans need confirmation.", question: "What changed?", source_ids: ["PROFILE"] }] }],
+  } }));
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto("/");
+  if (width < 768) await page.getByLabel("Navigate to page").selectOption("meeting");
+  else await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
+  const list = page.getByRole("complementary", { name: "Client meetings" });
+  await expect(list.getByText("Calendar review", { exact: true })).toBeVisible();
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await list.getByRole("button", { name: "This week", exact: true }).click();
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("calendar-aligned-meetings.png"), fullPage: true });
+  await list.getByRole("button", { name: "Saved briefs", exact: true }).click();
+  await expect(list.getByText(saved.title, { exact: true })).toBeVisible();
+  await expect(list.getByRole("heading", { name: "Not linked to Calendar", exact: true })).toBeVisible();
+  await list.getByRole("button", { name: "Open saved brief for Okafor Family", exact: true }).click();
+  await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", "UNLINKED");
+});
+}
+
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
   test(`Copilot prepares from calendar without a form at ${viewport.width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
