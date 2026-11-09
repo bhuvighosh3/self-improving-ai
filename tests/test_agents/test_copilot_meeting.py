@@ -6,7 +6,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 
@@ -29,18 +29,26 @@ class CopilotMeetingTests(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def test_explicit_details_are_suggestions_until_the_advisor_confirms(self):
+    def test_client_request_uses_calendar_details_without_a_confirmation_form(self):
         details = collect_meeting_details(
             "Prepare a meeting for Wei Chen tomorrow at 2pm — ARKK tax-loss harvesting",
             CLIENTS, today=date(2026, 10, 28),
         )
         self.assertEqual(details, {"client_id": "CLI-003", "meeting_date": "2026-10-29",
                                   "meeting_time": "14:00", "focus": "ARKK tax-loss harvesting"})
-        with patch("self_improving_ai.dashboard.app.generate_meeting_brief") as generate:
+        event = {"id": "CHEN-MEETING", "client_id": "CLI-003", "date": "2026-11-18", "start_time": "11:00",
+                 "title": "Chen discussion", "notes": "ARKK tax-loss harvesting", "type": "portfolio_review"}
+        brief = generate_meeting_brief(MeetingBriefRequest(client_id="CLI-003", meeting_date=event["date"],
+            meeting_time=event["start_time"], focus=event["notes"]))
+        with patch("self_improving_ai.dashboard.app._meeting_workspace", return_value={
+            "now": "2026-11-11T15:00:00-05:00", "mode": "agent", "events": [event]}), patch(
+            "self_improving_ai.dashboard.app.create_meeting_brief", new=AsyncMock(return_value=brief)) as generate:
             response = asyncio.run(chat(ChatRequest(message="Prepare a meeting for Wei Chen")))
-            self.assertIn("meeting_details", response)
-            self.assertNotIn("brief", response)
-            generate.assert_not_called()
+            self.assertNotIn("meeting_details", response)
+            self.assertEqual(response["brief"], brief)
+            self.assertEqual(generate.await_args.args[0].calendar_event_id, event["id"])
+            self.assertEqual(generate.await_args.args[0].mode, "agent")
+            generate.assert_awaited_once()
 
     def test_missing_and_ambiguous_details_are_not_invented(self):
         details = collect_meeting_details("Prepare my meeting", CLIENTS)

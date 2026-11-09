@@ -7,6 +7,8 @@ import json
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -33,7 +35,9 @@ from self_improving_ai.config import settings
 from self_improving_ai.agents.briefing.schemas import BriefExportRequest, MeetingBriefRequest
 from self_improving_ai.agents.briefing.pdf import render_brief_pdf
 from self_improving_ai.agents.briefing.service import generate_meeting_brief
-from self_improving_ai.dashboard.meeting_requests import collect_meeting_details, is_meeting_request
+from self_improving_ai.dashboard.meeting_requests import (
+    collect_meeting_details, is_meeting_request, resolve_calendar_meeting,
+)
 from self_improving_ai.tools.orchestrator.catalog import search_tool_catalog
 from self_improving_ai.agents.briefing.workflow_models import CheckRequest, ReviewRequest
 from self_improving_ai.agents.briefing.store import DraftStore
@@ -383,37 +387,78 @@ async def get_stats():
     }
 
 
+def _meeting_chat_response(brief, *, event=None):
+    sections = {section["id"]: section for section in brief["sections"]}
+    highlights = sections["portfolio"]["items"]
+    response_text = (
+        f"**Meeting brief prepared: {brief['client_name']}**\n\n"
+        f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
+        f"**Focus:** {brief['focus']}\n\n"
+        f"**Portfolio:** {highlights[0]['text'] if highlights else 'See the full brief for portfolio context.'}\n\n"
+        + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
+        + "**Discussion priorities:**\n"
+        + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
+        + "\n\nOpen this brief to inspect sources, edit, review, or export it."
+    )
+    steps = []
+    if event:
+        response_text = f"I found **{event['title']}** on your calendar and prepared the brief for that appointment.\n\n" + response_text
+        steps.append({"agent": "meeting_briefing_agent", "action": "resolve_calendar_meeting",
+                      "detail": "Found the matching client appointment and loaded its meeting details",
+                      "tools_called": [], "origin": "backend_calendar_lookup"})
+    return {
+        "response": response_text, "intent": "meeting_briefing",
+        "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
+        "agents_used": ["meeting_briefing_agent"],
+        "steps": steps + [{"agent": "meeting_briefing_agent", "action": "build_briefing",
+                   "detail": f"Prepared six sections from {len(brief['sources'])} retained sources",
+                   "tools_called": brief["tools_called"]}],
+    }
+
+
+def _meeting_workspace():
+    monitor = getattr(app.state, "preparations", None)
+    if monitor is not None:
+        return monitor.state()
+    from self_improving_ai.workspace_store import workspace_snapshot
+    return {"now": datetime.now(ZoneInfo("America/New_York")).isoformat(),
+            "mode": "agent", "events": workspace_snapshot("calendar")}
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     if req.meeting is not None:
-        brief = await create_meeting_brief(req.meeting)
-        sections = {section["id"]: section for section in brief["sections"]}
-        highlights = sections["portfolio"]["items"]
-        response_text = (
-            f"**Meeting brief prepared: {brief['client_name']}**\n\n"
-            f"{brief['meeting_date']} at {brief['meeting_time']} · New York\n\n"
-            f"**Focus:** {brief['focus']}\n\n"
-            f"**Portfolio:** {highlights[0]['text'] if highlights else 'See the full brief for portfolio context.'}\n\n"
-            + (highlights[1]["text"] + "\n\n" if len(highlights) > 1 else "")
-            + "**Discussion priorities:**\n"
-            + "\n".join(f"- {item['title']}" for item in sections["priorities"]["items"])
-            + "\n\nOpen this brief to inspect sources, edit, review, or export it."
-        )
-        return {
-            "response": response_text, "intent": "meeting_briefing",
-            "client_id": brief["client_id"], "mode": brief["mode"], "brief": brief,
-            "agents_used": ["meeting_briefing_agent"],
-            "steps": [{"agent": "meeting_briefing_agent", "action": "build_briefing",
-                       "detail": f"Prepared six sections from {len(brief['sources'])} retained sources",
-                       "tools_called": brief["tools_called"]}],
-        }
+        return _meeting_chat_response(await create_meeting_brief(req.meeting))
 
     if is_meeting_request(req.message):
-        details = collect_meeting_details(req.message, await run_in_threadpool(_load_clients), req.client_id)
+        clients = await run_in_threadpool(_load_clients)
+        try:
+            workspace = await run_in_threadpool(_meeting_workspace)
+        except Exception as exc:
+            raise HTTPException(503, "I couldn't read your calendar. Check the workspace connection and try again.") from exc
+        now = datetime.fromisoformat(workspace["now"])
+        details = collect_meeting_details(req.message, clients, req.client_id, today=now.date())
+        resolved = resolve_calendar_meeting(details, workspace["events"], now)
+        if resolved["reason"] == "resolved":
+            meeting = MeetingBriefRequest(**resolved["details"], mode=workspace["mode"])
+            brief = await create_meeting_brief(meeting)
+            return _meeting_chat_response(brief, event=resolved.get("event"))
+        messages = {
+            "client_required": "Which client should I prepare for? Choose the client and I can look up their next meeting.",
+            "meeting_not_found": "I couldn't find a matching upcoming appointment for this client. Add the missing meeting details below.",
+            "multiple_meetings": "I found multiple matching appointments. Which one should I prepare for?",
+        }
         return {
-            "response": "Confirm the client, New York meeting time and focus, then choose how to prepare the brief.",
+            "response": messages[resolved["reason"]],
             "intent": "meeting_briefing", "client_id": details["client_id"] or None,
-            "meeting_details": details, "agents_used": [], "steps": [], "mode": "confirmation",
+            "meeting_details": {**details, "mode": workspace["mode"]},
+            "meeting_resolution": resolved["reason"],
+            "meeting_choices": [{"calendar_event_id": event["id"], "client_id": event["client_id"],
+                "title": event["title"], "meeting_date": event["date"], "meeting_time": event["start_time"][:5],
+                "focus": details["focus"] or (event.get("notes") or "").strip() or event["title"],
+                "meeting_type": event.get("meeting_type", "general_meeting"), "mode": workspace["mode"]}
+                for event in resolved.get("choices", [])],
+            "agents_used": [], "steps": [], "mode": "confirmation",
         }
 
     user_id = "advisor-001"

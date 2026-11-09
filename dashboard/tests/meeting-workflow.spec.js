@@ -50,13 +50,30 @@ test("limited historical coverage retains routine review and focus edits invalid
   await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
 });
 
+test("Copilot asks only for the client before looking up the next appointment", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Copilot", exact: true }).click();
+  await page.locator(".co-textarea").fill("Prepare my next meeting");
+  await page.locator(".co-send").click();
+  const form = page.locator(".co-meeting-form");
+  await expect(form).toBeVisible();
+  await expect(form.getByLabel("Meeting date")).toHaveCount(0);
+  await expect(form.getByLabel("Meeting focus")).toHaveCount(0);
+  await form.getByLabel("Client", { exact: true }).selectOption("CLI-002");
+  await page.screenshot({ path: testInfo.outputPath("client-only-lookup.png"), fullPage: true });
+  await form.getByRole("button", { name: "Find next meeting", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Open Meeting Brief", exact: true })).toBeVisible();
+  await expect(form).toHaveCount(0);
+  await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
+});
+
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
-  test(`Copilot hands off one retained brief at ${viewport.width}px`, async ({ page }) => {
+  test(`Copilot prepares from calendar without a form at ${viewport.width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const generations = [];
     page.on("request", request => {
       if (request.method() === "POST" && (request.url().endsWith("/api/briefings")
-          || request.url().endsWith("/api/chat") && request.postDataJSON()?.meeting)) {
+          || request.url().endsWith("/api/chat"))) {
         generations.push(request.url());
       }
     });
@@ -64,19 +81,19 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     if (viewport.width < 768) await page.getByLabel("Navigate to page").selectOption("copilot");
     else await page.getByRole("button", { name: "Copilot", exact: true }).click();
     await page.locator(".co-textarea").fill(
-      "Prepare a meeting for Okafor on 2026-11-11 at 2pm — Home purchase funding");
+      "prepare a meeting prep for Thompson Trust");
     await page.locator(".co-send").click();
     const form = page.locator(".co-meeting-form");
-    await expect(form).toBeVisible();
-    await expect(form.getByLabel("Client", { exact: true })).toHaveValue("CLI-004");
-    await expect(form.getByLabel("Meeting date")).toHaveValue("2026-11-11");
-    await expect(form.getByLabel("Meeting type")).toHaveCount(0);
-    await expect(form.getByLabel("Meeting focus")).toHaveValue("Home purchase funding");
-    await form.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Open Meeting Brief", exact: true })).toBeVisible();
+    await expect(form).toHaveCount(0);
+    await expect(page.getByRole("log", { name: "Conversation" })).toContainText("Bond Duration Follow-Up: Thompson Trust");
+    await page.screenshot({ path: testInfo.outputPath("automatic-preparation.png"), fullPage: true });
     await page.getByRole("button", { name: "Open Meeting Brief", exact: true }).click();
     await expect(page.getByLabel("Meeting type")).toHaveCount(0);
-    await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveValue("Home purchase funding");
-    await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("changed");
+    await expect(page.getByLabel("Meeting date", { exact: true })).toHaveValue("2026-11-14");
+    await expect(page.getByLabel("Time · New York", { exact: true })).toHaveValue("10:00");
+    await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveValue("Rate impact analysis on bond portfolio");
+    await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("Check: pass");
     await page.getByRole("button", { name: "Check draft", exact: true }).click();
     await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
     await expect(page.locator(".meeting-toolbar")).toContainText("Reviewed");

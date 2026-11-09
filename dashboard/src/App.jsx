@@ -52,17 +52,17 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
     "Quick summary of the Thompson Trust",
   ];
 
-  async function send(txt,meeting=null,sourceIndex=null){
+  async function send(txt,meeting=null,sourceIndex=null,clientOverride=null){
     const t=txt||input;
     if(!t.trim())return;
     setInput("");
     setMsgs(p=>[...p,{role:"user",text:t,time:ts()}]);
     setBusy(true);
     try{
-      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:cid||null,meeting})});
+      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,client_id:clientOverride||cid||null,meeting})});
       const d=await r.json();
       if(!r.ok)throw new Error(typeof d.detail==="string"?d.detail:"Check the meeting details and try again.");
-      setMsgs(p=>[...p.map((m,index)=>index===sourceIndex&&d.brief?{...m,meetingCompleted:true}:m),{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,brief:d.brief,meetingDetails:d.meeting_details,time:ts()}]);
+      setMsgs(p=>[...p.map((m,index)=>index===sourceIndex&&(d.brief||d.meeting_details)?{...m,meetingCompleted:true}:m),{role:"ai",text:d.response,intent:d.intent,agents:d.agents_used,steps:d.steps,client_id:d.client_id,mode:d.mode,brief:d.brief,meetingDetails:d.meeting_details,meetingResolution:d.meeting_resolution,meetingChoices:d.meeting_choices,time:ts()}]);
     }catch(error){
       setMsgs(p=>[...p,{role:"err",text:error.message==="Failed to fetch"?"Could not reach the server. Please try again.":error.message,time:ts()}]);
     }
@@ -106,8 +106,8 @@ function Copilot({clients,msgs,setMsgs,busy,setBusy,onOpenBrief}){
                     </div>
                   )}
                   <div className="bubble-text" dangerouslySetInnerHTML={{__html:md(m.text)}}/>
-                  {m.meetingDetails&&!m.meetingCompleted&&<CopilotMeetingForm details={m.meetingDetails} clients={clients} busy={busy} onGenerate={details=>send(`Prepare the meeting brief for ${clients.find(client=>client.client_id===details.client_id)?.profile.name||details.client_id} on ${details.meeting_date} at ${details.meeting_time}. Focus: ${details.focus}`,details,i)}/>}
-                  {m.meetingCompleted&&<p className="co-meeting-confirmed">Meeting details confirmed.</p>}
+                  {m.meetingDetails&&!m.meetingCompleted&&<CopilotMeetingForm details={m.meetingDetails} clients={clients} busy={busy} resolution={m.meetingResolution} choices={m.meetingChoices} onLookup={clientId=>send("Prepare my next client meeting",null,i,clientId)} onGenerate={details=>send(`Prepare the meeting brief for ${clients.find(client=>client.client_id===details.client_id)?.profile.name||details.client_id} on ${details.meeting_date} at ${details.meeting_time}. Focus: ${details.focus}`,details,i)}/>}
+                  {m.meetingCompleted&&<p className="co-meeting-confirmed">Meeting request updated.</p>}
                   {m.brief&&<button className="meeting-btn primary co-open-brief" onClick={()=>onOpenBrief(m.brief)}>Open Meeting Brief</button>}
                   <div className="bubble-foot">
                     {m.intent&&<span className={`chip ${INTENT_CHIP[m.intent]||"chip-accent"}`}>{m.intent.replace(/_/g," ")}</span>}

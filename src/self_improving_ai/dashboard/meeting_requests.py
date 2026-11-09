@@ -1,8 +1,10 @@
-"""Extract conservative meeting suggestions for advisor confirmation."""
+"""Resolve meeting requests from user details and the existing calendar."""
 
 import re
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
+
+from self_improving_ai.calendar_adapter import TYPE_MAP
 
 
 def is_meeting_request(message: str) -> bool:
@@ -69,3 +71,38 @@ def collect_meeting_details(message: str, clients: list[dict], selected_client_i
     focus = focus_match.group(1).strip()[:500] if focus_match else ""
     return {"client_id": client_id, "meeting_date": meeting_date,
             "meeting_time": meeting_time, "focus": focus}
+
+
+def resolve_calendar_meeting(details: dict, events: list[dict], now: datetime) -> dict:
+    """Use a client's next matching appointment; never invent missing schedule data."""
+    candidates = []
+    if not details["client_id"]:
+        return {"details": details, "reason": "client_required"}
+    for event in events:
+        if event.get("client_id") != details["client_id"]:
+            continue
+        if details["meeting_date"] and event["date"] != details["meeting_date"]:
+            continue
+        if details["meeting_time"] and event["start_time"][:5] != details["meeting_time"]:
+            continue
+        start = datetime.fromisoformat(event["date"] + "T" + event["start_time"]).replace(tzinfo=ZoneInfo("America/New_York"))
+        if not details["meeting_date"] and start < now:
+            continue
+        candidates.append((start, event))
+    candidates.sort(key=lambda item: (item[0], item[1]["id"]))
+    if candidates:
+        first_time = candidates[0][0]
+        matching = [event for start, event in candidates if start == first_time]
+        # A specified day with several appointments needs a choice; an
+        # unspecified date means the next appointment for this client.
+        if len(matching) > 1 or (details["meeting_date"] and not details["meeting_time"] and len(candidates) > 1):
+            return {"details": details, "reason": "multiple_meetings", "choices": [event for _, event in candidates[:5]]}
+        event = matching[0]
+        resolved = {**details, "calendar_event_id": event["id"],
+                    "meeting_date": event["date"], "meeting_time": event["start_time"][:5],
+                    "focus": details["focus"] or (event.get("notes") or "").strip() or event["title"],
+                    "meeting_type": event.get("meeting_type") or TYPE_MAP.get(event.get("type"), "general_meeting")}
+        return {"details": resolved, "event": event, "reason": "resolved"}
+    if all(details.values()):
+        return {"details": details, "reason": "resolved"}
+    return {"details": details, "reason": "meeting_not_found"}

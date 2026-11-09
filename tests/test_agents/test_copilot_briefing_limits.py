@@ -4,6 +4,7 @@ import asyncio
 import importlib
 import json
 from copy import deepcopy
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -181,6 +182,66 @@ def test_focus_only_requests_and_existing_calendar_types_are_compatible():
     assert normalized["meeting_type"] == "general_meeting"
     assert normalized["focus"] == event["title"]
     assert event["type"] == "custom_topic"
+
+
+async def test_client_only_copilot_request_looks_up_next_calendar_meeting(api):
+    client = {"client_id": REQUEST["client_id"], "profile": {"name": "Thompson Trust", "primary_contact": "Alex Thompson"}}
+    event = {"id": "NEXT-THOMPSON", "client_id": client["client_id"], "title": "Bond duration follow-up",
+             "date": "2026-11-14", "start_time": "10:00", "notes": "Rate impact on the bond portfolio", "type": "follow_up"}
+    older = {**event, "id": "OLD-THOMPSON", "date": "2026-10-28"}
+    brief = {**synthetic_brief(), "client_name": "Thompson Trust", "meeting_date": event["date"],
+             "meeting_time": event["start_time"], "focus": event["notes"]}
+    with patch.object(api, "_load_clients", return_value=[client]), \
+         patch.object(api, "_meeting_workspace", return_value={
+             "now": "2026-11-11T15:00:00-05:00", "mode": "agent", "events": [older, event]}), \
+         patch.object(api, "create_meeting_brief", new=AsyncMock(return_value=brief)) as generate:
+        result = await api.chat(api.ChatRequest(message="prepare a meeting prep for Thompson Trust"))
+    assert "meeting_details" not in result
+    assert result["brief"] == brief
+    assert "calendar" in result["response"]
+    generate.assert_awaited_once()
+    request = generate.await_args.args[0]
+    assert request.calendar_event_id == event["id"]
+    assert request.meeting_date.isoformat() == event["date"]
+    assert request.meeting_time.strftime("%H:%M") == event["start_time"]
+    assert request.focus == event["notes"]
+    assert request.mode == "agent"
+
+
+def test_calendar_resolution_respects_explicit_details_and_asks_on_ambiguity():
+    from self_improving_ai.dashboard.meeting_requests import resolve_calendar_meeting
+
+    now = datetime.fromisoformat("2026-11-11T15:00:00-05:00")
+    details = {"client_id": REQUEST["client_id"], "meeting_date": "", "meeting_time": "", "focus": ""}
+    event = {"id": "FIRST", "client_id": details["client_id"], "date": "2026-11-12", "start_time": "10:00",
+             "title": "Client follow-up", "notes": "", "type": "follow_up"}
+    later = {**event, "id": "LATER", "start_time": "14:00"}
+    other_client = {**event, "id": "OTHER", "client_id": "ANOTHER-CLIENT"}
+    selected = resolve_calendar_meeting(details, [later, other_client, event], now)
+    assert selected["details"]["calendar_event_id"] == event["id"]
+    assert selected["details"]["focus"] == event["title"]
+    selected = resolve_calendar_meeting({**details, "meeting_time": "14:00", "focus": "Specific advisor question"}, [event, later], now)
+    assert selected["details"]["calendar_event_id"] == later["id"]
+    assert selected["details"]["focus"] == "Specific advisor question"
+    ambiguous = resolve_calendar_meeting({**details, "meeting_date": event["date"]}, [event, later], now)
+    assert ambiguous["reason"] == "multiple_meetings"
+    simultaneous = resolve_calendar_meeting(details, [event, {**event, "id": "DUPLICATE"}], now)
+    assert simultaneous["reason"] == "multiple_meetings"
+    assert resolve_calendar_meeting(details, [other_client], now)["reason"] == "meeting_not_found"
+    assert resolve_calendar_meeting({**details, "client_id": ""}, [event], now)["reason"] == "client_required"
+
+
+async def test_calendar_failure_does_not_look_like_missing_meeting_details(api):
+    from fastapi import HTTPException
+
+    with patch.object(api, "_load_clients", return_value=[]), \
+         patch.object(api, "_meeting_workspace", side_effect=RuntimeError("Private provider details")), \
+         patch.object(api, "create_meeting_brief", new=AsyncMock()) as generate, \
+         pytest.raises(HTTPException) as caught:
+        await api.chat(api.ChatRequest(message="Prepare my meeting"))
+    assert caught.value.status_code == 503
+    assert "Private" not in caught.value.detail
+    generate.assert_not_awaited()
 
 
 @pytest.mark.parametrize("truncated", [False, True])

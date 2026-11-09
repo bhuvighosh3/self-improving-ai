@@ -89,10 +89,11 @@ For live generation, configure `GOOGLE_API_KEY` and
 The `.env.example` contains placeholders only. No key is required for Offline demo.
 The model and reviewer incur API usage when AI mode is selected.
 
-Explicit Copilot preparation requests open the existing confirmation form, with
-client, date, New York time and meeting focus. Confirming calls the same generation,
-server persistence and error handling as Meeting Prep; opening the returned brief
-does not generate it again. Both entry points default to Offline demo. Other
+Explicit Copilot preparation requests resolve the client's next matching Calendar
+appointment and call the same generation, server persistence and error handling as
+Meeting Prep. The meeting date, New York time and focus come from the appointment;
+opening the returned brief does not generate it again. Preparation follows the
+current Calendar AI Agent/Offline demo setting. Other
 Copilot requests continue to use C's live orchestrator. This narrow UI handoff does
 does not itself schedule work. The separate simulated calendar worker provides
 proactive preparation; there is no external email/calendar connection. C's ADK tool
@@ -124,6 +125,26 @@ The production frontend build and scoped design detector passed. A broader run
 also reproduced two unchanged baseline failures: a legacy news-fixture expectation
 after the news provider migration, and a missing `TemporaryDirectory` import in
 an existing workflow test. Both fail on the original main checkout as well.
+
+### Automatic Copilot preparation (2026-11-09)
+
+Client-only requests such as `prepare a meeting prep for Thompson Trust` no longer
+stop at an empty confirmation form. The backend resolves the next matching client
+appointment using the workspace clock, preserves explicit advisor date/time/focus
+overrides, and passes the calendar event ID to the existing B preparation service.
+The response names the matched appointment and opens the retained brief.
+
+Only unresolved information requires input. An unknown client produces a client
+selector and **Find next meeting**; overlapping appointments or several matches
+on a specified day produce appointment choices. Missing appointments expose the
+manual form with known fields retained. Calendar connection failures remain
+visible errors rather than being mistaken for missing user input. No calendar
+events are changed, and this automatic lookup does not alter A or C agent logic.
+
+The screenshot's exact Thompson Trust request is covered by the real local HTTP
+and desktop/mobile browser flow in Offline demo mode. Offline backend checks
+also verify that AI mode delegates once to the shared service, with the correct
+calendar ID, date, time and focus. These checks do not claim a new live Gemini run.
 
 ## Independent evaluation
 

@@ -70,6 +70,9 @@
 .meeting-print-status, .meeting-print-evidence { display: none; }
 .mobile-page-select { display: none; width: auto; max-width: 170px; }
 .co-meeting-form { border-top: 1px solid var(--border-subtle); margin-top: 14px; padding-top: 14px; }
+.co-meeting-choices { display: grid; gap: 8px; }
+.co-meeting-choices .meeting-btn { justify-content: space-between; gap: 16px; text-align: left; white-space: normal; flex-wrap: wrap; }
+.co-meeting-choices small { display: block; margin-top: 4px; color: var(--text-3); font-weight: 400; }
 .co-meeting-form .meeting-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .co-meeting-form .meeting-fields > label:first-child,
 .co-meeting-form .meeting-focus, .co-meeting-form .meeting-fields > button { grid-column: 1 / -1; }
