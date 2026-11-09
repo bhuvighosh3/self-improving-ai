@@ -49,6 +49,14 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ```bash
 cd dashboard
 npx playwright install
+
+# All 10 copilot questions (Q1-Q10)
+npx playwright test tests/copilot-10q.spec.js
+
+# Q8 meeting brief with 5 different phrasings
+npx playwright test tests/copilot-q8-variants.spec.js
+
+# All tests
 npx playwright test
 ```
 
@@ -112,7 +120,7 @@ Three agents connected via Google ADK's `AgentTool`:
 
 - **Request Orchestrator** (Component C) — parses advisor requests, uses direct workspace tools (calendar, email, CRM, client info, holdings) for simple lookups, delegates complex tasks to sub-agents, and runs a ReAct plan-execute-check loop with a lightweight completion checker
 - **Portfolio Estimation Agent** (Component A) — handles numeric portfolio questions (risk/return, projections, drift, tax impact)
-- **Meeting Briefing Agent** (Component B) — prepares client meeting briefings from CRM, portfolio, and market data
+- **Meeting Briefing Agent** (Component B) — prepares client meeting briefings from CRM, portfolio, and market data; wrapped in `CappedBriefingAgentTool` to cap output before it reaches the orchestrator
 
 ```
 Advisor request
@@ -138,7 +146,7 @@ Advisor request
 └──────────────────────────────────────┘
 ```
 
-The orchestrator uses `AgentTool` to call sub-agents and plain functions for direct data lookups. A ReAct plan-execute-check loop (`run_copilot`) wraps each request: the orchestrator executes, then a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. If incomplete, the gap is fed back for a retry, bounded by `max_loops=2` and `max_llm_calls=25` per run.
+The orchestrator uses `AgentTool` to call sub-agents and plain functions for direct data lookups. The briefing agent is wrapped in `CappedBriefingAgentTool`, an `AgentTool` subclass that intercepts the full structured output (6 sections, claims, findings, evidence), persists it to `DraftStore` (SQLite), and returns only a compact summary upstream — preventing the orchestrator's context from being overwhelmed by large briefings. A ReAct plan-execute-check loop (`run_copilot`) wraps each request: the orchestrator executes, then a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. If incomplete, the gap is fed back for a retry, bounded by `max_loops=2` and `max_llm_calls=25` per run.
 
 ### Copilot Test Results (10 Questions)
 
@@ -151,11 +159,11 @@ The orchestrator uses `AgentTool` to call sub-agents and plain functions for dir
 | Q5 | Garcia's current holdings | get_client_holdings | 23.8s | PASS |
 | Q6 | Latest CRM notes for Thompson | get_crm_summary | 21.0s | PASS |
 | Q7 | Holdings + upcoming meetings | get_client_holdings, get_upcoming_events | 19.3s | PASS |
-| Q8 | Prepare meeting brief for Garcia | meeting_briefing_agent + 5 tools | 209s | PASS (truncated) |
+| Q8 | Prepare meeting brief for Garcia | CappedBriefingAgentTool + 5 tools | ~180s | PASS |
 | Q9 | Risk profile of Garcia's portfolio | portfolio_estimation_agent | 90.6s | PASS |
 | Q10 | Explain tax-loss harvesting (domain) | none (answered directly) | 36.7s | PASS |
 
-**10/10 passed.** Q8 correctly routed to the briefing sub-agent and gathered all data (calendar, CRM, client info, holdings), but the response was truncated by Gemini's output token limit. The completion checker detected the truncation and retried twice before returning best-effort.
+**10/10 passed.** Q8 routes to the briefing sub-agent via `CappedBriefingAgentTool`, which intercepts the full structured output, persists it to `DraftStore`, and returns only a compact summary to the orchestrator — preventing Gemini's output token limit from truncating the response. The copilot UI presents a meeting confirmation form before generating the brief.
 
 ## Self-Improvement Mechanisms
 
@@ -181,7 +189,7 @@ Each agent improves through different strategies, all gated by the shared improv
 - **Frontend**: React + Vite
 - **Deployment**: GCP Cloud Run (continuous deployment from `main`)
 - **Observability**: OpenTelemetry → GCP Cloud Trace
-- **Testing**: Playwright
+- **Testing**: Playwright (10-question copilot suite + Q8 variant phrasings)
 
 ## Dashboard
 
