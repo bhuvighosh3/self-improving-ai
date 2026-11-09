@@ -200,8 +200,8 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
                 try:
                     retained_schema = work_schema(state["meeting_evidence"], state.get("meeting_calculations", []))
                     work = assemble_work(retained_schema.model_validate(content).model_dump())
-                except ValidationError:
-                    work = {"invalid_content": content}
+                except ValidationError as exc:
+                    work = {"invalid_content": content, "validation_error": str(exc)}
                 evidence = state["meeting_evidence"]
                 calculations = state.get("meeting_calculations", [])
             objective = check_work(work, evidence, calculations)

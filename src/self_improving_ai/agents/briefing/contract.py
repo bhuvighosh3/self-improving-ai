@@ -33,8 +33,11 @@ def work_schema(evidence: dict, calculations: list):
     sections = create_model("SixSectionContent", __base__=StrictModel, **{
         key: (list[agenda if key == "priorities" else item], Field(min_length=1, max_length=20))
         for key in SECTIONS})
+    # Keep provider output validation permissive enough to return weak changes;
+    # canonical AgentWork validation below rejects single-source comparisons
+    # and lets the bounded repair loop ask the model to fix or omit them.
     change = create_model("SourcedChange", __base__=ContextChange,
-                          source_ids=(list[source], Field(min_length=2)))
+                          source_ids=(list[source], Field(min_length=1)))
     finding = create_model("ContentFinding", __base__=StrictModel,
         claim=(str, ...), origin=(Literal["routine", "client_change", "investment_service_change"], ...),
         source_ids=(list[source], Field(min_length=1)), rationale=(str, Field(min_length=1)),
