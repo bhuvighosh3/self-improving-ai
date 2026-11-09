@@ -159,8 +159,13 @@ async def test_api_and_copilot_share_frozen_workspace_and_persistence(api, tmp_p
         return synthetic_brief()
 
     records = [{"id": "EMAIL-1", "client_id": REQUEST["client_id"], "date": "2026-11-09", "body": "Tentative plans"}]
+    event = {"id": "SYNTHETIC-EVENT", "client_id": REQUEST["client_id"], "date": REQUEST["meeting_date"],
+        "title": "Synthetic meeting", "start_time": "14:00", "end_time": "14:45", "type": "general_meeting"}
     with patch("self_improving_ai.tools.briefing.workspace_sources.client_mail_snapshot", return_value=records), \
+         patch("self_improving_ai.workspace_store.workspace_snapshot", return_value=[event]), \
+         patch("self_improving_ai.workspace_store.get_store") as calendar, \
          patch("self_improving_ai.agents.briefing.runtime.generate_agent_brief", side_effect=generate):
+        calendar.return_value.get_event.return_value = event
         result = await prepare_brief(MeetingBriefRequest(**REQUEST), as_of="2026-11-09", store=store)
     assert observed[0]["as_of"] == "2026-11-09"
     assert observed[0]["ai_mode"] is True

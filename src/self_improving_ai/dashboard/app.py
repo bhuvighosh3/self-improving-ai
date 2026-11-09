@@ -225,10 +225,20 @@ async def create_meeting_brief(req: MeetingBriefRequest):
         raise _generation_error(exc, 502, "Agent service unavailable. Check backend credentials or explicitly select Offline demo.") from exc
 
 
+def _require_current_calendar(brief):
+    event = brief.get("calendar_event")
+    monitor = getattr(app.state, "preparations", None)
+    if event and monitor is not None and not any(
+        current["id"] == event["id"] and current["version"] == event["version"] for current in monitor.events
+    ):
+        raise ValueError("This meeting changed. Open its updated preparation before reviewing.")
+
+
 @app.post("/api/briefings/check")
 async def check_meeting_draft(req: CheckRequest):
     try:
         original = DraftStore().get(req.brief["id"])["brief"]
+        await asyncio.to_thread(_require_current_calendar, original)
         return await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -253,6 +263,7 @@ async def review_meeting_draft(req: ReviewRequest):
     try:
         store = DraftStore()
         original = store.get(req.brief["id"])["brief"]
+        await asyncio.to_thread(_require_current_calendar, original)
         report = await asyncio.wait_for(check_draft(req.brief, original), timeout=90)
         if req.decision == "approve" and report["verdict"] != "pass":
             raise ValueError("Quality check requires revision before approval")
@@ -455,7 +466,7 @@ async def chat(req: ChatRequest):
             return _meeting_chat_response(brief, event=resolved.get("event"))
         messages = {
             "client_required": "Which client should I prepare for? Choose the client and I can look up their next meeting.",
-            "meeting_not_found": "I couldn't find a matching upcoming appointment for this client. Add the missing meeting details below.",
+            "meeting_not_found": "I couldn't find a matching upcoming appointment for this client. Add the meeting details below to save it to Calendar and prepare its brief.",
             "multiple_meetings": "I found multiple matching appointments. Which one should I prepare for?",
         }
         return {

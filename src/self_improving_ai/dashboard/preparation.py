@@ -142,25 +142,8 @@ class MeetingPreparationMonitor:
                 rows = db.execute("SELECT id,event_id,version,mode,status,brief_id,error,run_id FROM calendar_preparations "
                                   "WHERE mode!='agent' OR pipeline_version=?", (agent_pipeline(),)).fetchall()
         current = {(event["id"],str(event["version"])) for event in events}
-        linked = {row[5] for row in rows if row[4] == "ready"}
-        linked_slots = {(brief["client_id"], brief["meeting_date"], brief["meeting_time"]) for brief in saved if brief["id"] in linked}
-        saved_meetings = []
-        saved_slots = set()
-        for brief in saved:
-            if brief["id"] in linked or brief.get("calendar_event"):
-                continue
-            slot = (brief["client_id"], brief["meeting_date"], brief["meeting_time"])
-            if slot in linked_slots or slot in saved_slots:
-                continue
-            saved_slots.add(slot)
-            start = datetime.fromisoformat(brief["meeting_date"] + "T" + brief["meeting_time"]).replace(tzinfo=NY)
-            saved_meetings.append({"id": "saved:" + brief["id"], "version": brief["id"], "brief_id": brief["id"],
-                "kind": "saved_brief", "prep_required": True, "client_id": brief["client_id"],
-                "client_name": brief["client_name"], "title": brief["focus"], "focus": brief["focus"],
-                "starts_at": start.isoformat(), "date": brief["meeting_date"], "start_time": brief["meeting_time"],
-                "mode": brief["mode"], "review_status": brief["review_status"]})
         state.update(lookahead_hours=24, processing=self.processing, timezone="America/New_York",
-                     storage=settings.workspace_store, events=events, saved_meetings=saved_meetings, preparations=[dict(zip(
+                     storage=settings.workspace_store, events=events, preparations=[dict(zip(
                          ("id", "event_id", "version", "mode", "status", "brief_id", "error", "run_id"), row)) for row in rows
                          if (row[1],str(row[2])) in current])
         by_id = {brief["id"]: brief for brief in saved}
@@ -216,6 +199,17 @@ class MeetingPreparationMonitor:
                 db.execute("UPDATE calendar_preparations SET requested=1 WHERE event_id=? AND version=? AND mode=?",
                            (event["id"], event["version"], mode))
 
+    async def meeting_changed(self, event_id):
+        """An explicit edit refreshes an already requested/prepared meeting."""
+        async with self.lock:
+            state = await asyncio.to_thread(self.state)
+            event = next((event for event in state["events"] if event["id"] == event_id), None)
+            with self.db() as db:
+                prepared = db.execute("SELECT 1 FROM calendar_preparations WHERE event_id=? "
+                    "AND (status IN ('ready','preparing') OR requested=1) LIMIT 1", (event_id,)).fetchone()
+            if event and prepared:
+                self._enqueue_event(event, state["mode"], requested=True)
+
     async def request_event(self, event_id):
         async with self.lock:
             state = await asyncio.to_thread(self.state)
@@ -264,8 +258,11 @@ class MeetingPreparationMonitor:
             # The shared HTTP service emits safe messages; never expose provider payloads.
             error = exc.detail if isinstance(exc, HTTPException) and isinstance(exc.detail, str) else "Preparation interrupted. Retry to continue."
             run_id = (exc.headers or {}).get("X-Briefing-Run-ID") if isinstance(exc, HTTPException) else getattr(exc, "briefing_run_id", None)
+            current_events = await asyncio.to_thread(lambda: self.events)
+            valid = any(event["id"] == event_id and str(event["version"]) == str(event_version) for event in current_events)
             with self.db() as db:
-                db.execute("UPDATE calendar_preparations SET status='failed',error=?,run_id=? WHERE id=?", (error, run_id, job_id))
+                db.execute("UPDATE calendar_preparations SET status=?,error=?,run_id=? WHERE id=?",
+                    ("failed" if valid else "superseded", error, run_id, job_id))
             if isinstance(exc, asyncio.CancelledError):
                 raise
         finally:

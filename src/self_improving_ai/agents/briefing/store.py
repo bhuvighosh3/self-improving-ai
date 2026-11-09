@@ -64,6 +64,40 @@ class DraftStore:
         with self.connect() as db:
             self._link_calendar(db, brief)
 
+    def current_calendar_brief(self, event, mode):
+        """Reuse the current saved result instead of generating a second brief."""
+        from self_improving_ai.agents.briefing.contract import CONTRACT_VERSION
+        pipeline = CONTRACT_VERSION + ":" + settings.briefing_discovery if mode == "agent" else "offline-v1"
+        with self.connect() as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='calendar_preparations'").fetchone():
+                return None
+            row = db.execute("SELECT brief_id FROM calendar_preparations WHERE event_id=? AND version=? "
+                "AND mode=? AND status='ready' AND pipeline_version=?", (event["id"], event["version"], mode, pipeline)).fetchone()
+        return self.get(row[0])["brief"] if row else None
+
+    def begin_calendar_preparation(self, event, request):
+        """Make synchronous Copilot work visible to edits and the shared monitor."""
+        from uuid import uuid4
+
+        from self_improving_ai.agents.briefing.contract import CONTRACT_VERSION
+        pipeline = CONTRACT_VERSION + ":" + settings.briefing_discovery if request.mode == "agent" else "offline-v1"
+        with self.connect() as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='calendar_preparations'").fetchone():
+                return
+            db.execute("INSERT INTO calendar_preparations "
+                "(id,event_id,version,mode,status,request,requested,pipeline_version) VALUES (?,?,?,?, 'preparing',?,1,?) "
+                "ON CONFLICT(event_id,version,mode) DO UPDATE SET status='preparing',brief_id=NULL,error=NULL,requested=1,"
+                "request=excluded.request,pipeline_version=excluded.pipeline_version",
+                (str(uuid4()), event["id"], event["version"], request.mode, request.model_dump_json(), pipeline))
+
+    def fail_calendar_preparation(self, event, mode, run_id=None):
+        with self.connect() as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='calendar_preparations'").fetchone():
+                return
+            db.execute("UPDATE calendar_preparations SET status='failed',error=?,run_id=? "
+                "WHERE event_id=? AND version=? AND mode=? AND status='preparing'",
+                ("Preparation interrupted. Retry to continue.", run_id, event["id"], event["version"], mode))
+
     def summaries(self):
         """Return small saved-brief records, keeping evidence and traces server-side."""
         with self.connect() as db:

@@ -3,31 +3,12 @@ import "./meeting-prep.css";
 import { loadMeetingDraft, saveMeetingDraft } from "./meetingDraftStore";
 import { CalendarSymbol, meetingLabel } from "./calendarFormat";
 
-const FOCUS = {
-  "CLI-001": "Retirement planning and upcoming college funding",
-  "CLI-002": "Interest rates and bond portfolio duration",
-  "CLI-003": "ARKK tax-loss harvesting and early retirement",
-  "CLI-004": "Home purchase down payment and funding options",
-  "CLI-005": "Monthly withdrawals and inherited IRA distribution schedule",
-};
-
-function tomorrow() {
-  const date = new Date();
-  date.setDate(date.getDate() + 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-export default function MeetingPrep({ clients, selectedClient, incomingBrief, calendarEvent, onBackToCalendar, freshDraft = false, embedded = false, defaultDate }) {
-  const [saved] = useState(() => freshDraft ? null : loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
+export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCalendar }) {
+  const [saved] = useState(() => loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
   const [brief, setBrief] = useState(saved?.brief || null);
-  const [clientId, setClientId] = useState(saved?.brief.client_id || "CLI-003");
-  const [meetingDate, setMeetingDate] = useState(saved?.brief.meeting_date || defaultDate || tomorrow());
-  const [meetingTime, setMeetingTime] = useState(saved?.brief.meeting_time || "14:00");
-  const [focus, setFocus] = useState(saved?.brief.focus || FOCUS["CLI-003"]);
   const [reviewedAt, setReviewedAt] = useState(saved?.reviewedAt || null);
   const [revision, setRevision] = useState(saved?.revision || 1);
   const [edited, setEdited] = useState(saved?.edited || false);
-  const [mode] = useState("agent");
   const [quality, setQuality] = useState(saved?.brief.workflow?.quality || null);
   const [serverRevision, setServerRevision] = useState(saved?.serverRevision || 1);
   const [editing, setEditing] = useState(false);
@@ -38,16 +19,8 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
   const [selectedSource, setSelectedSource] = useState(null);
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
-  const requestRef = useRef(null);
-  const stale = brief && (clientId !== brief.client_id || meetingDate !== brief.meeting_date || meetingTime !== brief.meeting_time || focus.trim() !== brief.focus
-    || Boolean(calendarEvent?.version && brief.calendar_event?.version && calendarEvent.version !== brief.calendar_event.version));
-
-  useEffect(() => {
-    if (selectedClient) {
-      setClientId(selectedClient.client_id);
-      setFocus(FOCUS[selectedClient.client_id] || "Client priorities and open follow-ups");
-    }
-  }, [selectedClient]);
+  const stale = Boolean(brief && calendarEvent?.version && brief.calendar_event?.version
+    && calendarEvent.version !== brief.calendar_event.version);
 
   useEffect(() => {
     if (selectedSource) {
@@ -66,42 +39,10 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
     const afterPrint = () => document.body.classList.remove("printing-meeting");
     window.addEventListener("afterprint", afterPrint);
     return () => {
-      requestRef.current?.abort();
       window.removeEventListener("afterprint", afterPrint);
       afterPrint();
     };
   }, []);
-
-  async function generate(event) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    const controller = new AbortController();
-    requestRef.current = controller;
-    try {
-      const sameMeeting = brief?.client_id === clientId && brief.meeting_date === meetingDate && brief.meeting_time === meetingTime;
-      const response = await fetch("/api/briefings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: clientId, meeting_date: meetingDate, meeting_time: meetingTime, focus: focus.trim(), mode, meeting_type: sameMeeting ? brief.meeting_type : undefined }),
-        signal: controller.signal,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Check the client, meeting date, time and focus, then try again.");
-      setBrief(result);
-      setQuality(result.workflow?.quality || null);
-      setServerRevision(1);
-      setReviewedAt(null);
-      setRevision(1);
-      setEdited(false);
-      setEditing(false);
-      setSelectedSource(null);
-    } catch (err) {
-      if (err.name !== "AbortError") setError(err.message === "Failed to fetch" ? "Could not reach the server. Check the backend and try again." : err.message);
-    } finally {
-      if (!controller.signal.aborted) setBusy(false);
-    }
-  }
 
   function updateItem(sectionId, itemId, field, value) {
     setBrief(current => ({ ...current, sections: current.sections.map(section => section.id !== sectionId ? section : {
@@ -173,30 +114,17 @@ export default function MeetingPrep({ clients, selectedClient, incomingBrief, ca
       {calendarEvent ? <header className="calendar-prep-context no-meeting-print">
         <button className="calendar-back" onClick={onBackToCalendar}><CalendarSymbol name="previous" size={16}/>Back to calendar</button>
         <div><h2>{calendarEvent.client_name}</h2><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft for your review"}</span></div>
-        <p>{calendarEvent.title} · {calendarEvent.kind === "saved_brief" ? "Saved brief · No calendar meeting" : meetingLabel(calendarEvent)}</p>
-      </header> : !embedded && <div className="meeting-heading no-meeting-print">
+        <p>{calendarEvent.title} · {meetingLabel(calendarEvent)}</p>
+      </header> :  <div className="meeting-heading no-meeting-print">
         <div><h2>Meeting Prep</h2></div>
       </div>}
-
-      {!calendarEvent && <form className="card meeting-form no-meeting-print" onSubmit={generate}>
-        <div className="card-body meeting-fields">
-          <label>Client<select aria-label="Client" value={clientId} onChange={event => { setClientId(event.target.value); setFocus(FOCUS[event.target.value] || "Client priorities and open follow-ups"); }} disabled={busy} required>
-            {!clients.length && <option value="">Loading clients…</option>}
-            {clients.map(client => <option value={client.client_id} key={client.client_id}>{client.profile.name}</option>)}
-          </select></label>
-          <label>Meeting date<input type="date" value={meetingDate} onChange={event => setMeetingDate(event.target.value)} disabled={busy} required /></label>
-          <label>Time · New York<input type="time" value={meetingTime} onChange={event => setMeetingTime(event.target.value)} disabled={busy} required /></label>
-          <label className="meeting-focus">Meeting focus<input value={focus} onChange={event => setFocus(event.target.value)} minLength={3} maxLength={500} disabled={busy} required placeholder="What should this meeting focus on?" /></label>
-          <button className="meeting-btn primary" disabled={busy || !clients.length || !focus.trim()} type="submit">{busy ? "Preparing brief…" : "Generate Meeting Brief"}</button>
-        </div>
-      </form>}
 
       {error && <div className="meeting-message error" role="alert">{error}</div>}
       {notice && <div className="meeting-message" role="status">{notice}</div>}
 
       {!brief && <div className="meeting-empty card" aria-live="polite">
         <h3>Your next meeting, prepared.</h3>
-        <p>Select a client and meeting focus to prepare a brief with discussion priorities, open actions and supporting sources.</p>
+        <p>Choose a meeting from Calendar to view its preparation.</p>
         <div className="meeting-empty-sections"><span>Client context</span><span>Portfolio highlights</span><span>Evidence & follow-ups</span></div>
       </div>}
 

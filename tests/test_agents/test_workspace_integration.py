@@ -113,17 +113,70 @@ def test_unlinked_earlier_brief_is_recovered_without_changing_reviewed_content(w
     assert http.get(f"/api/meeting-preparations/{job['id']}/brief").status_code == 409
 
 
-def test_manual_brief_without_calendar_event_is_listed_without_creating_an_appointment(workspace):
+def test_new_preparation_creates_one_calendar_meeting_and_reuses_its_brief(workspace):
     http, monitor = workspace
     before = http.get("/api/calendar/events?year=2026&month=11").json()
-    response = http.post("/api/briefings", json={"client_id": "CLI-002", "meeting_date": "2026-11-16",
-        "meeting_time": "13:15", "focus": "Discuss new client questions", "mode": "simulation"})
+    request = {"client_id": "CLI-002", "meeting_date": "2026-11-16",
+        "meeting_time": "13:15", "focus": "Discuss new client questions", "mode": "simulation"}
+    response = http.post("/api/briefings", json=request)
     assert response.status_code == 200, response.text
     brief = response.json()
-    row = next(event for event in monitor.state()["saved_meetings"] if event["brief_id"] == brief["id"])
-    assert row["kind"] == "saved_brief"
+    after = http.get("/api/calendar/events?year=2026&month=11").json()
+    assert len(after) == len(before) + 1
+    event = next(event for event in after if event["id"] == brief["calendar_event"]["id"])
+    assert event["date"] == request["meeting_date"] and event["start_time"] == request["meeting_time"]
+    assert event["notes"] == request["focus"]
+    assert not monitor.state().get("saved_meetings")
+    with patch("self_improving_ai.dashboard.app.generate_meeting_brief") as generate:
+        repeated = http.post("/api/briefings", json=request)
+        assert repeated.status_code == 200, repeated.text
+        assert repeated.json()["id"] == brief["id"]
+        generate.assert_not_called()
     assert http.get(f"/api/briefings/{brief['id']}").json()["id"] == brief["id"]
-    assert http.get("/api/calendar/events?year=2026&month=11").json() == before
+
+
+def test_editing_a_prepared_meeting_refreshes_the_same_meeting_even_outside_the_window(workspace):
+    http, monitor = workspace
+    event = http.post("/api/calendar/events", json={**EVENT, "date": "2026-11-24"}).json()
+    job = http.post(f"/api/meeting-preparations/events/{event['id']}").json()
+    asyncio.run(monitor.tick())
+    old = http.get(f"/api/meeting-preparations/{job['id']}/brief").json()
+    change = {"title": "Updated home funding review", "date": "2026-11-25", "start_time": "15:00",
+        "end_time": "15:45", "notes": "Confirm revised home budget and timing", "location": "Video call"}
+    assert http.put(f"/api/calendar/events/{event['id']}", json=change).status_code == 200
+    state = monitor.state()
+    jobs = [row for row in state["preparations"] if row["event_id"] == event["id"]]
+    assert len(jobs) == 1 and jobs[0]["status"] == "queued"
+    assert http.get(f"/api/meeting-preparations/{job['id']}/brief").status_code == 409
+    assert http.post("/api/briefings/check", json={"brief": old}).status_code == 422
+    assert http.post("/api/briefings/review", json={"brief": old, "revision": 1,
+        "expected_revision": 1, "decision": "approve"}).status_code == 409
+    asyncio.run(monitor.tick())
+    current = next(row for row in monitor.state()["preparations"] if row["event_id"] == event["id"])
+    updated = http.get(f"/api/meeting-preparations/{current['id']}/brief").json()
+    assert updated["id"] != old["id"]
+    assert updated["calendar_event"]["id"] == event["id"]
+    assert updated["meeting_date"] == change["date"] and updated["meeting_time"] == change["start_time"]
+    assert updated["focus"] == change["notes"] and updated["calendar_event"]["location"] == change["location"]
+    assert DraftStore(settings.db_path).get(old["id"])["brief"] == old
+
+
+def test_edit_during_generation_does_not_publish_an_obsolete_brief(workspace):
+    http, monitor = workspace
+    event = http.post("/api/calendar/events", json=EVENT).json()
+    def edit_then_generate(request):
+        assert http.put(f"/api/calendar/events/{event['id']}", json={"notes": "Updated during preparation"}).status_code == 200
+        return generate_meeting_brief(request)
+    with patch("self_improving_ai.dashboard.app.generate_meeting_brief", side_effect=edit_then_generate):
+        response = http.post("/api/briefings", json={"calendar_event_id": event["id"],
+            "client_id": EVENT["client_id"], "meeting_date": EVENT["date"], "meeting_time": EVENT["start_time"],
+            "focus": EVENT["notes"], "mode": "simulation"})
+    assert response.status_code == 422
+    assert not DraftStore(settings.db_path).summaries()
+    assert not any(job["status"] == "ready" for job in monitor.state()["preparations"])
+    assert next(job for job in monitor.state()["preparations"] if job["event_id"] == event["id"])["status"] == "queued"
+    asyncio.run(monitor.tick())
+    assert next(job for job in monitor.state()["preparations"] if job["event_id"] == event["id"])["status"] == "ready"
 
 
 @pytest.mark.parametrize("change", [{"date":"2026-02-30"},{"start_time":"27:00"},{"end_time":"15:00"},{"client_id":"CLI-999"}])

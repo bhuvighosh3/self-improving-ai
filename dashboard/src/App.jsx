@@ -249,7 +249,7 @@ function ClientDetail({client,onBack,onPrepare}){
           <div className="detail-name">{p.name}</div>
           <div className="detail-id">{client.client_id} &middot; {p.primary_contact}</div>
         </div>
-        <div className="meeting-actions"><span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span><button className="meeting-btn primary" onClick={()=>onPrepare(client)}>Generate Meeting Brief</button></div>
+        <div className="meeting-actions"><span className={`chip ${RISK_CHIP[p.risk_tolerance]||""}`} style={{fontSize:12,padding:"5px 12px"}}>{p.risk_tolerance} risk</span><button className="meeting-btn primary" onClick={()=>onPrepare(client)}>View meeting prep</button></div>
       </div>
 
       <div className="detail-grid">

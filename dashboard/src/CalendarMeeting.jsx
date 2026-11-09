@@ -19,8 +19,7 @@ export default function CalendarMeeting({ event, preparation, clients, onBack, o
         if (controller.signal.aborted) return;
         setJob(resolved);
         if (resolved.status === "ready") {
-          const url = resolved.direct ? `/api/briefings/${resolved.brief_id}` : `/api/meeting-preparations/${resolved.id}/brief`;
-          const result = await requestJson(url, { signal: controller.signal });
+          const result = await requestJson(`/api/meeting-preparations/${resolved.id}/brief`, { signal: controller.signal });
           if (!controller.signal.aborted) { setBrief(result); setError(""); opened.current(resolved.id); }
         } else if (resolved.status === "failed") {
           setError(resolved.error || "The meeting brief could not be prepared. Please retry.");
@@ -29,7 +28,7 @@ export default function CalendarMeeting({ event, preparation, clients, onBack, o
     }
     load();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [event.id, retry, preparation?.id, preparation?.status, preparation?.brief_id]);
+  }, [event.id, event.version, retry, preparation?.id, preparation?.status, preparation?.brief_id]);
 
   async function retryPreparation() {
     setError("");

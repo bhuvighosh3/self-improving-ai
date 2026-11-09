@@ -20,14 +20,30 @@ model call is introduced, and Calendar records are never rewritten by classifica
 Offline demonstrations continue using their deterministic preparation path. Previously
 saved or resumed completed investigations retain their original snapshots.
 
-An older manually generated brief may have no matching Calendar appointment. Such
-briefs remain under Saved briefs, grouped as “Briefs without a calendar meeting”.
-They do not appear as upcoming appointments and do not create new Calendar events.
-The previous “Not linked to Calendar” wording described this same situation.
+Calendar is the sole source of meetings. The Meeting Prep workspace lists only
+Calendar event IDs and exposes New meeting through the same event editor as
+Calendar. There is no standalone brief form or unlinked-brief group. Copilot's
+missing-meeting form explicitly adds the appointment before preparing its brief;
+requests with an existing ID must match that appointment. Repeated preparation
+for the same event version, mode, focus and cutoff reuses the saved brief. Concurrent
+same-slot requests are serialized within the process. Older orphaned drafts remain
+archived in SQLite, but do not create appointments or appear in the workspace.
 
-Validation: the new API and scripted ADK regressions failed before the fix; 77
-related offline tests and 24 subtests pass afterward. Four mocked desktop/mobile
-browser checks cover category removal, uniform colors, retained edit inputs,
-absence of duplicated cards, and saved-brief separation. The frontend build passes
-and the UI detector reports no findings. Ruff findings in the touched files are
-pre-existing; the change adds none. No additional live Gemini call was made.
+Editing an already prepared/requested Calendar event queues its current version
+immediately, including meetings outside the normal 24-hour window and explicit
+edits while automatic scanning is paused. Synchronous Copilot generation is also
+registered with the monitor, so an edit during generation can enqueue the replacement.
+Before saving, the generator rechecks the appointment and mailbox revision. An
+obsolete result is rejected. The workspace replaces stale incoming Copilot snapshots
+with current preparation; outdated snapshots cannot be newly checked or approved.
+Historical drafts and review records remain retained on the server. The product
+shows one current preparation entry per Calendar event.
+
+Validation: creation, repeated preparation, editing outside the time window, and
+editing during generation have offline API regressions. The related 79 tests and
+24 subtests pass. Seven mocked desktop/mobile browser checks cover the shared
+editor, Calendar visibility, stale Copilot replacement, category removal, and the
+absence of orphaned briefs. The frontend build passes and the UI detector reports
+no findings. No additional live Gemini call was made. Local acceptance uses the
+synthetic workspace; deployed Firestore behavior and live model completion were
+not revalidated in this change.

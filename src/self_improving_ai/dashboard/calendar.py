@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -91,12 +91,15 @@ async def create_event(body: CalendarEventCreate):
 
 
 @router.put("/events/{event_id}")
-async def update_event(event_id: str, body: CalendarEventUpdate):
+async def update_event(event_id: str, body: CalendarEventUpdate, request: Request):
     try:
         current = await run_in_threadpool(_store.get_event, event_id)
         validate_event({**current, **body.model_dump(exclude_none=True)})
         result = await run_in_threadpool(_store.update_event, event_id, body.model_dump(exclude_none=True))
         invalidate_snapshots()
+        monitor = getattr(request.app.state, "preparations", None)
+        if monitor is not None:
+            await monitor.meeting_changed(event_id)
         return result
     except LookupError:
         raise HTTPException(404, "Event not found")

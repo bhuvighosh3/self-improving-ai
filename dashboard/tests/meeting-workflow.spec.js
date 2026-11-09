@@ -13,13 +13,19 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page }) => {
+async function openPreparedMeeting(page, request, client, eventId, date, time, focus) {
+  const response = await request.post("/api/briefings", { data: { client_id: client, calendar_event_id: eventId,
+    meeting_date: date, meeting_time: time, focus, mode: "simulation" } });
+  expect(response.ok()).toBe(true);
   await page.goto("/");
   await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
-  await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
-  await page.getByLabel("Client", { exact: true }).selectOption("CLI-004");
-  await page.getByLabel("Meeting date", { exact: true }).fill("2026-10-30");
-  await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+  const list = page.getByRole("complementary", { name: "Client meetings" });
+  await list.getByRole("button", { name: "All meetings", exact: true }).click();
+  await list.getByRole("button", { name: `Open preparation for ${client === "CLI-004" ? "Okafor Family" : "Thompson Trust"} on ${date}`, exact: true }).click();
+}
+
+test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page, request }) => {
+  await openPreparedMeeting(page, request, "CLI-004", "EVT-a3b4c5d6", "2026-11-20", "15:30", "Confirm current home funding plans");
   const process = page.locator("summary").filter({ hasText: "Preparation process" });
   await expect(process).toContainText("changed");
   await process.click();
@@ -36,18 +42,12 @@ test("meeting workflow exposes evidence coverage and persists local demo review"
   await expect(process).toContainText("recheck required");
 });
 
-test("limited historical coverage retains routine review and focus edits invalidate the draft", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
-  await page.getByRole("button", { name: "Prepare another meeting", exact: true }).click();
-  await page.getByLabel("Client", { exact: true }).selectOption("CLI-002");
-  await page.getByLabel("Meeting date", { exact: true }).fill("2026-10-30");
-  await page.getByRole("button", { name: "Generate Meeting Brief", exact: true }).click();
+test("limited historical coverage retains routine review for a calendar meeting", async ({ page, request }) => {
+  await openPreparedMeeting(page, request, "CLI-002", "EVT-e5f6a7b8", "2026-11-14", "10:00", "Review bond duration and client questions");
   await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("insufficient information");
   await expect(page.getByRole("heading", { name: "Routine meeting review" })).toBeVisible();
-  await page.getByLabel("Meeting focus", { exact: true }).fill("Confirm current goals and open questions");
-  await expect(page.getByText("Meeting inputs changed.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("article", { name: "Meeting briefing" })).toContainText("Thompson Trust");
 });
 
 test("Copilot asks only for the client before looking up the next appointment", async ({ page }, testInfo) => {
@@ -68,7 +68,7 @@ test("Copilot asks only for the client before looking up the next appointment", 
 });
 
 for (const width of [1280, 390]) {
-test(`Calendar appointments and unlinked saved briefs stay separate at ${width}px`, async ({ page }, testInfo) => {
+test(`Only calendar appointments appear in meeting preparation at ${width}px`, async ({ page }, testInfo) => {
   const calendarEvent = { id: "CALENDAR-GARCIA", version: "calendar-v1", client_id: "CLI-001", client_name: "Garcia Family",
     title: "Calendar review", focus: "Retirement review", starts_at: "2026-11-12T14:00:00-05:00", date: "2026-11-12", start_time: "14:00", duration_minutes: 60, prep_required: true };
   const saved = { id: "saved:UNLINKED", version: "UNLINKED", brief_id: "UNLINKED", kind: "saved_brief", client_id: "CLI-004", client_name: "Okafor Family",
@@ -87,14 +87,13 @@ test(`Calendar appointments and unlinked saved briefs stay separate at ${width}p
   const list = page.getByRole("complementary", { name: "Client meetings" });
   await expect(list.getByText("Calendar review", { exact: true })).toBeVisible();
   await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
-  await list.getByRole("button", { name: "This week", exact: true }).click();
+  await list.getByRole("button", { name: "All meetings", exact: true }).click();
   await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("calendar-aligned-meetings.png"), fullPage: true });
   await list.getByRole("button", { name: "Saved briefs", exact: true }).click();
-  await expect(list.getByText(saved.title, { exact: true })).toBeVisible();
-  await expect(list.getByRole("heading", { name: "Briefs without a calendar meeting", exact: true })).toBeVisible();
-  await list.getByRole("button", { name: "Open saved brief for Okafor Family", exact: true }).click();
-  await expect(page.getByRole("article", { name: "Meeting briefing" })).toHaveAttribute("data-brief-id", "UNLINKED");
+  await expect(list.getByText(saved.title, { exact: true })).toHaveCount(0);
+  await expect(list.getByText("Briefs without a calendar meeting", { exact: true })).toHaveCount(0);
+  await expect(list.getByRole("button", { name: "Prepare another meeting", exact: true })).toHaveCount(0);
 });
 }
 
