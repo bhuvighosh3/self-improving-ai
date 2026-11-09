@@ -86,7 +86,9 @@ class MeetingPreparationMonitor:
                 and item.get("created_at",item["date"])[:10] <= min(cutoff, record["date"])]
             revision = hashlib.sha256(json.dumps(sorted((item["id"],content_version(item)) for item in related)).encode()).hexdigest()[:20]
             try:
-                events.append(normalize_event(record,self.client_names,revision))
+                event = normalize_event(record,self.client_names,revision)
+                event["context_updated_at"] = max([record.get("updated_at", "")] + [item.get("updated_at", "") for item in related])
+                events.append(event)
             except (ValueError,KeyError):
                 continue
         return sorted(events,key=lambda event:event["starts_at"])
@@ -103,11 +105,51 @@ class MeetingPreparationMonitor:
             rows = db.execute("SELECT id,event_id,version,mode,status,brief_id,error,run_id FROM calendar_preparations "
                               "WHERE mode!='agent' OR pipeline_version=?", (agent_pipeline(),)).fetchall()
         events = self.events_at(state["now"])
+        store = DraftStore(self.path)
+        saved = store.summaries()
+        indexed = {row[5] for row in rows if row[4] == "ready"}
+        claimed = {(row[1], row[2], row[3]) for row in rows if row[4] == "ready"}
+        legacy_slots = set()
+        recovered = False
+        for brief in saved:
+            if brief["id"] in indexed or brief.get("calendar_event"):
+                continue
+            slot = (brief["client_id"], brief["meeting_date"], brief["meeting_time"], brief["mode"])
+            if slot in legacy_slots:
+                continue
+            legacy_slots.add(slot)
+            matches = [event for event in events if event["client_id"] == brief["client_id"]
+                       and event["date"] == brief["meeting_date"] and event["start_time"][:5] == brief["meeting_time"][:5]]
+            if len(matches) != 1 or not brief.get("generated_at"):
+                continue
+            event = matches[0]
+            key = (event["id"], event["version"], brief["mode"])
+            if key in claimed:
+                continue
+            updated = event.get("context_updated_at")
+            if not updated or datetime.fromisoformat(brief["generated_at"]) < datetime.fromisoformat(updated):
+                continue
+            if brief.get("data_as_of") != min(state["now"][:10], event["date"]):
+                continue
+            # Recover earlier saved drafts only while the appointment and mail
+            # are unchanged since generation. Never rewrite reviewed content.
+            store.link_calendar({**brief, "calendar_event": event})
+            indexed.add(brief["id"])
+            claimed.add(key)
+            recovered = True
+        if recovered:
+            with self.db() as db:
+                rows = db.execute("SELECT id,event_id,version,mode,status,brief_id,error,run_id FROM calendar_preparations "
+                                  "WHERE mode!='agent' OR pipeline_version=?", (agent_pipeline(),)).fetchall()
         current = {(event["id"],str(event["version"])) for event in events}
         state.update(lookahead_hours=24, processing=self.processing, timezone="America/New_York",
                      storage=settings.workspace_store, events=events, preparations=[dict(zip(
                          ("id", "event_id", "version", "mode", "status", "brief_id", "error", "run_id"), row)) for row in rows
                          if (row[1],str(row[2])) in current])
+        by_id = {brief["id"]: brief for brief in saved}
+        for job in state["preparations"]:
+            summary = by_id.get(job["brief_id"], {})
+            job.update(generated_at=summary.get("generated_at"), review_status=summary.get("review_status"))
         return state
 
     async def command(self, command: SimulationCommand):
@@ -157,6 +199,17 @@ class MeetingPreparationMonitor:
                 db.execute("UPDATE calendar_preparations SET requested=1 WHERE event_id=? AND version=? AND mode=?",
                            (event["id"], event["version"], mode))
 
+    async def meeting_changed(self, event_id):
+        """An explicit edit refreshes an already requested/prepared meeting."""
+        async with self.lock:
+            state = await asyncio.to_thread(self.state)
+            event = next((event for event in state["events"] if event["id"] == event_id), None)
+            with self.db() as db:
+                prepared = db.execute("SELECT 1 FROM calendar_preparations WHERE event_id=? "
+                    "AND (status IN ('ready','preparing') OR requested=1) LIMIT 1", (event_id,)).fetchone()
+            if event and prepared:
+                self._enqueue_event(event, state["mode"], requested=True)
+
     async def request_event(self, event_id):
         async with self.lock:
             state = await asyncio.to_thread(self.state)
@@ -205,8 +258,11 @@ class MeetingPreparationMonitor:
             # The shared HTTP service emits safe messages; never expose provider payloads.
             error = exc.detail if isinstance(exc, HTTPException) and isinstance(exc.detail, str) else "Preparation interrupted. Retry to continue."
             run_id = (exc.headers or {}).get("X-Briefing-Run-ID") if isinstance(exc, HTTPException) else getattr(exc, "briefing_run_id", None)
+            current_events = await asyncio.to_thread(lambda: self.events)
+            valid = any(event["id"] == event_id and str(event["version"]) == str(event_version) for event in current_events)
             with self.db() as db:
-                db.execute("UPDATE calendar_preparations SET status='failed',error=?,run_id=? WHERE id=?", (error, run_id, job_id))
+                db.execute("UPDATE calendar_preparations SET status=?,error=?,run_id=? WHERE id=?",
+                    ("failed" if valid else "superseded", error, run_id, job_id))
             if isinstance(exc, asyncio.CancelledError):
                 raise
         finally:

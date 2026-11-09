@@ -1,8 +1,10 @@
 """Bounded, client-locked ADK investigation with durable completed tool results."""
 
+import asyncio
 from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timezone
+from functools import wraps
 import json
 from typing import Callable
 
@@ -21,6 +23,7 @@ MAX_EXECUTIONS = 10
 MAX_REQUESTS = 18
 MAX_TURNS = 4
 _checkpoint: ContextVar[Callable | None] = ContextVar("briefing_discovery_checkpoint", default=None)
+_execution_lock: ContextVar[asyncio.Lock | None] = ContextVar("briefing_discovery_execution_lock", default=None)
 
 
 class DiscoveryBudgetExceeded(ValueError):
@@ -133,8 +136,21 @@ def read_source(client_id: str, source_id: str, tool_context: ToolContext) -> di
     return execute_tool("read_source", {"client_id": client_id, "source_id": source_id}, tool_context.state)
 
 
-TOOLS = [get_client_profile, get_crm_notes, check_compliance_flags, search_market_news,
-         get_holdings, list_previous_meetings, list_client_tasks, search_sources, read_source]
+def nonblocking_tool(function):
+    """Keep synchronous store reads off the event loop and serialize trace writes."""
+    @wraps(function)
+    async def run(*args, **kwargs):
+        lock = _execution_lock.get()
+        if lock is None:
+            raise RuntimeError("Discovery tools require an active investigation")
+        async with lock:
+            return await asyncio.to_thread(function, *args, **kwargs)
+    return run
+
+
+TOOLS = [nonblocking_tool(function) for function in
+         [get_client_profile, get_crm_notes, check_compliance_flags, search_market_news,
+          get_holdings, list_previous_meetings, list_client_tasks, search_sources, read_source]]
 
 
 def before_model(callback_context, llm_request):
@@ -157,7 +173,14 @@ search, preferably after reading client updates. Avoid unrelated generic news.
 Search snippets are not citable originals. Preserve no-results and missing coverage.
 Do not invent balances, dates, legal rules or compliance clearance. A reported
 intention may remain tentative. Do not calculate numbers mentally.
-When complete, return a short JSON object {"summary":"what was investigated"}.
+Choose a preparation routine from the meeting focus and the authorized context you
+actually read, rather than copying the task's legacy meeting_type hint. Use
+goal_review for a specific goal or funding decision, annual_review for an explicit
+annual household review, quarterly_review for an explicit periodic portfolio review,
+and general_meeting when none fits or the purpose is unclear. These are optional
+checklists, not limits on topics: follow the actual focus even for a general meeting.
+When complete, return a short JSON object {"summary":"what was investigated",
+"meeting_type":"selected routine", "meeting_type_reason":"short reason"}.
 The backend uses actual tool results, never your summary, to build the evidence.
 On retry, completed reads are cached. Stop when enough authorized context exists.
 """
@@ -249,6 +272,7 @@ async def investigate(task, state, trace, checkpoint):
         state["meeting_discovery"] = deepcopy(current["meeting_discovery"])
         checkpoint("running")
     token = _checkpoint.set(persist)
+    execution_token = _execution_lock.set(asyncio.Lock())
     try:
         agent = Agent(name="meeting_context_investigator", model=create_model(task.get("model", settings.agent_model)),
             instruction=INSTRUCTION, tools=TOOLS, before_model_callback=before_model,
@@ -260,17 +284,30 @@ async def investigate(task, state, trace, checkpoint):
             max_llm_calls=MAX_TURNS)
         if not any(entry["origin"] == "model_selected" for entry in state["meeting_discovery"]["executions"]):
             raise ValueError("Investigator did not execute any authorized tools")
-        coverage_gate(state)
+        await asyncio.to_thread(coverage_gate, state)
+        completion = summary if isinstance(summary, dict) else {}
+        purpose = completion.get("meeting_type")
+        reason = completion.get("meeting_type_reason")
+        valid = (isinstance(purpose, str) and purpose in ROUTINES
+            and isinstance(reason, str) and bool(reason.strip()) and len(reason) <= 400)
+        selection = {"origin": "agent" if valid else "default",
+            "reason": reason.strip() if valid else "The agent did not identify a supported preparation routine."}
+        # Routine selection is a planning judgment, never source or coverage evidence.
+        state["meeting_discovery"].update(meeting_type=purpose if valid else "general_meeting",
+            meeting_type_selection=selection)
         evidence = assemble_evidence(state["meeting_discovery"])
+        evidence["meeting_type_selection"] = selection
         state["meeting_discovery"] = {**state["meeting_discovery"], "complete": True}
         state["meeting_evidence"] = evidence
         # Do not trust a model-written completion claim as coverage evidence.
         trace.extend(deepcopy(state["meeting_discovery"]["executions"]))
         trace.append({"event": "discovery_complete", "stage": "discover",
+            "meeting_type": evidence["meeting_type"], "meeting_type_selection": selection,
             "executions": len(state["meeting_discovery"]["executions"]),
             "model_turns": state["meeting_discovery"]["model_turns"], "coverage": evidence["coverage"]})
         return evidence
     except LlmCallsLimitExceededError as exc:
         raise DiscoveryBudgetExceeded("Investigation reached its model-turn budget") from exc
     finally:
+        _execution_lock.reset(execution_token)
         _checkpoint.reset(token)

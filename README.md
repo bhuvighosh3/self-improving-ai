@@ -34,7 +34,7 @@ SIA_OTEL_EXPORTER=gcp
 
 ```bash
 # Terminal 1 — Backend
-uvicorn self_improving_ai.dashboard.app:app --port 8000
+uvicorn self_improving_ai.dashboard.app:app --env-file .env --port 8000
 
 # Terminal 2 — Frontend
 cd dashboard

@@ -2,6 +2,7 @@
 
 import asyncio
 import unittest
+from unittest.mock import patch
 
 from fastapi import HTTPException
 
@@ -20,11 +21,18 @@ def request(client_id="CLI-003", focus="ARKK tax-loss harvesting", **overrides):
 
 class MeetingBriefTests(unittest.TestCase):
     def test_chen_uses_correct_position_and_prioritizes_the_requested_news(self):
-        brief = generate_meeting_brief(request())
+        articles = [
+            {"id": "TEST-GENERAL", "date": "2026-10-26", "sector": "macro", "headline": "Broad market update", "text": "Tax planning news."},
+            {"id": "TEST-ARKK", "date": "2026-10-26", "sector": "equities", "headline": "ARKK tax-loss harvesting", "text": "ARKK losses raise tax planning questions."},
+            {"id": "TEST-FUTURE", "date": "2026-12-01", "sector": "equities", "headline": "ARKK tax update", "text": "Future ARKK tax planning."},
+        ]
+        with patch("self_improving_ai.agents.briefing.service.search_market_news", return_value={"results": articles}):
+            brief = generate_meeting_brief(request())
         portfolio = brief["sections"][2]["items"]
         self.assertIn("unrealized loss $17,500", portfolio[1]["text"])
         self.assertIn("$312,700", portfolio[0]["text"])
-        self.assertEqual(brief["news"][0]["id"], "N008")
+        self.assertEqual(brief["news"][0]["id"], "TEST-ARKK")
+        self.assertNotIn("TEST-FUTURE", {article["id"] for article in brief["news"]})
         self.assertIn("tax", brief["sections"][3]["items"][0]["text"].lower())
         self.assertTrue(any("planning horizon" in item["title"] for item in brief["sections"][5]["items"]))
 

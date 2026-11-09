@@ -22,11 +22,8 @@ async def check_draft(submitted: dict, original: dict) -> dict:
         try:
             semantic = await semantic_check(work, original["workflow"]["evidence"],
                                             original["workflow"]["calculations"], trace, model=original["workflow"].get("model"))
-        except (ValidationError, ValueError):
-            semantic = {"verdict": "pass", "findings": []}
-            report["semantic_support"] = "model_review_skipped"
-            report["trace"] = trace
-            return report
+        except (ValidationError, ValueError) as exc:
+            raise RuntimeError("Independent review returned an invalid result. Retry Check draft before approving.") from exc
         report["verdict"] = semantic["verdict"]
         report["findings"].extend(semantic["findings"])
         report["semantic_support"] = "independent_model_reviewed"

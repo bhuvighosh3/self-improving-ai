@@ -91,7 +91,6 @@
 }
 .email-error {position:absolute;z-index:3;top:4px;left:12px;right:12px;padding:10px;background:var(--red-soft);color:var(--red);border-radius:6px;font-size:12px;}
 .email-page {position:relative;}
-.email-simulation-note {font-size:11px;color:var(--text-3);padding:10px 14px 0;}
 .email-page button,.email-page input {font-family:inherit;}
 .email-compose-btn {margin-left:auto;}
 .email-detail-subject,.email-detail-from-addr,.email-detail-to,.email-detail-body {overflow-wrap:anywhere;}

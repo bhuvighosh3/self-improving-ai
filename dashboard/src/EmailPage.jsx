@@ -148,7 +148,6 @@ export default function EmailPage({ clients }) {
     <div className="email-page">
       {error && <p className="email-error" role="alert">{error}</p>}
       <div className="email-sidebar">
-        <p className="email-simulation-note">Simulated Inbox · Messages stay in this workspace</p>
         <div className="email-toolbar">
           <div className="email-toolbar-left">
             {FOLDERS.map(fl => (

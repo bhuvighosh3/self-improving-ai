@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from contextvars import ContextVar
+from copy import deepcopy
 from datetime import datetime
 import hashlib
 import json
@@ -13,6 +14,17 @@ NY = ZoneInfo("America/New_York")
 
 def current_scope():
     return _scope.get()
+
+
+def scoped_crm_read(key, read):
+    """Freeze repeated CRM reads within one authorized preparation, never globally."""
+    scope = current_scope()
+    if scope is None:
+        return read()
+    cache = scope.setdefault("crm_reads", {})
+    if key not in cache:
+        cache[key] = deepcopy(read())
+    return deepcopy(cache[key])
 
 
 def content_version(record):

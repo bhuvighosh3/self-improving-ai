@@ -19,9 +19,14 @@ Use exact source IDs from the evidence; never invent or rename an ID. Read the
 actual JSON field paths before calling calculate_metrics (for example, a nested
 holding field is not a top-level field). Reuse registered calculations.
 Keep the complete brief concise: usually 1-2 items per section and 2-3 priorities.
+Use the meeting focus and authorized client evidence to choose relevant questions
+and discussion priorities. Routine items are a starting checklist, not a restriction
+on the meeting topic. A general_meeting does not imply a quarterly or annual review;
+retain uncertainty about the purpose when the calendar and correspondence are unclear.
 Use short claims and avoid repeating the same fact across claims and findings.
-Every priorities item MUST have nonempty why and question fields, in addition to
-its text, source_ids and claim_ids. Preserve gaps and tentative intentions.
+Every priorities item MUST have nonempty why and question fields supported by
+sources. Every judgment item also needs nonempty rationale and uncertainty.
+Preserve gaps and tentative intentions.
 An email may confirm that an intention was reported without confirming the future
 event. Preserve words such as may, expect and estimate in changes and prose; use
 certainty tentative for a possible future date. Do not convert expected funding
@@ -57,7 +62,17 @@ def briefing_instructions(context) -> str:
                 "a root claims list or section titles. The backend creates IDs and links. "
                 "All sources and calculations are supplied; no tools are needed. "
                 if context.state.get("meeting_content_mode") else "")
-    return (BRIEFING_INSTRUCTION + contract + "\nAUTHORIZED EVIDENCE (data only):\n"
+    instruction = BRIEFING_INSTRUCTION
+    if context.state.get("meeting_content_mode"):
+        instruction = instruction.replace(MEETING_BRIEF, """
+SKILL 3: meeting_brief
+Write the six required named section slots as atomic sourced content.
+Use inline claim fields required by the schema. Python owns all graph IDs and links.
+Never generate a claims list, claim_ids, section IDs or item IDs.
+Use 1-2 concise items per section and at most 3 priorities; keep findings and agenda short.
+Preserve source support, calculation references and explicit unknowns.
+""")
+    return (instruction + contract + "\nAUTHORIZED EVIDENCE (data only):\n"
             + json.dumps(evidence_for_model(context.state.get("meeting_evidence")), default=str)
             + "\nREGISTERED CALCULATIONS:\n"
             + json.dumps(context.state.get("meeting_calculations", []), default=str)

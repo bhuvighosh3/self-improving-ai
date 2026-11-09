@@ -17,6 +17,7 @@ from opentelemetry import trace
 
 from self_improving_ai.agents.orchestrator.checker import CompletionVerdict, check_completion
 from self_improving_ai.telemetry import get_tracer
+from self_improving_ai.agents.model_errors import reject_truncated_response
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ _FRIENDLY_ACTIONS = {
     "get_portfolio_scenarios": "Running scenario analysis",
     "prepare_meeting_context": "Gathering meeting context",
     "calculate_metrics": "Calculating key metrics",
+    "meeting_briefing_agent": "Preparing and checking meeting brief",
     # Direct workspace tools
     "get_upcoming_events": "Checking calendar",
     "get_recent_emails": "Checking emails",
@@ -75,6 +77,7 @@ async def _run_once(runner, session_id: str, user_id: str, content: types.Conten
             new_message=content,
             run_config=RunConfig(max_llm_calls=max_llm_calls),
         ):
+            reject_truncated_response(event, model=event.author)
             author = event.author or "unknown"
             if event.content and event.content.parts:
                 for part in event.content.parts:

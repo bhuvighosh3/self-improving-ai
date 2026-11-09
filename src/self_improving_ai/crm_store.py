@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from google.cloud import firestore
-
-from self_improving_ai.config import settings
+from self_improving_ai.firestore_connection import get_firestore_client
 
 _CRM_CONTEXT = "crm_context"
 _CRM_RECORDS = "crm_records"
@@ -13,7 +11,7 @@ _CRM_SETTINGS = "crm_settings"
 
 class CrmStore:
     def __init__(self, project: str | None = None):
-        self.db = firestore.Client(project=project or settings.google_cloud_project or None)
+        self.db = get_firestore_client(project)
 
     def get_settings(self) -> dict:
         doc = self.db.collection(_CRM_SETTINGS).document("global").get()

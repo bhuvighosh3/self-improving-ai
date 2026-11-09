@@ -38,6 +38,43 @@ class ReliabilityTests(unittest.TestCase):
         self.assertIn("MINUTES-004", prompt)
         self.assertIn("EMAIL-004", prompt)
 
+    def test_judgment_repair_does_not_rewrite_the_full_patels_brief(self):
+        from self_improving_ai.agents.briefing.runtime import generate_agent_brief
+        from self_improving_ai.agents.briefing.runs import BriefRunStore
+        from self_improving_ai.agents.model_errors import ModelOutputLimitError
+
+        request = MeetingBriefRequest(client_id="CLI-005", meeting_date="2026-11-22", meeting_time="09:00",
+                                      focus="Sustainable withdrawals and inherited IRA", mode="agent")
+        baseline = generate_meeting_brief(request)
+        content = content_from_work(baseline["workflow"]["work"])
+        priority = content["sections"]["priorities"][0]
+        priority.update(kind="judgment", rationale="", uncertainty="")
+        state = {"meeting_evidence": baseline["workflow"]["evidence"],
+                 "meeting_calculations": baseline["workflow"]["calculations"]}
+        calls = []
+
+        async def provider(agent, message, current, trace):
+            calls.append((agent, json.loads(message)))
+            if len(calls) == 1:
+                return deepcopy(content), state
+            if agent.name != "meeting_judgment_repair":
+                raise ModelOutputLimitError(model="offline-provider", output_limit=8000)
+            return {"repairs": [{"claim_id": "CLAIM-priorities-1",
+                "rationale": "Discuss the client's documented withdrawal concerns.",
+                "uncertainty": "Confirm current expenses and account details with the client."}]}, current
+
+        with TemporaryDirectory() as directory, patch(
+            "self_improving_ai.agents.briefing.runtime.BriefRunStore", return_value=BriefRunStore(Path(directory) / "runs.db")), patch(
+            "self_improving_ai.agents.briefing.runtime.run_adk", side_effect=provider), patch(
+            "self_improving_ai.agents.briefing.runtime.semantic_check", new=AsyncMock(return_value={"verdict": "pass", "findings": []})):
+            brief = asyncio.run(generate_agent_brief(request))
+        self.assertEqual(brief["workflow"]["quality"]["verdict"], "pass")
+        self.assertEqual(len(calls), 2)
+        self.assertLessEqual(calls[1][0].generate_content_config.max_output_tokens, 1200)
+        self.assertNotIn("sections", calls[1][0].output_schema.model_fields)
+        self.assertNotIn("previous_draft", calls[1][1])
+        self.assertEqual(brief["workflow"]["work"]["sections"][3]["items"][0]["text"], priority["text"])
+
     def test_generation_contract_rejects_the_observed_unread_reference_and_empty_agenda(self):
         from self_improving_ai.agents.briefing.contract import work_schema
 

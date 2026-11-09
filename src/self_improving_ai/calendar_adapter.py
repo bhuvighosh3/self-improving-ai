@@ -21,5 +21,5 @@ def normalize_event(record, client_names, mail_revision=""):
     return {**record, "version":version, "starts_at":start.isoformat(),
         "duration_minutes":int((end-start).total_seconds()/60), "category":"client" if client else "internal",
         "prep_required":bool(client), "client_name":client_names.get(client, client),
-        "meeting_type":TYPE_MAP.get(record["type"],"quarterly_review"),
+        "meeting_type":TYPE_MAP.get(record["type"],"general_meeting"),
         "focus":record.get("notes") or record["title"],"participants":[client_names.get(client,client),"Advisor"]}

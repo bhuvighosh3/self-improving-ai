@@ -16,6 +16,7 @@ from self_improving_ai.agents.briefing.model import create_model
 from self_improving_ai.agents.briefing.runs import BriefRunStore
 from self_improving_ai.agents.briefing.preflight import prepare_snapshot_total
 from self_improving_ai.tools.briefing.context import prepare_context
+from self_improving_ai.agents.model_errors import ModelOutputLimitError, reject_truncated_response
 
 
 class ReviewFinding(BaseModel):
@@ -59,6 +60,7 @@ async def run_adk(agent, message: str, state: dict, trace: list, *, max_llm_call
             new_message=types.Content(role="user", parts=[types.Part(text=message)]),
             run_config=RunConfig(max_llm_calls=max_llm_calls),
         ):
+            reject_truncated_response(event, model=agent.name)
             for part in event.content.parts if event.content else []:
                 if part.function_call:
                     trace.append({"event": "tool_call", "tool": part.function_call.name,
@@ -71,6 +73,11 @@ async def run_adk(agent, message: str, state: dict, trace: list, *, max_llm_call
             if event.usage_metadata:
                 trace.append({"event": "usage", "agent": agent.name,
                               "usage": event.usage_metadata.model_dump(mode="json")})
+    except ModelOutputLimitError as exc:
+        trace.append({"event": "model_limit", "agent": agent.name, "model": exc.model,
+                      "finish_reason": "MAX_TOKENS", "output_limit": exc.output_limit,
+                      "usage": exc.usage})
+        raise
     finally:
         # Preserve completed tool work even if a later model request fails.
         updated = await sessions.get_session(app_name=agent.name, user_id="local-advisor", session_id=session.id)
@@ -186,7 +193,16 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
             evidence = state["meeting_evidence"]
             calculations = state.get("meeting_calculations", [])
             if phase == "generate":
-                prompt = {"task": task}
+                from self_improving_ai.agents.briefing.repairs import repair_judgment_boundaries
+
+                repaired = await repair_judgment_boundaries(
+                    work, reports[-1], evidence, calculations, trace, model=selected_model, run=run_adk,
+                ) if reports and "invalid_content" not in work else None
+                if repaired is not None:
+                    work = repaired
+                    phase = "review"
+            if phase == "generate":
+                prompt = {"task": {**task, "meeting_type": evidence["meeting_type"]}}
                 if reports:
                     previous = work["invalid_content"] if "invalid_content" in work else content_from_work(work)
                     prompt.update(previous_draft=previous, quality_feedback={
@@ -243,7 +259,7 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
     return {"id": str(uuid4()), "client_id": request.client_id, "client_name": profile["name"],
             "contact": profile["primary_contact"], "meeting_date": str(request.meeting_date),
             "meeting_time": request.meeting_time.strftime("%H:%M"), "timezone": "America/New_York",
-            "meeting_type": request.meeting_type, "focus": request.focus.strip(),
+            "meeting_type": evidence["meeting_type"], "focus": request.focus.strip(),
             "data_as_of": evidence["as_of"], "previous_meeting": evidence["previous_meeting"],
             "generated_at": datetime.now(timezone.utc).isoformat(), "mode": "agent",
             "sources": evidence["sources"], "sections": sections, "news": [],
