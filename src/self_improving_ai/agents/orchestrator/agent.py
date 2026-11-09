@@ -8,6 +8,7 @@ from google.adk import Agent
 from google.adk.tools.agent_tool import AgentTool
 
 from self_improving_ai.agents.briefing.agent import briefing_agent
+from self_improving_ai.tools.briefing.capped_agent_tool import CappedBriefingAgentTool
 from self_improving_ai.agents.orchestrator.instructions import ORCHESTRATOR_INSTRUCTION
 from self_improving_ai.agents.orchestrator.memory import orchestrator_state_for
 from self_improving_ai.agents.portfolio.agent import portfolio_agent
@@ -57,7 +58,7 @@ orchestrator = Agent(
         get_client_holdings,
         # Sub-agents for complex tasks
         AgentTool(agent=portfolio_agent),
-        AgentTool(agent=briefing_agent),
+        CappedBriefingAgentTool(agent=briefing_agent),
         # Discovery
         search_tool_catalog,
     ],
