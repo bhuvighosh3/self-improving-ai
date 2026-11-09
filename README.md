@@ -4,25 +4,6 @@ A self-improving AI copilot for wealth management advisors, built with [Google A
 
 ## Quick Start
 
-### Component A feature workflow
-
-The `feat/component-a-workflow` branch adds independent portfolio calculations,
-Gemini/ADK execution and **Main → Portfolio Analysis**. The original team workflows
-and project design below are retained. This branch is not a completed live
-three-agent integration or a demonstrated learning improvement.
-
-- [Component A overview](docs/component-a-overview.md)
-- [Setup and launch](docs/getting-started.md)
-- [Usage and connection settings](docs/usage.md)
-- [API contract](docs/integration.md)
-- [Branch integration notes](docs/reports/branch-integration.md)
-
-Local portfolio calculations need no key. A's Connections dialog configures its
-own Gemini Developer API model/key, without rewriting B/C model defaults or
-Vertex AI configuration. The team npm package definition and lock file are retained.
-
----
-
 ### Prerequisites
 
 - Python 3.11+
@@ -49,15 +30,7 @@ SIA_WORKSPACE_STORE=firestore
 SIA_OTEL_EXPORTER=gcp
 ```
 
-### Run the Orchestrator (CLI)
-
-```bash
-python -m self_improving_ai "Get me ready for my 2pm with the Garcias"
-```
-
 ### Run the Dashboard (Local)
-
-Start both the FastAPI backend and React frontend:
 
 ```bash
 # Terminal 1 — Backend
@@ -70,8 +43,6 @@ npx vite --port 5173
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-The app is also deployed on Cloud Run — see the [Deployment](#deployment) section.
 
 ### Run Tests
 
@@ -169,7 +140,7 @@ Advisor request
 └──────────────────────────────────────┘
 ```
 
-The orchestrator uses `AgentTool` to call sub-agents and plain functions for direct data lookups. A ReAct plan-execute-check loop (`run_copilot`) wraps each request: the orchestrator executes, then a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. If incomplete, the gap is fed back for a retry, bounded by `max_loops=2` and `max_llm_calls=25` per run. Each agent's instructions contain `{placeholder}` variables resolved from `session.state` at runtime, enabling learned knowledge injection without modifying agent definitions.
+The orchestrator uses `AgentTool` to call sub-agents and plain functions for direct data lookups. A ReAct plan-execute-check loop (`run_copilot`) wraps each request: the orchestrator executes, then a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. If incomplete, the gap is fed back for a retry, bounded by `max_loops=2` and `max_llm_calls=25` per run.
 
 ### Copilot Test Results (10 Questions)
 
@@ -206,350 +177,86 @@ Each agent improves through different strategies, all gated by the shared improv
 ## Tech Stack
 
 - **Agent framework**: Google ADK v1.32.0 (`LlmAgent`, `AgentTool`, `Runner`)
-- **LLM**: Gemini 3.8 Flash via Developer API (fallback: Gemini 3.5 Flash Lite)
-- **Database**: shared Calendar/Inbox records use local SQLite by default or explicitly configured Cloud Firestore; Part B jobs and drafts use SQLite
+- **LLM**: Gemini 3.8 Flash via Vertex AI (fallback: Gemini 3.5 Flash Lite)
+- **Database**: Cloud Firestore (clients, CRM, calendar, email, holdings)
 - **Backend**: FastAPI + Uvicorn
-- **Frontend**: React + Vite (light theme, DM Sans / JetBrains Mono)
-- **Testing**: Playwright (11 automated tests)
-- **Telemetry**: OpenTelemetry
+- **Frontend**: React + Vite
+- **Deployment**: GCP Cloud Run (continuous deployment from `main`)
+- **Observability**: OpenTelemetry → GCP Cloud Trace
+- **Testing**: Playwright
 
 ## Dashboard
 
-The dashboard provides 11 pages and opens Inbox by default:
-
-- **Inbox** — inbox/sent/archive views with compose, reply, star, search, and category labels, using the shared local/Firestore store
+The dashboard provides the following pages:
 
 - **Copilot** — chat interface powered by the live ADK orchestrator (Gemini), suggestion chips, execution trace visualization
-- **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, local advisor edits and review, and PDF export
-- **Calendar** — timed Monday–Sunday calendar with week navigation and the existing create/edit/delete modal, using the shared local/Firestore store
+- **Inbox** — inbox/sent/archive views with compose, reply, star, search, and category labels
+- **Calendar** — timed Monday–Sunday calendar with week navigation and create/edit/delete modal
+- **Meeting Prep** — meeting inputs, a six-section brief, inspectable sources, ranked news, advisor edits and review, and PDF export
 - **Portfolio Analysis** — deterministic calculations and Gemini-powered portfolio agent
-- **Overview** — AUM, client count, intent breakdown
 - **Clients** — 5 synthetic households with detail views
-- **Requests** — request history table
+- **Overview** — AUM, client count, intent breakdown
 - **Tools** — tool catalog (19 tools, including live Twelve Data news and rule-based compliance)
 - **News** — market news feed (live via Twelve Data API)
-- **Agents** — agent cards showing configuration and status
 
 ### Copilot Chat
 
-The Copilot chat interface is connected to the live ADK orchestrator via a ReAct
-plan-execute-check loop. Simple lookups (calendar, email, client profile, CRM notes,
-holdings) are answered directly using workspace tools — no sub-agent overhead.
-Complex tasks (portfolio analysis, meeting briefings) are delegated to sub-agents.
-After each execution, a lightweight completion checker (Gemini Flash Lite) verifies
-the response covers the full request. Stopping criteria: confidence ≥ 0.5, no
-identified gaps, or max 2 retry loops. The free Gemini tier allows 5 requests per
-minute; the UI surfaces a message when this limit is hit.
+The Copilot chat interface is connected to the live ADK orchestrator via a ReAct plan-execute-check loop. Simple lookups (calendar, email, client profile, CRM notes, holdings) are answered directly using workspace tools — no sub-agent overhead. Complex tasks (portfolio analysis, meeting briefings) are delegated to sub-agents. Generic domain questions (e.g. "What is a Roth IRA?") are answered directly from the model's training. After each execution, a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. Stopping criteria: confidence ≥ 0.5, no identified gaps, or max 2 retry loops.
 
-### Meeting Prep Demo
+### Meeting Prep
 
-Meeting Prep uses the **AI Agent** mode. The ADK briefing agent applies three
-business skills, records evidence and calculations, and the dashboard AI service
-performs independent quality review with bounded repairs. See
-[implementation and setup](docs/meeting-brief/implementation.md) for available
-features, local versioned review, evaluation commands and limitations.
-
-Open **Meeting Prep**, or choose **Generate Meeting Brief** from a client detail page.
-Select a meeting date, time (New York), and focus, then generate the brief. The
-default Chen scenario highlights ARKK's $17,500 unrealized loss and ranks the
-matching tax-loss harvesting news first. Click a reference to inspect its original
-mock record. Edit the draft, finish editing, and mark the current revision as
-reviewed. Further edits reset the review status. The latest draft and review state
-are stored in the current browser. Changing meeting inputs requires regeneration
-before review or export.
-
-**Download PDF** exports the current draft with its review state and source index;
-**Print** uses the browser's print dialog. Standard briefs use a compact page
-layout; long advisor edits can continue onto additional pages.
-
-The meeting prep workflow uses actual calls to Firestore-backed CRM, holdings, and
-live Twelve Data news tools. Client profiles, CRM notes, meeting context (previous
-meeting dates, tasks) and CRM source records (minutes, emails, service updates) are
-stored in Firestore collections, seeded by `scripts/seed_crm.py`. Meetings before
-the data cutoff (2026-10-27) are rejected because historical snapshots are
-unavailable.
-
-Run the meeting workflow checks with:
-
-```bash
-PYTHONPATH=src python -m unittest discover -s tests/test_agents -p 'test_meeting_brief.py'
-PYTHONPATH=src python -m unittest discover -s tests/test_agents -p 'test_copilot_meeting.py'
-node --test dashboard/checks/meeting-drafts.mjs
-```
-
----
-
-## Detailed Design
-
-The sections below describe the full system design, evaluation plan, and improvement harness.
-
-Component B's [Meeting Brief architecture and implementation audit](docs/meeting-brief/README.md)
-integrates the proposed meeting workflow, tool/skill responsibilities and current
-implementation boundaries. See its [preliminary evaluation design](docs/meeting-brief/evaluation.md)
-and [technical appendix](docs/meeting-brief/appendix.md) for evidence contracts,
-instructions and illustrative pseudocode. These are design proposals; this
-documentation update does not connect the dashboard to ADK, add an evaluator or
-change runtime behavior. Existing shared-system plans below remain unchanged.
-
----
-
-## Project Details
-
-### Problem and Goals
-
-Today's advisor-facing agents repeat their mistakes: a wrong tool, irrelevant data or a wasteful plan recurs on the next run because nothing carries over. Learning from experience could fix this, but a system that changes itself can also degrade or behave unpredictably, which a regulated firm cannot accept.
-
-Our goals, mapped to LPL's success measures:
-
-1. **Learn from execution outcomes.** Capture successes, failures, retries and simulated advisor corrections, and turn them into better tool choice, planning and context selection.
-2. **Generalize.** Show gains on task types, tools and conditions the agent has never seen, not just replays of solved tasks.
-3. **Prove it against a baseline.** Compare every learning agent to the same agent with learning switched off, under identical tasks and seeds.
-4. **Stay safe.** Adopt changes only after validation, block regressions, and keep everything in a sandbox with mock tools and synthetic clients.
-5. **Show it.** A live dashboard that replays the agents' learning cycles for a professional audience.
-
----
-
-## The Improvement Harness Inside Every Component
-
-Rather than developing three independent improvement harnesses, we propose a shared self-improvement infrastructure across all components. This infrastructure will provide standardized execution tracing, feedback collection, candidate evaluation, versioning, and rollback.
-
-Each specialized agent may implement its own improvement strategies and evaluation metrics, while relying on the shared infrastructure to validate and manage proposed changes. This approach reduces duplicated development effort and enables consistent evaluation across the integrated system.
-
-Every harness includes:
-
-- **Experience store.** Every run logged as a full trace: request, plan, tool calls, outputs, score, cost and any advisor correction.
-- **Candidate testing.** The current agent and a proposed change (a new lesson, rewritten prompt, saved skill or tool preference) run on the same validation tasks and seeds. A paired statistical test decides whether the gain is real or noise.
-- **Regression suite.** Tasks the agent already solves. A change that raises the average but breaks these is rejected.
-- **Safety checks.** Changes that remove compliance rules, call disallowed tools or attempt a trade are blocked.
-- **Versioning and rollback.** Every adopted change gets a version and an audit-log entry, so any version can be restored.
-- **Dashboard panel.** Learning curves, learner versus baseline, and accepted or rejected changes with reasons.
-
-What differs is the scoring, which each component section describes. To avoid teams grading their own work, each pair writes the hidden test set for another pair's component (A tests B, B tests C, C tests A).
-
----
-
-## System Architecture
-
-The orchestrator receives the advisor's request and calls the other two agents; all three run against one shared sandbox.
-
-```
-Advisor request, in plain language
-        ↓
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  A: Portfolio    │  │  C: Request     │  │  B: Meeting     │
-│  Estimation     │  │  Orchestrator   │  │  Briefing       │
-│  Agent          │  │  Agent          │  │  Agent          │
-│                 │  │                 │  │                 │
-│  Risk,          │  │  Intent, tool   │  │  Retrieves,     │
-│  projections,   │  │  discovery      │  │  writes brief   │
-│  drift          │  │  Plans and      │  │  Learns useful  │
-│  Learns tools   │  │  calls A and B  │  │  context        │
-│  and steps      │  │                 │  │                 │
-└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
-   ↓ traces ↑ adopted   ↓ traces ↑ adopted   ↓ traces ↑ adopted
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  Improvement    │  │  Improvement    │  │  Improvement    │
-│  harness        │  │  harness        │  │  harness        │
-│                 │  │                 │  │                 │
-│  Exact numeric  │  │  Intent and     │  │  Checklist and  │
-│  scoring        │  │  plan accuracy  │  │  LLM judge      │
-│  Test vs frozen │  │  Test vs frozen │  │  Test vs frozen │
-│  baseline       │  │  baseline       │  │  baseline       │
-│  Regression     │  │  Regression     │  │  Regression     │
-│  suite          │  │  suite          │  │  suite          │
-│  Adopt or       │  │  Adopt or       │  │  Adopt or       │
-│  roll back      │  │  roll back      │  │  roll back      │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-
-Sandbox: Firestore-backed CRM, synthetic clients, live Twelve Data news. No real trades.
-```
-
-The final product will provide a single advisor-facing interface, where the orchestrator coordinates specialized agents to complete end-to-end workflows. Integration will begin from the initial development phase rather than being deferred until the final stage.
-
----
+The ADK briefing agent applies three business skills, records evidence and calculations, and the dashboard AI service performs independent quality review with bounded repairs. Client profiles, CRM notes, meeting context and CRM source records are stored in Firestore collections, seeded by `scripts/seed_crm.py`.
 
 ## Component A: Portfolio Estimation Agent
 
-Component A answers an advisor's numeric questions about a synthetic client's portfolio, and learns which tools, steps and checks produce correct answers. Its strength as a research testbed is that every task has a ground-truth answer computed by our own reference code, so we can score it exactly.
+Answers an advisor's numeric questions about a synthetic client's portfolio and learns which tools, steps, and checks produce correct answers. Every task has a ground-truth answer computed by reference code, so it can be scored exactly.
 
-### Task Families
+**Task families:** Risk/return, goal projection, drift/rebalancing, tax impact, income, fee drag (held out).
 
-| Family | Example Advisor Request | What Gets Estimated |
-|--------|------------------------|---------------------|
-| Risk and return | "What's the expected return and volatility of the Smiths' portfolio?" | Weighted return, volatility from a covariance matrix |
-| Goal projection | "Will this client reach $2M by 65?" | Monte Carlo probability of success, median ending value |
-| Drift and rebalancing | "How far is this account from its 60/40 target, and what trades fix it?" | Drift per asset class, trade list |
-| Tax impact | "What's the capital-gains cost of rebalancing?" | Gains by tax lot, estimated tax |
-| Income | "How much can she safely withdraw each year?" | Sustainable withdrawal under a success threshold |
-| Fee drag (held out) | "How much do fees cost him over 20 years?" | Value with and without fees |
-
-### Mock Tools
-
-About 15 to 20 simulated APIs: holdings lookup, price history, capital market assumptions, covariance builder, Monte Carlo engine, tax-lot lookup, calculator and a document search. We add realistic traps: a deprecated price API returning stale data, near-duplicate tool names, percent-versus-decimal unit mismatches, missing tickers and occasional timeouts. These make tool choice matter.
-
-### How It Improves
-
-We combine three mechanisms and test each one separately:
-
-1. **Reflective lessons (Reflexion-style).** After a failed or inefficient run, the agent writes a short lesson, such as "convert yield to decimal before compounding". Relevant lessons are retrieved into future runs.
-2. **Skill library.** Successful multi-step plans are saved as reusable procedures ("compute portfolio volatility") that the agent can call on new task families.
-3. **Tool-preference learning.** Running success and cost statistics per tool and task type, so the agent learns, for example, to avoid the stale price API.
-
-### Harness Metrics
-
-Answer accuracy within tolerance, tool-selection accuracy against a reference trajectory, steps and retries per task, cost in tokens, and accuracy on the held-out family.
-
----
+**How it improves:**
+1. **Reflective lessons** — after a failed run, the agent writes a short lesson retrieved into future runs
+2. **Skill library** — successful multi-step plans saved as reusable procedures
+3. **Tool-preference learning** — success/cost statistics per tool to avoid bad APIs
 
 ## Component B: Client Meeting Briefing Agent
 
-Component B prepares a one-page briefing before an advisor meets a client, and learns what to retrieve, what to leave out and how to write it. This is the scenario LPL describes in the brief, and it tests the open-ended side of agent work where Component A tests the exact side.
+Prepares a one-page briefing before an advisor meets a client. Pulls client profile, CRM notes, holdings, performance, and relevant market news, then writes the briefing with talking points, action items, and compliance flags.
 
-### The Workflow
+**Data:** 5 client households in Firestore. Market news from live Twelve Data API.
 
-Pull the client profile and CRM notes, retrieve holdings and performance, find relevant market news, run a few calculations (often by calling Component A), then write the briefing: recent changes, talking points, open action items and compliance flags.
-
-### Data
-
-5 client households stored in Firestore with profiles, goals, CRM notes, meeting context and source records. Market news comes from the live Twelve Data API. CRM data is seeded by `scripts/seed_crm.py`.
-
-### How It Improves
-
-1. **Prompt and instruction evolution (GEPA-style).** The system reviews failed briefings, proposes edits to its own instructions, and keeps the versions that score better on a validation set.
-2. **Context-selection learning.** It learns which sources and news items actually end up in good briefings, and stops retrieving the rest.
-3. **Advisor-correction memory.** Simulated advisors give feedback ("always mention upcoming RMDs for clients over 73"). The agent stores these and applies them to similar clients.
-
-### Scoring
-
-Each test briefing has a checklist of facts that must appear and facts that must not (hallucinated holdings, return guarantees). We score with automated fact checks plus an LLM judge, and validate the judge against our own hand-labels on a sample of about 100 briefings.
-
-### Harness Metrics
-
-Checklist recall, factual errors, irrelevant retrievals per task, tool calls per briefing, and compliance-flag violations.
-
----
+**How it improves:**
+1. **Prompt evolution (GEPA-style)** — reviews failed briefings, proposes instruction edits
+2. **Context-selection learning** — learns which sources end up in good briefings
+3. **Advisor-correction memory** — stores and applies advisor feedback to similar clients
 
 ## Component C: Advisor Request Orchestrator
 
-Component C turns an advisor's free-text request into a working plan: what the advisor wants, which tools or agents to use, and in what order. It covers the brief's first exploration area (intent understanding, dynamic tool discovery, workflow planning and context selection) and is the front door that calls Components A and B.
+Turns an advisor's free-text request into a working plan: intent, tools/agents, and execution order. Front door that calls Components A and B.
 
-### Example
+**Data:** ~300 synthetic advisor requests across 20+ intents. Tool catalog of 30-50 mock tools.
 
-"Get me ready for my 2pm with the Garcias and check whether they're still on track for retirement" should become: look up the client, call the briefing agent, call the portfolio agent for a goal projection, merge the results.
-
-### Data
-
-About 300 synthetic advisor requests across 20 or more intents, written in varied, messy language, each labelled with the correct intent and a reference plan. A tool catalog of 30 to 50 mock tools with descriptions, including overlapping and outdated ones.
-
-### How It Improves
-
-1. **Intent memory.** Misread requests and their corrections are stored and retrieved for similar future requests.
-2. **Tool-description learning.** The agent rewrites its own notes on what each tool is actually good for, based on outcomes, rather than trusting the catalog's descriptions.
-3. **Plan templates.** Plans that worked are saved as templates and adapted to new intents.
-
-### Generalization Tests
-
-New intents never seen in training, plus a changed tool catalog mid-experiment: tools renamed, added, deprecated or swapped for a new version.
-
-### Harness Scoring
-
-Intent accuracy, tool-selection precision and recall against the reference plan, plan validity (steps in a runnable order), and end-to-end success when the plan is executed.
-
-### Implementation status
-
-| Piece | Where |
-|---|---|
-| Tool catalogs v1 (43 tools with traps) and v2 (renamed, removed, deprecated tools) | `data/orchestrator/catalog_v1.json`, `catalog_v2.json` |
-| 22 intents, 12-client book, 303 labelled requests (150 train / 63 val / 90 test) | `data/orchestrator/`, generated by `scripts/build_orchestrator_data.py` |
-| Structured planner on Gemini, plus an offline keyword stand-in for tests | `agents/orchestrator/planner.py` |
-| Intent memory, tool notes, plan templates, with versioning, audit log and rollback | `agents/orchestrator/memory.py` |
-| Learner that turns scored runs into proposed memory updates | `agents/orchestrator/learner.py` |
-| 7-stage scorer matching the Planner and Tool-Call Evaluation table | `evaluation/orchestrator/scoring.py` |
-| Experiment runner: learner vs static, hand-tuned and retrieval-only | `evaluation/orchestrator/runner.py` |
-| Adoption gate (paired t-test, regressions, safety, cost); reproduces the Test Suite's Adoption Gate sheet | `harness/gate.py` (shared) |
-
-The test split contains seen intents with phrasings never used in training, three held-out intents (`fee_review`, `currency_shock_impact`, `rmd_check`), changed-catalog cases, and the Test Suite rows for Component C (S1-1 to S6-1, X-1, G-3, G-4). The test set will be replaced by the hidden set Component A's pair writes.
-
-The live ADK orchestrator loads the relevant learned lessons before each turn (`before_agent_callback`), so the dashboard chat and CLI use whatever memory version is active.
+**How it improves:**
+1. **Intent memory** — misread requests and corrections stored for retrieval
+2. **Tool-description learning** — rewrites tool notes based on outcomes
+3. **Plan templates** — successful plans saved and adapted to new intents
 
 ### Running the Component C experiment
 
 ```bash
 pip install -e ".[dev,eval]"
 
-# Offline smoke run: no API calls, deterministic stand-in planner (numbers are not results)
+# Offline smoke run
 python -m self_improving_ai.evaluation.orchestrator --planner keyword --seeds 2
 
-# Cheap first run on Gemini (Vertex AI settings from .env)
+# Gemini run
 python -m self_improving_ai.evaluation.orchestrator --planner gemini --seeds 1 --cycles 2 --gate-seeds 3 --test-limit 40
 
-# Full run: 5 seeds; --promote makes the best seed's memory the live version
+# Full run with promotion
 python -m self_improving_ai.evaluation.orchestrator --planner gemini --seeds 5 --promote
 ```
 
-Outputs go to `results/orchestrator/<run>/`: `report.md`, `summary.json`, `stage_scorecard.csv` (same layout as the Test Suite's Stage Scorecard sheet), `suite_results.csv` (pass rates for the Test Cases sheet), `case_results.csv`, `learning_curve.csv`, and each seed's memory versions with `audit_log.jsonl`.
+## Evaluation
 
-To roll the live memory back: `from self_improving_ai.agents.orchestrator.memory import default_store; default_store().rollback(<version>)`.
+Each agent is evaluated against three baselines: static (learning off), hand-tuned (manually improved prompts), and retrieval-only (similar past runs as examples). A gain counts only if the learning agent beats every baseline on held-out tasks across at least five random seeds.
 
----
-
-## Evaluation Plan
-
-In addition to evaluating individual agents, we will assess the performance of the integrated system on complete advisor workflows. This end-to-end evaluation will measure task completion, cross-agent coordination, unnecessary tool calls, execution efficiency, and the overall quality of the final output.
-
-Component-level evaluations will help identify the source of errors, while end-to-end evaluations will determine whether improvements to individual agents translate into meaningful product-level gains.
-
-We count a gain only if a learning agent beats every baseline on held-out tasks, across at least five random seeds.
-
-### Baselines
-
-| Baseline | What It Is | What Beating It Shows |
-|----------|-----------|----------------------|
-| Static agent | Same model and tools, learning off | Learning helps at all |
-| Hand-tuned agent | Static agent with prompts we improve by hand for the same effort | Self-improvement beats a human engineer's tuning |
-| Retrieval-only | Static agent that retrieves similar past successful runs as examples, no reflection | Reflection adds more than simple memory |
-
-### Data Splits
-
-Training tasks drive learning. A validation set is used only by each component's harness to accept or reject changes. A held-out test set, written and kept by another pair, includes three kinds of novelty:
-
-- **New tasks**: unseen task families (fee drag for A, a new client type for B, new intents for C)
-- **Changed tools**: renamed tools, a new API version, or a tool removed mid-experiment
-- **Changed conditions**: noisier data, more distractor news, stricter compliance rules
-
-### Ablations
-
-Turn each improvement mechanism off in turn, to show which one carries the gain.
-
-### Metrics Reported for Every Run
-
-Task completion rate, tool-selection accuracy, unnecessary actions and retries, tokens and time per task, the improvement curve across cycles, the gap between seen and unseen tasks, and regressions caught versus missed.
-
-### Planner and Tool-Call Evaluation
-
-Every run is scored stage by stage, not just on the final answer, so we can see where an agent went wrong and which stage learning actually fixed. Each test task carries a reference plan: the expected intent, the steps, and the tool calls with their arguments. Where several orders are valid, the reference stores the allowed orderings so a correct alternative plan is not penalized.
-
-| Stage | What We Check | How It Is Scored |
-|-------|--------------|-----------------|
-| 1. Intent | Did the planner identify what the advisor asked for? | Exact match to the labelled intent |
-| 2. Decomposition | Are the planned steps complete, with none missing or extra? | Step precision and recall against the reference plan |
-| 3. Tool selection | Was the correct tool chosen for each step, and no wrong or deprecated tool? | Tool precision and recall; count of wrong-tool calls |
-| 4. Arguments | Were the tool calls filled in correctly (account ID, dates, units)? | Argument-by-argument match, in the style of the Berkeley Function Calling Leaderboard |
-| 5. Ordering | Were dependent steps called in a valid order (prices before volatility)? | Check against the allowed orderings |
-| 6. Efficiency | Were there unnecessary calls, repeats or retries? | Extra calls and retries beyond the reference |
-| 7. Outcome | Is the final answer or end state correct? | Numeric tolerance (A), checklist (B), end-state comparison in the style of τ-bench (C) |
-
-The harness reports these scores per stage for the learner and each baseline. A learning curve per stage then shows, for example, whether gains came from better tool selection or from better arguments.
-
-### Calendar/Inbox and Part B integration
-
-The shared Calendar and simulated Inbox from PR #4 now feed the shared Part B
-meeting-preparation service. Upcoming client meetings receive a retained brief
-within 24 hours; Calendar links and the ready notice open that same draft.
-Client-linked mail is available to the investigator as original evidence.
-
-Use `SIA_WORKSPACE_STORE=local` for an offline demo, or configure the team's project
-and Application Default Credentials before selecting `firestore`. A Gemini API
-key is separate from Firestore authentication. See
-[shared Calendar/Inbox workflow](docs/meeting-brief/calendar-simulation.md) for
-configuration, API boundaries, known data conflicts and verification limits.
+Every run is scored stage by stage: intent accuracy, step decomposition, tool selection, argument correctness, ordering, efficiency, and outcome. The harness reports learning curves per stage for learner vs. baseline.
