@@ -120,7 +120,8 @@ def _get_fallback_runner():
         from google.adk.tools.agent_tool import AgentTool
         from self_improving_ai.agents.orchestrator.instructions import ORCHESTRATOR_INSTRUCTION
         from self_improving_ai.agents.portfolio.agent import create_portfolio_agent
-        from self_improving_ai.tools.briefing.copilot import meeting_briefing_agent
+        from self_improving_ai.agents.briefing.agent import briefing_agent
+        from self_improving_ai.tools.briefing.capped_agent_tool import CappedBriefingAgentTool
 
         from self_improving_ai.tools.orchestrator.workspace import (
             get_client_holdings, get_client_info, get_crm_summary,
@@ -134,7 +135,7 @@ def _get_fallback_runner():
                 get_upcoming_events, get_recent_emails, get_client_info,
                 get_crm_summary, get_client_holdings,
                 AgentTool(agent=create_portfolio_agent(settings.agent_model_fallback)),
-                meeting_briefing_agent,
+                CappedBriefingAgentTool(agent=briefing_agent),
                 search_tool_catalog,
             ],
             output_key="orchestrator_result",
