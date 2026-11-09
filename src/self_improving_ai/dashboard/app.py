@@ -18,7 +18,8 @@ restore_connections()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 from google.adk import Runner
@@ -485,6 +486,19 @@ async def chat(req: ChatRequest):
         "steps": steps,
         "mode": "live",
     }
+
+
+_FRONTEND_DIR = Path(__file__).resolve().parents[3] / "dashboard" / "dist"
+if _FRONTEND_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=_FRONTEND_DIR / "assets"), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        """Serve the React SPA for any non-API route."""
+        file = _FRONTEND_DIR / full_path
+        if file.is_file():
+            return FileResponse(file)
+        return FileResponse(_FRONTEND_DIR / "index.html")
 
 
 if __name__ == "__main__":
