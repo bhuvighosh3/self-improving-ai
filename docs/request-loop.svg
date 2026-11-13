@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 396" width="960" height="396" role="img" aria-labelledby="sia-loop-title sia-loop-desc">
+<title id="sia-loop-title">Plan, execute and check loop</title>
+<desc id="sia-loop-desc">An advisor request goes to the orchestrator, which plans and executes it. Simple lookups use direct tools; numeric questions go to the Portfolio agent and meeting briefs to the Briefing agent. A completion checker reviews the combined answer. If it is complete with confidence of at least 0.5, the response goes to the advisor. Otherwise the gap is fed back to the orchestrator for another try, up to two loops and 25 model calls per run.</desc>
+<defs>
+<marker id="sia-loop-arrow" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6f6a62"/></marker>
+<marker id="sia-loop-arrow-link" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3f6c8c"/></marker>
+<marker id="sia-loop-arrow-accent" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#b5543a"/></marker>
+</defs>
+<rect width="960" height="396" rx="10" fill="#f4f0e8"/>
+<rect x="380" y="32" width="208" height="276" rx="8" fill="rgba(30,28,25,0.025)" stroke="rgba(30,28,25,0.16)" stroke-width="0.8" stroke-dasharray="4,3"/>
+<rect x="392" y="26" width="82" height="12" rx="2" fill="#f4f0e8"/>
+<text x="396" y="35" fill="#8c857b" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ROUTED BY TASK</text>
+<path d="M152,172 L196,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<path d="M348,172 L372,172" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M372,84 L372,260" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M372,84 L396,84" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<path d="M572,84 L596,84" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M372,172 L396,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<path d="M572,172 L596,172" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M372,260 L396,260" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<path d="M572,260 L596,260" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M596,84 L596,260" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M596,172 L620,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<path d="M772,172 L816,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-loop-arrow)"/>
+<rect x="778" y="154" width="32" height="12" rx="2" fill="#f4f0e8"/>
+<text x="794" y="163" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">DONE</text>
+<path d="M696,204 L696,324 L272,324 L272,204" fill="none" stroke="#b5543a" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#sia-loop-arrow-accent)"/>
+<rect x="382" y="318" width="204" height="12" rx="2" fill="#f4f0e8"/>
+<text x="484" y="327" fill="#b5543a" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">INCOMPLETE · GAP FED BACK · ≤2 LOOPS</text>
+<rect x="24" y="140" width="128" height="64" rx="6" fill="#fffdf9" stroke="#6f6a62" stroke-width="1"/>
+<rect x="36" y="150" width="45" height="12" rx="2" fill="none" stroke="#6f6a62" stroke-width="0.8"/>
+<text x="40" y="159" fill="#6f6a62" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ADVISOR</text>
+<text x="36" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Request</text>
+<text x="36" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">free text</text>
+<rect x="196" y="140" width="152" height="64" rx="6" fill="#f6e7e0" stroke="#b5543a" stroke-width="1"/>
+<rect x="208" y="150" width="72" height="12" rx="2" fill="none" stroke="#b5543a" stroke-width="0.8"/>
+<text x="212" y="159" fill="#b5543a" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ORCHESTRATOR</text>
+<text x="208" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Plan + execute</text>
+<text x="208" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">≤25 model calls</text>
+<rect x="396" y="52" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="408" y="62" width="35" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="412" y="71" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">TOOLS</text>
+<text x="408" y="90" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Fast lookups</text>
+<text x="408" y="104" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">calendar · CRM · holdings</text>
+<rect x="396" y="140" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="408" y="150" width="56" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="412" y="159" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">SUB-AGENT</text>
+<text x="408" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Portfolio agent</text>
+<text x="408" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">numbers · scenarios</text>
+<rect x="396" y="228" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="408" y="238" width="56" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="412" y="247" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">SUB-AGENT</text>
+<text x="408" y="266" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Briefing agent</text>
+<text x="408" y="280" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">meeting briefs</text>
+<rect x="620" y="140" width="152" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="632" y="150" width="45" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="636" y="159" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">CHECKER</text>
+<text x="632" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Completion check</text>
+<text x="632" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">stop at conf ≥ 0.5</text>
+<rect x="816" y="140" width="120" height="64" rx="6" fill="#fffdf9" stroke="#6f6a62" stroke-width="1"/>
+<rect x="828" y="150" width="45" height="12" rx="2" fill="none" stroke="#6f6a62" stroke-width="0.8"/>
+<text x="832" y="159" fill="#6f6a62" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ADVISOR</text>
+<text x="828" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Response</text>
+<text x="828" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">with trace</text>
+<line x1="24" y1="356" x2="936" y2="356" stroke="rgba(30,28,25,0.12)" stroke-width="0.8"/>
+<rect x="24" y="372" width="16" height="10" rx="2" fill="#f6e7e0" stroke="#b5543a" stroke-width="1"/>
+<text x="48" y="380" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">FOCAL: THE ORCHESTRATOR</text>
+<rect x="204.79999999999998" y="372" width="16" height="10" rx="2" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<text x="228.79999999999998" y="380" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">AGENT / TOOL</text>
+<line x1="324.0" y1="377" x2="340.0" y2="377" stroke="#b5543a" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="348.0" y="380" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">RETRY WITH THE GAP</text>
+</svg>

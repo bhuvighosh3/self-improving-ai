@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 488" width="960" height="488" role="img" aria-labelledby="sia-arch-title sia-arch-desc">
+<title id="sia-arch-title">Self-Improving AI copilot architecture</title>
+<desc id="sia-arch-desc">The advisor uses the React app, which calls the FastAPI backend on Cloud Run. The backend passes each query to the Request Orchestrator, which loads its learned memory before each turn. It answers simple lookups with five direct workspace tools (calendar, email and CRM from Firestore, holdings from a local fixture), and delegates complex tasks to two sub-agents through ADK AgentTool: the Portfolio agent and the Briefing agent, which both use Twelve Data market data. The Briefing agent saves the full brief to DraftStore and returns a short summary. A completion checker reviews each answer and sends any gap back to the orchestrator, up to two loops, before the response returns to the app. Every request is traced to Cloud Trace. All agents run on Gemini through Vertex AI.</desc>
+<defs>
+<marker id="sia-arch-arrow" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6f6a62"/></marker>
+<marker id="sia-arch-arrow-link" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3f6c8c"/></marker>
+<marker id="sia-arch-arrow-accent" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#b5543a"/></marker>
+</defs>
+<rect width="960" height="488" rx="10" fill="#f4f0e8"/>
+<rect x="576" y="32" width="208" height="276" rx="8" fill="rgba(30,28,25,0.025)" stroke="rgba(30,28,25,0.16)" stroke-width="0.8" stroke-dasharray="4,3"/>
+<rect x="588" y="26" width="120" height="12" rx="2" fill="#f4f0e8"/>
+<text x="592" y="35" fill="#8c857b" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ADK AGENTTOOL · TOOLS</text>
+<path d="M152,164 L196,164" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<path d="M196,180 L152,180" fill="none" stroke="#6f6a62" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#sia-arch-arrow)"/>
+<rect x="162" y="146" width="24" height="12" rx="2" fill="#f4f0e8"/>
+<text x="174" y="155" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">ASK</text>
+<path d="M336,172 L392,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<rect x="346" y="154" width="36" height="12" rx="2" fill="#f4f0e8"/>
+<text x="364" y="163" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">QUERY</text>
+<path d="M544,172 L560,172" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M560,84 L560,260" fill="none" stroke="#6f6a62" stroke-width="1.2"/>
+<path d="M560,84 L592,84" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<path d="M560,172 L592,172" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<path d="M560,260 L592,260" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<path d="M768,84 L816,84" fill="none" stroke="#3f6c8c" stroke-width="1.2" marker-end="url(#sia-arch-arrow-link)"/>
+<rect x="776" y="66" width="32" height="12" rx="2" fill="#f4f0e8"/>
+<text x="792" y="75" fill="#3f6c8c" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">READ</text>
+<path d="M768,172 L816,172" fill="none" stroke="#3f6c8c" stroke-width="1.2" marker-end="url(#sia-arch-arrow-link)"/>
+<path d="M768,260 L816,260" fill="none" stroke="#3f6c8c" stroke-width="1.2" marker-end="url(#sia-arch-arrow-link)"/>
+<rect x="776" y="154" width="32" height="12" rx="2" fill="#f4f0e8"/>
+<text x="792" y="163" fill="#3f6c8c" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">LIVE</text>
+<path d="M680,292 L680,356" fill="none" stroke="#6f6a62" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#sia-arch-arrow)"/>
+<rect x="688" y="318" width="64" height="12" rx="2" fill="#f4f0e8"/>
+<text x="720" y="327" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">FULL BRIEF</text>
+<path d="M472,204 L472,352" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<rect x="480" y="272" width="44" height="12" rx="2" fill="#f4f0e8"/>
+<text x="502" y="281" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">ANSWER</text>
+<path d="M432,352 L432,204" fill="none" stroke="#b5543a" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#sia-arch-arrow-accent)"/>
+<rect x="336" y="300" width="84" height="12" rx="2" fill="#f4f0e8"/>
+<text x="378" y="309" fill="#b5543a" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">GAP · ≤2 LOOPS</text>
+<path d="M392,384 L264,384 L264,204" fill="none" stroke="#6f6a62" stroke-width="1.2" marker-end="url(#sia-arch-arrow)"/>
+<rect x="272" y="248" width="52" height="12" rx="2" fill="#f4f0e8"/>
+<text x="298" y="257" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">RESPONSE</text>
+<path d="M220,204 L220,384 L152,384" fill="none" stroke="#6f6a62" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#sia-arch-arrow)"/>
+<rect x="168" y="366" width="36" height="12" rx="2" fill="#f4f0e8"/>
+<text x="186" y="375" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.06em" text-anchor="middle">SPANS</text>
+<rect x="24" y="140" width="128" height="64" rx="6" fill="#fffdf9" stroke="#6f6a62" stroke-width="1"/>
+<rect x="36" y="150" width="45" height="12" rx="2" fill="none" stroke="#6f6a62" stroke-width="0.8"/>
+<text x="40" y="159" fill="#6f6a62" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">BROWSER</text>
+<text x="36" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">React app</text>
+<text x="36" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">copilot · calendar</text>
+<rect x="196" y="140" width="140" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="208" y="150" width="45" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="212" y="159" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">FASTAPI</text>
+<text x="208" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Backend</text>
+<text x="208" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">Cloud Run · /api/*</text>
+<rect x="392" y="140" width="152" height="64" rx="6" fill="#f6e7e0" stroke="#b5543a" stroke-width="1"/>
+<rect x="404" y="150" width="72" height="12" rx="2" fill="none" stroke="#b5543a" stroke-width="0.8"/>
+<text x="408" y="159" fill="#b5543a" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">ORCHESTRATOR</text>
+<text x="404" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Request router</text>
+<text x="404" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">C · learned memory</text>
+<rect x="592" y="52" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="604" y="62" width="35" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="608" y="71" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">TOOLS</text>
+<text x="604" y="90" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Direct lookups</text>
+<text x="604" y="104" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">calendar · CRM · holdings</text>
+<rect x="592" y="140" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="604" y="150" width="56" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="608" y="159" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">SUB-AGENT</text>
+<text x="604" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Portfolio agent</text>
+<text x="604" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">A · risk · drift</text>
+<rect x="592" y="228" width="176" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="604" y="238" width="56" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="608" y="247" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">SUB-AGENT</text>
+<text x="604" y="266" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Briefing agent</text>
+<text x="604" y="280" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">B · capped summary</text>
+<rect x="816" y="52" width="120" height="64" rx="6" fill="#fffdf9" stroke="#3f6c8c" stroke-width="1"/>
+<rect x="828" y="62" width="56" height="12" rx="2" fill="none" stroke="#3f6c8c" stroke-width="0.8"/>
+<text x="832" y="71" fill="#3f6c8c" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">FIRESTORE</text>
+<text x="828" y="90" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Workspace</text>
+<text x="828" y="104" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">clients · CRM</text>
+<rect x="816" y="140" width="120" height="152" rx="6" fill="#fffdf9" stroke="#3f6c8c" stroke-width="1"/>
+<rect x="828" y="150" width="67" height="12" rx="2" fill="none" stroke="#3f6c8c" stroke-width="0.8"/>
+<text x="832" y="159" fill="#3f6c8c" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">TWELVE DATA</text>
+<text x="828" y="178" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Market data</text>
+<text x="828" y="192" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">quotes · news</text>
+<rect x="592" y="356" width="176" height="64" rx="6" fill="#ebe4d6" stroke="#6f6a62" stroke-width="1"/>
+<rect x="604" y="366" width="40" height="12" rx="2" fill="none" stroke="#6f6a62" stroke-width="0.8"/>
+<text x="608" y="375" fill="#6f6a62" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">SQLITE</text>
+<text x="604" y="394" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">DraftStore</text>
+<text x="604" y="408" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">full briefs saved</text>
+<rect x="392" y="352" width="152" height="64" rx="6" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<rect x="404" y="362" width="45" height="12" rx="2" fill="none" stroke="#1e1c19" stroke-width="0.8"/>
+<text x="408" y="371" fill="#1e1c19" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">CHECKER</text>
+<text x="404" y="390" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Completion check</text>
+<text x="404" y="404" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">flash lite · ≥0.5</text>
+<rect x="24" y="352" width="128" height="64" rx="6" fill="#fffdf9" stroke="#3f6c8c" stroke-width="1"/>
+<rect x="36" y="362" width="67" height="12" rx="2" fill="none" stroke="#3f6c8c" stroke-width="0.8"/>
+<text x="40" y="371" fill="#3f6c8c" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">CLOUD TRACE</text>
+<text x="36" y="390" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">OpenTelemetry</text>
+<text x="36" y="404" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">every request</text>
+<rect x="816" y="356" width="120" height="64" rx="6" fill="#fffdf9" stroke="#3f6c8c" stroke-width="1"/>
+<rect x="828" y="366" width="56" height="12" rx="2" fill="none" stroke="#3f6c8c" stroke-width="0.8"/>
+<text x="832" y="375" fill="#3f6c8c" font-size="7" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.14em">VERTEX AI</text>
+<text x="828" y="394" fill="#1e1c19" font-size="12" font-weight="600" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">Gemini</text>
+<text x="828" y="408" fill="#6f6a62" font-size="9" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">3.8 flash · lite</text>
+<line x1="24" y1="448" x2="936" y2="448" stroke="rgba(30,28,25,0.12)" stroke-width="0.8"/>
+<rect x="24" y="464" width="16" height="10" rx="2" fill="#f6e7e0" stroke="#b5543a" stroke-width="1"/>
+<text x="48" y="472" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">FOCAL: THE ORCHESTRATOR</text>
+<rect x="204.79999999999998" y="464" width="16" height="10" rx="2" fill="#fffdf9" stroke="#1e1c19" stroke-width="1"/>
+<text x="228.79999999999998" y="472" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">AGENT / SERVICE</text>
+<rect x="340.79999999999995" y="464" width="16" height="10" rx="2" fill="#ebe4d6" stroke="#6f6a62" stroke-width="1"/>
+<text x="364.79999999999995" y="472" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">LOCAL STORE</text>
+<rect x="454.4" y="464" width="16" height="10" rx="2" fill="#fffdf9" stroke="#3f6c8c" stroke-width="1"/>
+<text x="478.4" y="472" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">GOOGLE CLOUD / EXTERNAL</text>
+<line x1="635.1999999999999" y1="469" x2="651.1999999999999" y2="469" stroke="#6f6a62" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="659.1999999999999" y="472" fill="#6f6a62" font-size="8" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="0.08em">RETURN / SIDE OUTPUT</text>
+</svg>

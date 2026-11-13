@@ -72,47 +72,7 @@ The app is deployed on **GCP Cloud Run** with continuous deployment from the `ma
 
 ### Overall System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        GCP Cloud Run                                │
-│  ┌──────────────┐    ┌──────────────────────────────────────────┐   │
-│  │  React SPA   │───▶│         FastAPI Backend                  │   │
-│  │  (Vite)      │    │  /api/chat  /api/calendar  /api/email    │   │
-│  └──────────────┘    └─────────────────┬────────────────────────┘   │
-│                                        │                            │
-│  ┌─────────────────────────────────────▼────────────────────────┐   │
-│  │              Google ADK Agent Runtime                         │   │
-│  │  ┌──────────────────────────────────────────────────────┐    │   │
-│  │  │          Request Orchestrator (Gemini 3.8 Flash)     │    │   │
-│  │  │  Direct Tools: calendar, email, CRM, client, holdings│    │   │
-│  │  │  Sub-Agents: Portfolio Agent, Briefing Agent         │    │   │
-│  │  └──────────────────────┬───────────────────────────────┘    │   │
-│  │                         │                                     │   │
-│  │  ┌──────────────────────▼───────────────────────────────┐    │   │
-│  │  │     run_copilot() — ReAct Plan-Execute-Check Loop    │    │   │
-│  │  │     Completion Checker (Gemini 3.5 Flash Lite)       │    │   │
-│  │  └──────────────────────────────────────────────────────┘    │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-│                                        │                            │
-│  ┌─────────────────────────────────────▼────────────────────────┐   │
-│  │              Observability                                    │   │
-│  │  OpenTelemetry → GCP Cloud Trace                              │   │
-│  │  Spans: query, tool calls, checker verdict, response, timing  │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
-                                  │
-                    ┌─────────────▼──────────────┐
-                    │    Cloud Firestore          │
-                    │  clients, CRM, calendar,    │
-                    │  email, holdings             │
-                    └─────────────┬──────────────┘
-                                  │
-                    ┌─────────────▼──────────────┐
-                    │    Vertex AI (Gemini)       │
-                    │  gemini-3.8-flash           │
-                    │  gemini-3.5-flash-lite      │
-                    └────────────────────────────┘
-```
+![Copilot architecture: the React app calls the FastAPI backend on Cloud Run; the Request Orchestrator loads its learned memory, answers simple lookups with five workspace tools (calendar, email and CRM from Firestore, holdings from a local fixture) and delegates to the Portfolio and Briefing sub-agents, which use Twelve Data; the Briefing agent saves full briefs to DraftStore; a completion checker sends gaps back for up to two loops; requests are traced to Cloud Trace and all agents run on Gemini via Vertex AI](docs/architecture.svg)
 
 ### Agent Architecture
 
@@ -122,29 +82,7 @@ Three agents connected via Google ADK's `AgentTool`:
 - **Portfolio Estimation Agent** (Component A) — handles numeric portfolio questions (risk/return, projections, drift, tax impact)
 - **Meeting Briefing Agent** (Component B) — prepares client meeting briefings from CRM, portfolio, and market data; wrapped in `CappedBriefingAgentTool` to cap output before it reaches the orchestrator
 
-```
-Advisor request
-      ↓
-┌──────────────────────────────────────┐
-│  Request Orchestrator                │ ← Gemini 3.8 Flash
-│  ┌────────────────────────────────┐  │
-│  │ Direct Tools (fast lookups)    │  │
-│  │ calendar, email, CRM, client,  │  │
-│  │ holdings, tool catalog         │  │
-│  └────────────────────────────────┘  │
-│  ┌────────────────────────────────┐  │
-│  │ Sub-Agents (complex tasks)     │  │
-│  │ portfolio_agent, briefing_agent│  │
-│  └────────────────────────────────┘  │
-└──────────────┬───────────────────────┘
-               ↓
-┌──────────────────────────────────────┐
-│ Completion Checker (Flash Lite)      │
-│ → complete (confidence ≥ 0.5)? STOP  │
-│ → incomplete? feed gap back → retry  │
-│ → max loops (2) hit? STOP            │
-└──────────────────────────────────────┘
-```
+![Plan, execute and check loop: the orchestrator routes a request to fast lookups, the Portfolio agent or the Briefing agent; a completion checker stops when the answer is complete with confidence of at least 0.5, otherwise feeds the gap back for up to two loops](docs/request-loop.svg)
 
 The orchestrator uses `AgentTool` to call sub-agents and plain functions for direct data lookups. The briefing agent is wrapped in `CappedBriefingAgentTool`, an `AgentTool` subclass that intercepts the full structured output (6 sections, claims, findings, evidence), persists it to `DraftStore` (SQLite), and returns only a compact summary upstream — preventing the orchestrator's context from being overwhelmed by large briefings. A ReAct plan-execute-check loop (`run_copilot`) wraps each request: the orchestrator executes, then a lightweight completion checker (Gemini Flash Lite) verifies the response covers the full request. If incomplete, the gap is fed back for a retry, bounded by `max_loops=2` and `max_llm_calls=25` per run.
 
