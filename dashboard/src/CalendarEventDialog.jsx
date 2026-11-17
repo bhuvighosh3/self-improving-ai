@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { requestJson } from "./connectionRequest";
 import "./calendar.css";
+import MeetingSuggestions from "./MeetingSuggestions";
 
-export default function CalendarEventDialog({ clients, event, defaultDate, selectedClient, onClose, onSaved, onPrepare }) {
+export default function CalendarEventDialog({ clients, event, defaultDate, selectedClient, suggestion: initialSuggestion, onClose, onSaved, onPrepare }) {
   const dialog = useRef(null);
   const [form, setForm] = useState(() => event ? {
     title: event.title, client_id: event.client_id, date: event.date,
@@ -10,7 +11,10 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
   } : { title: "", client_id: selectedClient?.client_id || "", date: defaultDate || "",
     start_time: "09:00", end_time: "10:00", location: "", notes: "" });
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
-  const title = event ? "Edit Event" : "New Event";
+  const [suggestion, setSuggestion] = useState(initialSuggestion || null);
+  const title = event ? "Edit Event" : "Add meeting";
+  useEffect(() => { if (initialSuggestion) setForm(initialSuggestion.event); }, []);
+  const chooseSuggestion = item => { setSuggestion(item); setForm(item.event); };
   const changed = Boolean(event && Object.keys(form).some(key => form[key] !== (event[key] || "")));
   useEffect(() => { dialog.current.showModal(); }, []);
   const update = (key, value) => setForm(current => ({ ...current, [key]: value }));
@@ -22,7 +26,7 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
       if (prepare && !changed) { await onPrepare(event); return; }
       const record = await requestJson(event ? `/api/calendar/events/${event.id}` : "/api/calendar/events", {
         timeoutMs: 30000, timeoutMessage: "Saving took longer than expected. Check Calendar before retrying, as the meeting may already have been saved.",
-        method: event ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
+        method: event ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, ...(!event && suggestion ? { suggestion_id: suggestion.id } : {}) }),
       });
       if (prepare) await onPrepare(record);
       else await onSaved(record);
@@ -40,6 +44,9 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
     <form className="cal-modal" onSubmit={save}>
       <h3>{title}</h3>
       {error && <p className="cal-error" role="alert">{error}</p>}
+      {!event && (suggestion ? <div className="meeting-suggestion-context"><strong>Suggested from your previous meeting</strong><p>{suggestion.reason}</p><button type="button" className="calendar-back" disabled={busy} onClick={() => setSuggestion(null)}>Create a different meeting</button></div>
+        : <MeetingSuggestions onChoose={chooseSuggestion} clientId={selectedClient?.client_id}/>)}
+      {!event && <p className="meeting-muted">Your chosen dates and times help tailor future suggestions for this client.</p>}
       <div className="cal-modal-fields">
         <label>Title<input required maxLength={200} disabled={busy} value={form.title} onChange={e => update("title", e.target.value)} placeholder="Meeting title"/></label>
         <label>Client<select aria-label="Client" required disabled={busy} value={form.client_id} onChange={e => update("client_id", e.target.value)}>
@@ -57,7 +64,7 @@ export default function CalendarEventDialog({ clients, event, defaultDate, selec
         {onPrepare && <button type="submit" value="prepare" className="cal-modal-cancel" disabled={busy}>{changed ? "Save & view prep" : "View meeting prep"}</button>}
         {event && <button type="button" className="cal-modal-delete" disabled={busy} onClick={remove}>Delete</button>}
         <button type="button" className="cal-modal-cancel" disabled={busy} onClick={onClose}>Cancel</button>
-        <button className="cal-modal-save" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+        <button className="cal-modal-save" disabled={busy}>{busy ? "Saving…" : event ? "Save" : "Add to calendar"}</button>
       </div>
     </form>
   </dialog>;

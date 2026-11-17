@@ -26,25 +26,24 @@ async function openPreparedMeeting(page, request, client, eventId, date, time, f
 
 test("meeting workflow exposes evidence coverage and persists local demo review", async ({ page, request }) => {
   await openPreparedMeeting(page, request, "CLI-004", "EVT-a3b4c5d6", "2026-11-20", "15:30", "Confirm current home funding plans");
-  const process = page.locator("summary").filter({ hasText: "Preparation process" });
+  const process = page.locator("summary").filter({ hasText: "Preparation details" });
   await expect(process).toContainText("changed");
   await process.click();
   await expect(page.getByText("Deterministic demonstration; not model-reviewed.", { exact: false })).toBeVisible();
   await page.getByText("Recorded tools and evidence", { exact: true }).click();
   await expect(page.locator("pre")).toContainText("MINUTES-004");
-  await page.getByRole("button", { name: "Check draft", exact: true }).click();
   await expect(process).toContainText("Check: pass");
   await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
   await expect(page.locator(".meeting-toolbar")).toContainText("Reviewed");
-  await page.getByRole("button", { name: "Edit draft", exact: true }).click();
+  await page.getByRole("button", { name: "Edit prep", exact: true }).click();
   await page.getByLabel("Client Overview: item details").first().fill("Advisor updated draft.");
   await expect(page.locator(".meeting-toolbar")).toContainText("Needs review");
-  await expect(process).toContainText("recheck required");
+  await expect(process).toContainText("Checks run when you save");
 });
 
 test("limited historical coverage retains routine review for a calendar meeting", async ({ page, request }) => {
   await openPreparedMeeting(page, request, "CLI-002", "EVT-e5f6a7b8", "2026-11-14", "10:00", "Review bond duration and client questions");
-  await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("insufficient information");
+  await expect(page.locator("summary").filter({ hasText: "Preparation details" })).toContainText("insufficient information");
   await expect(page.getByRole("heading", { name: "Routine meeting review" })).toBeVisible();
   await expect(page.getByLabel("Meeting focus", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("article", { name: "Meeting briefing" })).toContainText("Thompson Trust");
@@ -127,9 +126,8 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await expect(page.getByLabel("Meeting date", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Meeting at a glance" })).toContainText("Rate impact analysis on bond portfolio");
     await page.screenshot({ path: testInfo.outputPath("unified-meeting-prep.png"), fullPage: true });
-    await expect(page.locator("summary").filter({ hasText: "Preparation process" })).toContainText("Check: pass");
-    await page.getByRole("button", { name: "Check draft", exact: true }).click();
-    await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
+    await expect(page.locator("summary").filter({ hasText: "Preparation details" })).toContainText("Check: pass");
+      await page.getByRole("button", { name: "Mark as reviewed", exact: true }).click();
     await expect(page.locator(".meeting-toolbar")).toContainText("Reviewed");
     if (viewport.width < 768) {
       await page.getByLabel("Navigate to page").selectOption("email");

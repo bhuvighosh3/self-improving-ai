@@ -59,7 +59,7 @@ export default function MeetingPrepWorkspace({ clients, initialEvent, incomingBr
             <span className="prep-row-time">{new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(new Date(event.starts_at))}</span><strong>{event.client_name}</strong><span className="prep-row-topic">{event.title}</span><span className={`prep-state state-${state.tone}`}>{state.label}</span><CalendarSymbol name="next" size={14}/>
           </button>;
         })}</section>)}{!visible.length && <div className="prep-no-results"><h4>No matching meetings</h4><p>{search ? "Try another client or clear your search." : "Choose All meetings or add a meeting to your calendar."}</p>{search && <button className="meeting-btn" onClick={() => setSearch("")}>Clear search</button>}</div>}</div>
-        <button className="prep-new-meeting" onClick={() => setCreating(true)}><CalendarSymbol name="plus" size={15}/>New meeting</button>
+        <button className="prep-new-meeting" onClick={() => setCreating(true)}><CalendarSymbol name="plus" size={15}/>Add meeting</button>
       </aside>
       <div className="prep-detail">
         <button className="calendar-back prep-mobile-back" onClick={() => setShowDetail(false)}><CalendarSymbol name="previous" size={14}/>All meetings</button>

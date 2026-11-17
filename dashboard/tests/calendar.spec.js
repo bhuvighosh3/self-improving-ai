@@ -57,23 +57,23 @@ for (const width of [1280, 390]) {
 
 test("calendar editing validates dates and shares new meetings with preparation", async ({ page, request }) => {
   await openCalendar(page);
-  await page.getByRole("button", { name: "+ New Event", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New Event" });
+  await page.getByRole("button", { name: "+ Add meeting", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add meeting" });
   await dialog.getByLabel("Title", { exact: true }).fill("Integration review meeting");
   await dialog.getByLabel("Client", { exact: true }).selectOption("CLI-004");
   await dialog.getByLabel("Date", { exact: true }).fill("2026-11-21");
   await dialog.getByLabel("Start Time").fill("16:00");
   await dialog.getByLabel("End Time").fill("15:00");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("button", { name: "Add to calendar", exact: true }).click();
   await expect(dialog.getByRole("alert")).toBeVisible();
   await dialog.getByLabel("End Time").fill("17:00");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("button", { name: "Add to calendar", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   const records = await (await request.get("/api/calendar/events?year=2026&month=11")).json();
   const event = records.find(event => event.title === "Integration review meeting");
   expect(event).toBeTruthy();
   try {
-    await page.getByRole("button", { name: "Next week", exact: true }).click();
+    await expect(page.locator(".cal-week-label")).toHaveText("Nov 16 – 22, 2026");
     await page.getByRole("button", { name: "Saturday, November 21", exact: true }).click();
     await expect(page.getByRole("button", { name: "Edit event: Integration review meeting, 2026-11-21 at 16:00", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "View meeting prep for Okafor Family on 2026-11-21", exact: true }).click();

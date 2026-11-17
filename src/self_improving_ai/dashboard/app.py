@@ -91,6 +91,9 @@ from self_improving_ai.dashboard.email import router as email_router
 
 app.include_router(email_router)
 
+from self_improving_ai.dashboard.learning import router as learning_router
+app.include_router(learning_router)
+
 from self_improving_ai.client_store import load_households as _load_clients
 
 app.add_middleware(

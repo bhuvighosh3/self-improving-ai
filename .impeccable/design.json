@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-06T02:14:00.891163+00:00",
+  "generatedAt": "2026-11-17T23:38:16.271439+00:00",
   "title": "Design System: Wealth Management Copilot",
   "extensions": {
     "colorMeta": {
@@ -423,8 +423,8 @@
       "name": "Secondary button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Draft, review and print actions.",
-      "html": "<button class=\"ds-secondary\">Edit draft</button>",
+      "description": "Edit prep, review, print and inline feedback actions; Save changes runs checks automatically.",
+      "html": "<button class=\"ds-secondary\">Edit prep</button>",
       "css": ".ds-secondary {font-family: var(--font, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif); display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:8px 13px; border:1px solid var(--border, #e2e5ea); border-radius:var(--radius-sm, 6px); font-size:12px; font-weight:500; line-height:1.4; cursor:pointer;background:var(--surface, #fff);color:var(--text-2, #3d4556);} .ds-secondary:hover {background:var(--surface-hover, #f0f2f5);} .ds-secondary:focus-visible {outline: 2px solid var(--accent, #3563e9); outline-offset: 3px;} .ds-secondary:disabled {opacity:.5;cursor:not-allowed;}"
     },
     {

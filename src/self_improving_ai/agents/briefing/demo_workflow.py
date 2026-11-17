@@ -106,6 +106,8 @@ def enrich_demo(brief: dict, meeting_type: str) -> dict:
         "text": "; ".join(evidence["routine_items"]), "source_ids": ["PROFILE", "TASKS"],
         "why": "Routine goal progress and unfinished commitments remain relevant even without confirmed changes.",
         "question": "Which goal assumptions or service commitments need confirmation?"})
+    from self_improving_ai.agents.briefing.learning import personalize_demo
+    personalize_demo(sections)
     findings, claims = [], []
     for section in sections:
         for item in section["items"]:

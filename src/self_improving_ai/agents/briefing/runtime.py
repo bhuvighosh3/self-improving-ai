@@ -159,6 +159,8 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
                          "focus": request.focus, "meeting_type": request.meeting_type,
                          "discovery_strategy": settings.briefing_discovery, "model": selected_model,
                          "context_revision": metadata.get("context_revision", "fixture-v1")}
+    from self_improving_ai.agents.briefing.learning import current_profile, instructions
+    task["learning_version"] = current_profile()["version"]
     store = BriefRunStore()
     run_id, saved = store.begin(task, selected_model, metadata["as_of"])
     if saved:
@@ -182,6 +184,7 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
             "attempt": attempt, "phase": phase, "work": work, "trace": trace,
             "error": error}, status)
 
+    state["advisor_corrections"] = instructions()
     try:
         if phase == "discover":
             await investigate(task, state, trace, checkpoint)

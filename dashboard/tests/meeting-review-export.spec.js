@@ -20,23 +20,26 @@ async function preparedFixture(page, request, purpose) {
   } catch (error) { await request.delete(`/api/calendar/events/${event.id}`); throw error; }
 }
 
-test("review unavailable removes pass status until a successful retry", async ({ page, request }, testInfo) => {
-  const event = await preparedFixture(page, request, "review failure");
+test("automatic check failures block review until saving succeeds", async ({ page, request }, testInfo) => {
+  const event = await preparedFixture(page, request, "automatic review");
   try {
     let checks = 0;
-    await page.route("**/api/briefings/check", route => {
-      checks += 1;
-      return checks === 1 ? route.fulfill({ status: 502, json: { detail: "Quality reviewer unavailable; draft was not approved." } })
-        : route.fulfill({ json: { verdict: "pass", findings: [], semantic_support: "manual_advisor_review_required_offline" } });
+    await page.route("**/api/meeting-learning/briefs/*/edits", async route => {
+      const response = await route.fetch();
+      const state = await response.json();
+      if (++checks === 1) state.brief.workflow.quality = { verdict: "unavailable", findings: [] };
+      await route.fulfill({ response, json: state });
     });
-    const process = page.locator("summary").filter({ hasText: "Preparation process" });
-    await expect(process).toContainText("Check: pass");
-    await page.getByRole("button", { name: "Check draft", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("Quality reviewer unavailable");
-    await expect(process).toContainText("Check unavailable");
+    const process = page.locator("summary").filter({ hasText: "Preparation details" });
+    await expect(page.getByRole("button", { name: "Check draft", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Edit prep", exact: true }).click();
+    await page.getByLabel("Client Overview: item details").first().fill("Advisor question: confirm current priorities.");
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await expect(process).toContainText("Automatic checks need attention");
     await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
-    await page.screenshot({ path: testInfo.outputPath("review-unavailable.png"), fullPage: true });
-    await page.getByRole("button", { name: "Check draft", exact: true }).click();
+    await page.screenshot({ path: testInfo.outputPath("automatic-check-unavailable.png"), fullPage: true });
+    await page.getByRole("button", { name: "Edit prep", exact: true }).click();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await expect(process).toContainText("Check: pass");
     await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeEnabled();
   } finally { await request.delete(`/api/calendar/events/${event.id}`); }
@@ -57,27 +60,20 @@ test("PDF download exports the selected calendar briefing", async ({ page, reque
   } finally { await request.delete(`/api/calendar/events/${event.id}`); }
 });
 
-test("edited briefing retains its recheck status after reopening", async ({ page, request }) => {
-  const event = await preparedFixture(page, request, "edited review");
-  const reopen = async () => {
+test("saved edits and automatic check results survive reopening", async ({ page, request }) => {
+  const event = await preparedFixture(page, request, "saved editing");
+  try {
+    await page.getByRole("button", { name: "Edit prep", exact: true }).click();
+    await page.getByLabel("Client Overview: item details").first().fill("Advisor question: confirm current priorities.");
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await expect(page.locator("summary").filter({ hasText: "Preparation details" })).toContainText("Check: pass");
     await page.reload();
     await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
     await page.getByRole("complementary", { name: "Client meetings" }).getByRole("button", { name: "All meetings", exact: true }).click();
     await page.getByRole("button", { name: "Open preparation for Okafor Family on 2026-11-24", exact: true }).click();
-  };
-  try {
-    const process = page.locator("summary").filter({ hasText: "Preparation process" });
-    await page.getByRole("button", { name: "Edit draft", exact: true }).click();
-    await page.getByLabel("Client Overview: item details").first().fill("Advisor revised the meeting context.");
-    await page.getByRole("button", { name: "Done editing", exact: true }).click();
-    await expect(process).toContainText("recheck required");
-    await reopen();
-    await expect(process).toContainText("recheck required");
-    await page.route("**/api/briefings/check", route => route.fulfill({ json: { verdict: "revise", findings: [], semantic_support: "manual_advisor_review_required_offline" } }));
-    await page.getByRole("button", { name: "Check draft", exact: true }).click();
-    await expect(process).toContainText("Check: revise");
-    await reopen();
-    await expect(process).toContainText("Check: revise");
-    await expect(page.getByRole("button", { name: "Mark as reviewed", exact: true })).toBeDisabled();
+    await expect(page.getByRole("article", { name: "Meeting briefing" })).toContainText("Advisor question: confirm current priorities.");
+    await expect(page.locator("summary").filter({ hasText: "Preparation details" })).toContainText("Check: pass");
+    await page.getByText("Feedback & edit history", { exact: true }).click();
+    await expect(page.getByRole("region", { name: "Learning from your feedback" })).toContainText("Advisor edited");
   } finally { await request.delete(`/api/calendar/events/${event.id}`); }
 });
