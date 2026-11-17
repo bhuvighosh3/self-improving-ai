@@ -174,12 +174,16 @@ class OrchestratorMemory:
                 f"- {n.tool}: {n.note}" for n in notes
             )
 
+        # Show every learned template, intents from similar requests first. Short or informal
+        # requests often match no past request by wording, and gating templates on that match
+        # hid them from exactly the cases they were learned to fix.
         intents = []
         for _, e in hits:
             if e.intent not in intents:
                 intents.append(e.intent)
+        intents += sorted(i for i in self.plan_templates if i not in intents)
         tmpl_lines = []
-        for intent in intents[:2]:
+        for intent in intents:
             t = self.plan_templates.get(intent)
             if not t:
                 continue
@@ -197,7 +201,8 @@ class OrchestratorMemory:
             tmpl_lines.append(f"- {intent}: {steps}")
         tmpl_block = ""
         if tmpl_lines:
-            tmpl_block = "## Plan templates that worked before\n" + "\n".join(tmpl_lines)
+            tmpl_block = ("## Plan templates that worked before (follow the one for the intent you choose)\n"
+                          + "\n".join(tmpl_lines))
 
         return {"intent_corrections": intent_block, "tool_notes": tool_block, "plan_templates": tmpl_block}
 
