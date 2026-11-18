@@ -9,6 +9,7 @@ import { addDays, CalendarSymbol, dayLabel, meetingLabel, weekStart } from "./ca
 import CalendarWeek from "./CalendarWeek.jsx";
 import CalendarEventDialog from "./CalendarEventDialog";
 import { calendarMonths } from "./calendarLayout";
+import MeetingSuggestions from "./MeetingSuggestions";
 
 function todayStr() {
   const d = new Date();
@@ -99,6 +100,7 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
         <span className={`prep-state state-${nextState.tone}`}>{nextState.label}</span>
         <button className="meeting-btn primary" onClick={() => showPreparation(upcoming)}>View meeting prep<CalendarSymbol name="next" size={14}/></button>
       </div>}
+      <MeetingSuggestions compact refreshKey={`${data?.now || ""}:${revision || ""}`} onChoose={suggestion => { onEditing?.(); setModal({ event: null, date: suggestion.event.date, suggestion }); }}/>
       <div className="cal-header">
         <div className="cal-nav">
           <button className="cal-nav-btn" onClick={() => moveWeek(-1)} aria-label="Previous week">&lsaquo;</button>
@@ -107,14 +109,14 @@ export default function CalendarPage({ clients, onOpenEvent, onReplay, preferred
         </div>
         <div className="cal-actions">
           <button className="cal-today-btn" onClick={goToday}>Today</button>
-          <button className="cal-new-btn" disabled={!data || !clients?.length} onClick={() => openCreate(selected || clockDate)}>+ New Event</button>
+          <button className="cal-new-btn" disabled={!data || !clients?.length} onClick={() => openCreate(selected || clockDate)}>+ Add meeting</button>
         </div>
       </div>
 
       <CalendarWeek days={days} events={weekEvents} now={data?.now || `${clockDate}T12:00:00-05:00`} selected={selected} onSelect={setSelected} onEdit={openEdit} onPrepare={showPreparation} normalized={normalized} clientMap={clientMap} data={data} loading={!events || loadedMonths !== monthKeys}/>
 
-      {modal && <CalendarEventDialog clients={clients} event={modal.event} defaultDate={modal.date}
-        onClose={() => setModal(null)} onSaved={() => { setModal(null); fetchEvents(); }}
+      {modal && <CalendarEventDialog clients={clients} event={modal.event} defaultDate={modal.date} suggestion={modal.suggestion}
+        onClose={() => setModal(null)} onSaved={record => { setModal(null); if (record) { setAnchor(record.date); setSelected(record.date); } fetchEvents(); }}
         onPrepare={modal.event && normalized(modal.event) ? openPreparation : undefined}/>}
 
     </section>

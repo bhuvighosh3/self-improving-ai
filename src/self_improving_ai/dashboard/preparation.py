@@ -229,6 +229,8 @@ class MeetingPreparationMonitor:
             state = await asyncio.to_thread(self.state)
             if self.processing:
                 return
+            from self_improving_ai.agents.briefing.retrospective import review_completed_meetings
+            await asyncio.to_thread(review_completed_meetings, state["now"], self.path, state["events"])
             if state["enabled"]:
                 self._enqueue(state)
             with self.db() as db:

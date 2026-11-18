@@ -23,15 +23,15 @@ for (const width of [1280, 390]) {
     if (width < 768) await page.getByLabel("Navigate to page").selectOption("meeting");
     else await page.getByRole("button", { name: "Meeting Prep", exact: true }).click();
     await expect(page.getByRole("button", { name: "Prepare another meeting", exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "New meeting", exact: true }).click();
-    const editor = page.getByRole("dialog", { name: "New Event" });
+    await page.getByRole("button", { name: "Add meeting", exact: true }).click();
+    const editor = page.getByRole("dialog", { name: "Add meeting" });
     await editor.getByLabel("Title", { exact: true }).fill("Home funding discussion");
     await editor.getByLabel("Client", { exact: true }).selectOption("CLI-001");
     await editor.getByLabel("Date", { exact: true }).fill("2026-11-12");
     await editor.getByLabel("Start Time").fill("14:00");
     await editor.getByLabel("End Time").fill("15:00");
     await editor.getByLabel("Notes").fill("Confirm funding timeline");
-    await editor.getByRole("button", { name: "Save", exact: true }).click();
+    await editor.getByRole("button", { name: "Add to calendar", exact: true }).click();
     await expect(editor).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Scheduled preparation" })).toContainText("Home funding discussion");
     await expect(page.getByRole("region", { name: "Scheduled preparation" })).toContainText("Confirm funding timeline");

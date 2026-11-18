@@ -69,13 +69,20 @@ async def _prepare_brief(request, *, as_of=None, store=None, offline_generator=N
     )
 
     store = store if store is not None else DraftStore()
+    from self_improving_ai.agents.briefing.learning import LearningStore, learning_scope, metadata
+    if as_of is not None:
+        from self_improving_ai.agents.briefing.retrospective import review_completed_meetings
+        await asyncio.to_thread(review_completed_meetings, as_of, store.path)
+    learning_profile = await asyncio.to_thread(LearningStore(store.path).profile, request.client_id,
+                                     str(request.meeting_date), request.calendar_event_id,
+                                     request.meeting_time.strftime("%H:%M"))
     scope = nullcontext()
     appointment = None
     if as_of is not None:
         cutoff = min(as_of, request.meeting_date.isoformat())
         records = await asyncio.to_thread(client_mail_snapshot, request.client_id, cutoff)
         scope = operational_scope(request.client_id, cutoff, ai_mode=request.mode == "agent", records=records)
-    with scope:
+    with scope, learning_scope(learning_profile):
         if as_of is not None:
             from self_improving_ai.calendar_adapter import normalize_event
             from self_improving_ai.tools.briefing.workspace_sources import current_scope
@@ -133,6 +140,7 @@ async def _prepare_brief(request, *, as_of=None, store=None, offline_generator=N
                 if current["version"] != appointment["version"]:
                     raise ValueError("The meeting changed during preparation. Its updated brief will be prepared instead.")
                 brief["calendar_event"] = {**appointment, "client_name": brief["client_name"]}
+            brief["learning"] = metadata(brief, learning_profile)
             await asyncio.to_thread(store.create, brief)
             return brief
         except BaseException as exc:

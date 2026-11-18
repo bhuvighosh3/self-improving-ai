@@ -132,3 +132,36 @@
   body.printing-meeting .meeting-print-evidence h3 { font-size: 8pt; margin-bottom: 3pt; }
   body.printing-meeting .meeting-print-evidence p { font-size: 6.5pt; line-height: 1.4; }
 }
+.brief-learning { margin: 0 0 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.meeting-actions a.meeting-btn { display: inline-flex; align-items: center; text-decoration: none; }
+.brief-learning-intro strong { color: var(--text); font-size: 13px; }
+.brief-learning p, .brief-feedback p, .meeting-suggestions p { margin: 5px 0 10px; color: var(--text-3); line-height: 1.55; }
+.brief-learning-details { margin-top: 10px; font-size: 12px; }
+.brief-learning-details summary { cursor: pointer; color: var(--accent); }
+.brief-learning-details h4 { margin: 16px 0 6px; font-size: 12px; }
+.brief-learning-details li { margin: 8px 0; overflow-wrap: anywhere; }
+.brief-learning-details del, .brief-learning-details ins { display: block; margin: 5px 0; white-space: pre-wrap; text-decoration: none; }
+.brief-learning-details del { color: var(--text-3); }
+.brief-learning-details ins { color: var(--text); background: var(--accent-soft); padding: 6px; }
+.brief-preference { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+.brief-preference small { display: block; color: var(--text-3); margin-top: 4px; }
+.brief-feedback { padding: 20px 24px; border-top: 1px solid var(--border); }
+.brief-feedback h3 { font-size: 14px; margin: 0 0 10px; }
+.brief-learning-check { display: flex !important; gap: 8px; align-items: center; font-size: 12px; }
+.brief-learning-check input { width: auto; accent-color: var(--accent); }
+.brief-feedback-saved { font-size: 12px; color: var(--text-2) !important; }
+.brief-feedback [aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.meeting-suggestions { padding: 16px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.meeting-suggestions h3 { font-size: 14px; margin: 0 0 6px; }
+.meeting-suggestion { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 12px 0; }
+.meeting-suggestion strong { font-size: 13px; }
+.meeting-suggestion p { max-width: 70ch; font-size: 12px; }
+.meeting-suggestion small { color: var(--text-3); }
+.meeting-suggestion-context { padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.meeting-suggestion-context p { color: var(--text-3); font-size: 12px; line-height: 1.55; }
+.cal-modal .meeting-suggestions .meeting-actions { flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .meeting-suggestion { flex-direction: column; align-items: stretch; }
+  .brief-feedback { padding: 16px; }
+  .brief-preference { align-items: flex-start; }
+}

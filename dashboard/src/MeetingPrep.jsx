@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import "./meeting-prep.css";
 import { loadMeetingDraft, saveMeetingDraft } from "./meetingDraftStore";
 import { CalendarSymbol, meetingLabel } from "./calendarFormat";
+import { requestJson } from "./connectionRequest";
+import { LearningSummary, LearningFeedback } from "./BriefLearning";
 
 export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCalendar }) {
   const [saved] = useState(() => loadMeetingDraft(incomingBrief?.id) || (incomingBrief ? { brief: incomingBrief } : null));
@@ -21,11 +23,52 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [learning, setLearning] = useState(null);
+  const [rememberEdits, setRememberEdits] = useState(true);
+  const [saveMessage, setSaveMessage] = useState("");
   const [selectedSource, setSelectedSource] = useState(null);
   const evidenceRef = useRef(null);
   const evidenceHeadingRef = useRef(null);
+  const editSnapshot = useRef(null);
   const stale = Boolean(brief && calendarEvent?.version && brief.calendar_event?.version
     && calendarEvent.version !== brief.calendar_event.version);
+
+  useEffect(() => {
+    if (!incomingBrief?.id) return;
+    const controller = new AbortController();
+    requestJson(`/api/meeting-learning/briefs/${incomingBrief.id}`, { signal: controller.signal })
+      .then(result => {
+        setLearning(result);
+        if (!saved?.edited || result.revision > (saved?.serverRevision || 1)) {
+          setBrief(result.brief); setRevision(result.revision); setServerRevision(result.revision);
+          setQuality(result.brief.workflow?.quality || null);
+          setCheckFailed(result.brief.workflow?.quality?.verdict !== "pass");
+          setEdited(result.history.some(item => item.kind === "edit"));
+          setReviewedAt(result.status === "approve" ? result.reviewed_at || saved?.reviewedAt : null);
+        }
+      }).catch(err => { if (err.kind !== "cancelled") setError("Could not load feedback history. " + err.message); });
+    return () => controller.abort();
+  }, [incomingBrief?.id]);
+
+  async function saveEdits() {
+    setBusy(true); setError(""); setSaveMessage("");
+    try {
+      const result = await requestJson(`/api/meeting-learning/briefs/${brief.id}/edits`, {
+        method: "POST", timeoutMs: 110000,
+        timeoutMessage: "Saving is taking longer than expected. Reopen this meeting to check whether your changes were saved before retrying.",
+        body: JSON.stringify({ sections: brief.sections, expected_revision: serverRevision, remember: rememberEdits }),
+      });
+      setBrief(result.brief); setRevision(result.revision); setServerRevision(result.revision);
+      setLearning(result); setEditing(false); setReviewedAt(result.status === "approve" ? result.reviewed_at : null);
+      setQuality(result.brief.workflow.quality);
+      setCheckFailed(result.brief.workflow.quality.verdict !== "pass");
+      setSaveMessage(result.brief.workflow.quality.verdict === "pass"
+        ? "Changes saved and automatically checked. Your edit history is available below."
+        : "Changes saved. Automatic checks need attention; these edits have not been learned as preferences.");
+      window.dispatchEvent(new Event("sia-meeting-learning-changed"));
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
 
   useEffect(() => {
     if (selectedSource) {
@@ -140,21 +183,24 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
         <div className="meeting-toolbar no-meeting-print">
           <div aria-live="polite"><span className={`chip ${reviewedAt ? "chip-green" : "chip-amber"}`}>{reviewedAt ? "Reviewed" : "Draft · Needs review"}</span><span className="meeting-muted">Revision {revision}{edited ? " · Advisor edited" : ""}</span></div>
           <div className="meeting-actions">
-            <button className="meeting-btn" onClick={() => setEditing(!editing)} disabled={busy}>{editing ? "Done editing" : "Edit draft"}</button>
-            <button className="meeting-btn" title="Check references and content quality. This does not regenerate the brief." onClick={() => checkOrReview(false)} disabled={busy || stale || editing || hasEmptyFields}>Check draft</button>
-            <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={busy || !!reviewedAt || stale || editing || hasEmptyFields || checkFailed || quality?.verdict === "revise"}>Mark as reviewed</button>
-            <button className="meeting-btn" onClick={printBrief} disabled={busy || stale || editing || hasEmptyFields}>Print</button>
-            <button className="meeting-btn primary" onClick={downloadPdf} disabled={busy || exporting || stale || editing || hasEmptyFields}>{exporting ? "Exporting…" : "Download PDF"}</button>
+            <button className="meeting-btn" onClick={() => { if (editing) saveEdits(); else { editSnapshot.current = { brief, reviewedAt, revision, edited, quality, checkFailed }; setEditing(true); } }} disabled={!learning || busy || stale || (editing && hasEmptyFields)}>{busy && editing ? "Saving & checking…" : editing ? "Save changes" : "Edit prep"}</button>
+            {editing && <button className="meeting-btn" disabled={busy} onClick={() => { const snapshot = editSnapshot.current; if (snapshot) { setBrief(snapshot.brief); setReviewedAt(snapshot.reviewedAt); setRevision(snapshot.revision); setEdited(snapshot.edited); setQuality(snapshot.quality); setCheckFailed(snapshot.checkFailed); } setEditing(false); }}>Cancel edits</button>}
+            {!editing && <a className="meeting-btn" href="#brief-feedback">Give feedback</a>}
+            <button className="meeting-btn" onClick={() => checkOrReview(true)} disabled={!learning || busy || !!reviewedAt || stale || editing || hasEmptyFields || checkFailed || quality?.verdict !== "pass"}>Mark as reviewed</button>
+            <button className="meeting-btn" onClick={printBrief} disabled={!learning || busy || stale || editing || hasEmptyFields}>Print</button>
+            <button className="meeting-btn primary" onClick={downloadPdf} disabled={!learning || busy || exporting || stale || editing || hasEmptyFields}>{exporting ? "Exporting…" : "Download PDF"}</button>
           </div>
         </div>
         {stale && <p className="meeting-message no-meeting-print" role="status">Meeting inputs changed. Generate a new brief to review or export these inputs. The previous draft is shown below.</p>}
-        {editing && <p className="meeting-message no-meeting-print">Edits are saved in this browser and reset the review status. References stay attached to their original records; verify that they support your edited text.</p>}
+        {saveMessage && <p className="meeting-message no-meeting-print" role="status">{saveMessage}</p>}
+        {editing && <div className="meeting-message no-meeting-print"><p>Save your changes to record what improved and check the updated brief automatically. Sources stay attached to their original records.</p><label className="brief-learning-check"><input type="checkbox" checked={rememberEdits} onChange={event => setRememberEdits(event.target.checked)}/>Remember reusable editing preferences for this client</label></div>}
+        <LearningSummary state={learning} brief={brief} onChange={setLearning} onError={setError}/>
         {brief.workflow && <details className="card meeting-process no-meeting-print" style={{ padding: 16, marginBottom: 16 }}>
-          <summary>Preparation process · {brief.workflow.work.change_status.replaceAll("_", " ")} · {checkFailed ? "Check unavailable · retry required" : quality ? `Check: ${quality.verdict}` : "Edited: recheck required"}</summary>
+          <summary>Preparation details · {brief.workflow.work.change_status.replaceAll("_", " ")} · {checkFailed ? "Automatic checks need attention" : quality ? `Check: ${quality.verdict}` : "Checks run when you save"}</summary>
           <p>{brief.mode === "agent" ? "Gemini agent with an independent model reviewer." : "Deterministic demonstration; not model-reviewed."} Review records are local demo records, without authenticated advisor identity.</p>
           <p>{brief.workflow.work.context_summary}</p>
-          <ul>{Object.entries(brief.workflow.evidence.coverage).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")}: {value}</li>)}</ul>
-          {brief.workflow.work.findings.map(finding => <div key={finding.id}><strong>{finding.claim}</strong><p>{finding.rationale} Uncertainty: {finding.uncertainty}</p></div>)}
+          <ul>{Object.entries(brief.workflow.evidence?.coverage || {}).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")}: {value}</li>)}</ul>
+          {brief.workflow.work.findings?.map(finding => <div key={finding.id}><strong>{finding.claim}</strong><p>{finding.rationale} Uncertainty: {finding.uncertainty}</p></div>)}
           {quality?.findings?.map((finding, index) => <p key={index}>{finding.severity}: {finding.reason}</p>)}
           <details><summary>Recorded tools and evidence</summary><pre style={{ whiteSpace: "pre-wrap", maxHeight: 300, overflow: "auto" }}>{JSON.stringify(brief.workflow.trace, null, 2)}</pre></details>
         </details>}
@@ -175,10 +221,10 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
                 {!section.items.length && <p className="meeting-muted">No open items are recorded.</p>}
                 {section.items.map(item => <div className="meeting-item" key={item.id}>
                   {editing ? <>
-                    <label className="meeting-edit-label">Title<input aria-label={`${section.title}: item title`} value={item.title} onChange={event => updateItem(section.id, item.id, "title", event.target.value)} maxLength={200} /></label>
-                    <label className="meeting-edit-label">Details<textarea aria-label={`${section.title}: item details`} value={item.text} onChange={event => updateItem(section.id, item.id, "text", event.target.value)} rows={3} maxLength={1500} /></label>
-                    {item.why !== undefined && <label className="meeting-edit-label">Why it matters<textarea value={item.why} onChange={event => updateItem(section.id, item.id, "why", event.target.value)} maxLength={500} rows={2} /></label>}
-                    {item.question !== undefined && <label className="meeting-edit-label">Question to ask<textarea value={item.question} onChange={event => updateItem(section.id, item.id, "question", event.target.value)} maxLength={500} rows={2} /></label>}
+                    <label className="meeting-edit-label">Title<input disabled={busy} aria-label={`${section.title}: item title`} value={item.title} onChange={event => updateItem(section.id, item.id, "title", event.target.value)} maxLength={200} /></label>
+                    <label className="meeting-edit-label">Details<textarea disabled={busy} aria-label={`${section.title}: item details`} value={item.text} onChange={event => updateItem(section.id, item.id, "text", event.target.value)} rows={3} maxLength={1500} /></label>
+                    {item.why !== undefined && <label className="meeting-edit-label">Why it matters<textarea disabled={busy} value={item.why} onChange={event => updateItem(section.id, item.id, "why", event.target.value)} maxLength={500} rows={2} /></label>}
+                    {item.question !== undefined && <label className="meeting-edit-label">Question to ask<textarea disabled={busy} value={item.question} onChange={event => updateItem(section.id, item.id, "question", event.target.value)} maxLength={500} rows={2} /></label>}
                   </> : <>
                     <h4>{item.priority && <span className="meeting-priority">{item.priority}.</span>}{item.title}</h4>
                     <p>{item.text}</p>
@@ -190,6 +236,7 @@ export default function MeetingPrep({ incomingBrief, calendarEvent, onBackToCale
               </section>)}
             </div>
 
+            <LearningFeedback brief={brief} state={learning} disabled={busy || stale || editing} onChange={setLearning} onError={setError}/>
             <div className="meeting-sheet-footer">
               {reviewedAt ? `Reviewed ${new Date(reviewedAt).toLocaleString("en-US")} · ` : "Draft awaiting advisor review · "}
               Sources are on record.

@@ -1,5 +1,6 @@
 """Calendar CRUD endpoints backed by Cloud Firestore."""
 
+import asyncio
 from datetime import datetime
 from typing import Literal
 
@@ -40,6 +41,7 @@ class CalendarEventCreate(BaseModel):
     type: _EVENT_TYPES = "general_meeting"
     notes: str = Field(default="", max_length=1000)
     location: str = Field(default="", max_length=200)
+    suggestion_id: str | None = Field(default=None, max_length=100)
 
 
 class CalendarEventUpdate(BaseModel):
@@ -82,12 +84,39 @@ async def get_event(event_id: str):
         raise HTTPException(404, "Event not found")
 
 
+_creation_lock = asyncio.Lock()
+
+
 @router.post("/events", status_code=201)
 async def create_event(body: CalendarEventCreate):
+    from self_improving_ai.agents.briefing.learning import LearningStore
+    from self_improving_ai.agents.briefing.suggestions import suggestions
+    from self_improving_ai.dashboard.learning import learning_clock
+    from self_improving_ai.workspace_store import workspace_snapshot
+
     await run_in_threadpool(validate_event, body.model_dump())
-    result = await run_in_threadpool(_store.create_event, body.model_dump())
-    invalidate_snapshots()
-    return result
+    async with _creation_lock:
+        records = await run_in_threadpool(workspace_snapshot, "calendar")
+        learning = LearningStore()
+        record = body.model_dump(exclude={"suggestion_id"})
+        if body.suggestion_id:
+            existing = next((r for r in records if r.get("learning_suggestion_id") == body.suggestion_id), None)
+            if existing:
+                return existing  # A retry after a lost response cannot create another meeting.
+            choices = await run_in_threadpool(suggestions, learning_clock(), records)
+            suggested = next((s for s in choices if s["id"] == body.suggestion_id), None)
+            if not suggested or suggested["client_id"] != body.client_id:
+                raise HTTPException(409, "This suggestion changed. Refresh before adding a meeting.")
+            record["learning_suggestion_id"] = body.suggestion_id
+        result = await run_in_threadpool(_store.create_event, record)
+        invalidate_snapshots()
+        await run_in_threadpool(learning.action, "added-" + result["id"], body.client_id,
+                               "meeting_added", {**record, "id": result["id"]})
+        if body.suggestion_id:
+            await run_in_threadpool(learning.action, body.suggestion_id, body.client_id,
+                                   "accepted", {"event_id": result["id"],
+                                                "adjusted": any(record[k] != suggested["event"][k] for k in suggested["event"])})
+        return result
 
 
 @router.put("/events/{event_id}")

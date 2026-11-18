@@ -118,7 +118,39 @@ Copilot adds an inline meeting confirmation form using the existing field and bu
 
 Keep six named sections: Client Overview, Recent Changes & Requests, Portfolio Highlights, Discussion Priorities, Open Actions, and Items to Confirm. Title, date/time, focus, data date and synthetic attribution form the brief header. Evidence and Relevant News share the same card grammar in the adjacent rail.
 
-The toolbar keeps Edit draft, Mark as reviewed, Print and Download PDF together. Editing resets review status and increments the revision; local browser storage retains the latest draft and review state. Changed meeting inputs display a stale-draft notice and block review/export until generation. Editing or empty required brief fields also blocks review/export. PDF export remains available for an otherwise valid unreviewed draft and includes its draft status. Keep these states explicit rather than silently implying approval.
+The toolbar keeps **Edit prep**, **Give feedback**, **Mark as reviewed**, **Print** and **Download PDF** together. **Give feedback** links to the feedback footer. Editing replaces **Edit prep** with **Save changes** and **Cancel**. Saving persists the field changes and runs checks automatically; there is no separate **Check draft** button. Show **Saving & checking…** while pending and explicit saved/check-result text afterward. Editing resets review status and increments the revision; browser restoration and local SQLite retain the saved draft and review state. Changed meeting inputs display a stale-draft notice and block review/export until generation. Editing or empty required brief fields also blocks review/export. PDF export remains available for an otherwise valid unreviewed draft and includes its draft status. Keep these states explicit rather than silently implying approval.
+
+### Client feedback, personalization and follow-up suggestions
+
+Keep feedback within the existing Calendar and Meeting Prep surfaces, using DM
+Sans, flat white surfaces, gray borders and blue actions. The personalization
+summary is a bordered white card with (14px 16px) padding and gently rounded
+corners (10px). **Personalized for this meeting** names applied preferences;
+otherwise the card explains that feedback can shape the next brief. The
+**Feedback & edit history** disclosure uses blue summary text and compact metadata
+for source meetings, reasons and memory versions. Distinguish the memory used to
+prepare the brief from current memory. Exact changes appear as stacked before and
+after text; the after text uses the existing soft blue fill. Each remembered
+preference has a compact **Forget** action.
+
+Place **Was this preparation useful?** inside the brief footer, separated by a
+fine top border. **Helpful / Needs improvement** use the existing secondary-button
+shape; a selected rating has a blue border, blue text and soft blue fill. Clicking
+either button saves immediately, with inline **Saving…** and **Feedback saved**
+states. Do not reveal a form or require a second save. Users can change their
+rating with one click. A generic negative rating does not infer a specific style
+preference. Retrospective insights appear beside the existing learning summary,
+with linked dates in its history disclosure. This is client-scoped workspace
+memory; do not present it as an
+individual advisor's authenticated profile.
+
+**Suggested follow-ups** uses compact divided rows with title, explanation, New
+York date/time, **Review suggestion** and **Dismiss**. **Review suggestion** opens
+the existing **Add meeting** dialog for adjustment and confirmation. Preserve the
+reason and starting-suggestion language when no cadence has been learned. At
+(768px) and below, stack suggestion content and actions; reduce feedback insets
+to (16px). Feedback/history controls stay out of print. Retain the current
+navigation rather than introducing a separate learning dashboard.
 
 ### Calendar events and preparation entry
 
@@ -136,7 +168,7 @@ Calendar preparation actions open their selected meeting directly, including fut
 
 **Prepare another meeting** opens a fresh form inside the detail pane, preserving the dated meeting list, search and filters. Cancel restores the previous meeting; switching between existing meetings and the form retains entered values. Mobile keeps the same list-to-detail model with **All meetings**. Manual preparation inherits the calendar mode and next demo date, and does not load an unrelated cached brief.
 
-The selected brief leads with the client name as the primary heading, a Draft or Reviewed badge, the appointment topic and New York date/time, and **Back to calendar**. **At a glance** repeats the retained brief's focus and up to three discussion-priority titles, with **Read the full brief** linking to the existing six-section document. Keep edit/check/review/print/PDF actions together below this summary. Reopening a retained brief restores local edits and review state by brief ID. Review and subsequent edits update the selected context, meeting-list state and ready-for-review count together; edits clear review. Readiness remains distinct from advisor review. Returning to Calendar selects the opened meeting's day on mobile.
+The selected brief leads with the client name as the primary heading, a Draft or Reviewed badge, the appointment topic and New York date/time, and **Back to calendar**. **At a glance** repeats the retained brief's focus and up to three discussion-priority titles, with **Read the full brief** linking to the existing six-section document. Keep edit/save/review/print/PDF actions together below this summary; checks run when changes are saved. Reopening a retained brief restores local edits and review state by brief ID. Review and subsequent edits update the selected context, meeting-list state and ready-for-review count together; edits clear review. Readiness remains distinct from advisor review. Returning to Calendar selects the opened meeting's day on mobile.
 
 ### Meeting-ready notice and presenter controls
 

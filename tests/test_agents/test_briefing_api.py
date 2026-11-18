@@ -72,7 +72,8 @@ class BriefingApiTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.text)
                 generate.assert_awaited_once()
                 result = response.json().get("brief", response.json())
-                self.assertEqual(result, brief)
+                self.assertEqual({k: v for k, v in result.items() if k != "learning"}, brief)
+                self.assertEqual(result["learning"]["brief_id"], result["id"])
                 self.assertEqual(self.store.get(result["id"])["brief"], result)
 
     def test_provider_failures_and_timeouts_never_create_offline_drafts(self):
