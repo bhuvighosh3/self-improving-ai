@@ -203,3 +203,13 @@ python -m self_improving_ai.evaluation.orchestrator --planner gemini --seeds 5 -
 Each agent is evaluated against three baselines: static (learning off), hand-tuned (manually improved prompts), and retrieval-only (similar past runs as examples). A gain counts only if the learning agent beats every baseline on held-out tasks across at least five random seeds.
 
 Every run is scored stage by stage: intent accuracy, step decomposition, tool selection, argument correctness, ordering, efficiency, and outcome. The harness reports learning curves per stage for learner vs. baseline.
+
+### Copilot golden set
+
+The live copilot is also checked against a golden set of 20 advisor questions (`src/self_improving_ai/data/orchestrator/golden_copilot.json`). Each question lists the expected plan (which tools or sub-agents, in what order), the facts the answer must contain (checked against the team's Firestore data), and how they were verified. The scorer grades each real `run_copilot` trace by stage: tools, arguments, order, forbidden calls, call budget and facts.
+
+```bash
+python -m self_improving_ai.evaluation.copilot --include-slow
+```
+
+Baseline results are in [docs/evaluation/copilot_golden_baseline_2026-11-17.md](docs/evaluation/copilot_golden_baseline_2026-11-17.md).
