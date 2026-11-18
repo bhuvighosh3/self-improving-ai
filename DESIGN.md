@@ -135,11 +135,13 @@ preference has a compact **Forget** action.
 
 Place **Was this preparation useful?** inside the brief footer, separated by a
 fine top border. **Helpful / Needs improvement** use the existing secondary-button
-shape; a selected rating has a blue border, blue text and soft blue fill. Reveal
-labeled reason, optional comment and follow-up checkbox controls in a vertical
-form, then **Save feedback** and **Cancel**. Keep saved status and the distinction
-between reusable presentation preferences and historical factual comments
-visible. This is client-scoped workspace memory; do not present it as an
+shape; a selected rating has a blue border, blue text and soft blue fill. Clicking
+either button saves immediately, with inline **Saving…** and **Feedback saved**
+states. Do not reveal a form or require a second save. Users can change their
+rating with one click. A generic negative rating does not infer a specific style
+preference. Retrospective insights appear beside the existing learning summary,
+with linked dates in its history disclosure. This is client-scoped workspace
+memory; do not present it as an
 individual advisor's authenticated profile.
 
 **Suggested follow-ups** uses compact divided rows with title, explanation, New

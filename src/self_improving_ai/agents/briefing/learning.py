@@ -64,8 +64,12 @@ def learning_scope(profile):
 
 
 def instructions(profile=None):
-    return "\n".join(PREFERENCES[item["key"]] for item in
-                     (profile or current_profile())["preferences"] if item["key"] in PREFERENCES)
+    profile = profile or current_profile()
+    lines = [PREFERENCES[item["key"]] for item in profile["preferences"] if item["key"] in PREFERENCES]
+    if any(item.get("rating") == "needs_work" and not item.get("reason") for item in profile["history"]):
+        lines.append("A previous preparation was rated as needing improvement without a specific reason. "
+                     "Recheck focus alignment, evidence coverage and actionable questions; do not infer a style preference or an error from that rating alone.")
+    return "\n".join(lines)
 
 
 def metadata(brief, profile=None):
@@ -118,23 +122,25 @@ class LearningStore:
         target = meeting_date + "T" + meeting_time[:5]
         preferences = [{"key": key, "label": LABELS[key], **value}
                        for key, value in memory.preferences.items() if key in PREFERENCES
-                       and value["meeting_start"] < target
+                       and value.get("available_after", value["meeting_start"]) < target
                        and (not event_id or value.get("event_id") != event_id)]
         history, seen = [], set()
         for event in self.events(client_id=client_id):
             payload = event["payload"]
-            if event["brief_id"] in seen or payload.get("meeting_start", "9999") >= target:
+            if event["brief_id"] in seen or payload.get("available_after", payload.get("meeting_start", "9999")) >= target:
                 continue
             if event_id and payload.get("event_id") == event_id:
                 continue
             seen.add(event["brief_id"])
             history.append({"brief_id": event["brief_id"], "meeting_date": payload["meeting_start"][:10],
-                            "kind": event["kind"], "summary": payload["summary"]})
+                            "kind": event["kind"], "summary": payload["summary"],
+                            "feedback_id": event["id"], "rating": payload.get("rating"),
+                            "reason": payload.get("reason")})
             if len(history) == 3:
                 break
         return {"version": memory.version, "preferences": preferences, "history": history}
 
-    def remember(self, brief, keys, event_id, reason):
+    def remember(self, brief, keys, event_id, reason, *, available_after=None, adoption_type="advisor_personalization_not_statistical_policy_improvement"):
         """Explicit corrections/preferences are personalization, not a benchmark gain."""
         if not keys:
             return
@@ -149,9 +155,10 @@ class LearningStore:
                     "source_brief_id": brief["id"], "feedback_id": event_id, "reason": reason,
                     "meeting_start": brief["meeting_date"] + "T" + brief["meeting_time"][:5],
                     "event_id": (brief.get("calendar_event") or {}).get("id"),
+                    **({"available_after": available_after} if available_after else {}),
                 }
             store.adopt(memory, reason=reason, feedback_id=event_id,
-                        adoption_type="advisor_personalization_not_statistical_policy_improvement")
+                        adoption_type=adoption_type)
 
     def forget(self, client_id, key):
         with _write_lock, self.db() as db:
@@ -248,6 +255,12 @@ class LearningStore:
 def personalize_demo(sections):
     """Deterministic formatting for offline demos; never drop confirmation caveats."""
     keys = {item["key"] for item in current_profile()["preferences"]}
+    if any(item.get("rating") == "needs_work" and not item.get("reason") for item in current_profile()["history"]):
+        priorities = next(s for s in sections if s["id"] == "priorities")["items"]
+        priorities.insert(0, {"id": "feedback-focus-review", "title": "Confirm what will make this meeting useful",
+            "text": "Confirm the current priorities and the decision this meeting needs to support.",
+            "source_ids": ["PROFILE"], "why": "Your earlier rating calls for a fresh check of the meeting's purpose.",
+            "question": "What decision or outstanding concern should this meeting resolve?"})
     if "concise" in keys:
         for section in sections:
             if section["id"] == "changes":
@@ -262,7 +275,7 @@ def personalize_demo(sections):
             action = actions[0]
             priorities.insert(0, {"id": "learned-open-action", "title": "Follow up: " + action["title"][:180],
                 "text": action["text"], "source_ids": action["source_ids"],
-                "why": "Your previous feedback asked to highlight outstanding actions.",
+                "why": "Previous meeting experience highlighted the need to surface outstanding actions.",
                 "question": "What is the current status and who owns the next step?"})
     if "more_context" in keys:
         changes = next(s for s in sections if s["id"] == "changes")["items"]

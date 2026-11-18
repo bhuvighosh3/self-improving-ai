@@ -146,10 +146,7 @@
 .brief-preference { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
 .brief-preference small { display: block; color: var(--text-3); margin-top: 4px; }
 .brief-feedback { padding: 20px 24px; border-top: 1px solid var(--border); }
-.brief-feedback h3 { font-size: 14px; margin: 0; }
-.brief-feedback-form { display: grid; gap: 12px; margin-top: 14px; max-width: 650px; }
-.brief-feedback-form label { display: grid; gap: 6px; font-weight: 500; }
-.brief-feedback-form select, .brief-feedback-form textarea { width: 100%; box-sizing: border-box; padding: 9px 10px; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.brief-feedback h3 { font-size: 14px; margin: 0 0 10px; }
 .brief-learning-check { display: flex !important; gap: 8px; align-items: center; font-size: 12px; }
 .brief-learning-check input { width: auto; accent-color: var(--accent); }
 .brief-feedback-saved { font-size: 12px; color: var(--text-2) !important; }

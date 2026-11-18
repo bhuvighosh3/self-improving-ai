@@ -70,6 +70,9 @@ async def _prepare_brief(request, *, as_of=None, store=None, offline_generator=N
 
     store = store if store is not None else DraftStore()
     from self_improving_ai.agents.briefing.learning import LearningStore, learning_scope, metadata
+    if as_of is not None:
+        from self_improving_ai.agents.briefing.retrospective import review_completed_meetings
+        await asyncio.to_thread(review_completed_meetings, as_of, store.path)
     learning_profile = await asyncio.to_thread(LearningStore(store.path).profile, request.client_id,
                                      str(request.meeting_date), request.calendar_event_id,
                                      request.meeting_time.strftime("%H:%M"))

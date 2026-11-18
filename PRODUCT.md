@@ -44,9 +44,12 @@ prevent those edits from becoming reusable preferences. An advisor can opt out o
 remembering presentation changes. A sufficiently shortened, passing revision can
 record the bounded `concise` preference.
 
-**Helpful / Needs improvement** feedback records a rating, a bounded reason, an
-optional written comment and an optional follow-up request. Only `concise`,
-`actions_first` and `more_context` become reusable presentation preferences.
+**Helpful / Needs improvement** saves immediately in one click. There is no
+feedback form, reason selector, comment field or separate save action. A generic
+negative rating asks the next preparation to recheck focus and useful questions;
+it never invents a specific preference. Earlier structured feedback records remain
+readable through the API. Only `concise`, `actions_first` and `more_context` become
+reusable presentation preferences.
 Free-text comments and factual corrections remain historical records and never
 become instructions or reusable client facts. Preferences apply only to later
 meetings for the same client in this workspace; they are not isolated by an
@@ -68,6 +71,17 @@ or recent client context can be promoted into discussion priorities. AI mode
 injects the allowlisted preference instructions into the writer. These behaviors
 are personalization, not evidence of statistically validated general improvement.
 Global prompt evolution and GEPA are not implemented.
+
+After a later meeting's scheduled end, the existing preparation monitor compares
+adjacent, checked preparations for the same client. If an originally sourced
+open action was absent from the earlier agenda but reappears in the later
+preparation, it adds a linked follow-up review to the earlier brief's history and
+can adopt the bounded `actions_first` lesson. Original brief text and its reviewed
+revision are preserved. The lesson has an availability cutoff at the later
+meeting's end; earlier preparations cannot retrieve future lessons. Repeated
+scans are idempotent, edited Calendar inputs invalidate the comparison, and a
+covered topic does not create a gap lesson. This observes preparation coverage,
+not meeting attendance, discussion transcripts or proof an action was completed.
 
 ## Calendar follow-up suggestions
 

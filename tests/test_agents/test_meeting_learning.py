@@ -213,3 +213,77 @@ def test_agent_writer_receives_learned_preferences_without_a_provider_call(local
     assert result["mode"] == "agent"
     assert "outstanding actions" in observed[0]
     assert "Keep this as a comment" not in observed[0]
+
+
+def test_one_click_feedback_accepts_both_ratings_without_inventing_preferences(local):
+    brief = create_brief()
+    endpoint = f"/api/meeting-learning/briefs/{brief['id']}/feedback"
+    for rating in ("helpful", "needs_work"):
+        result = local.post(endpoint, json={"revision": 1, "rating": rating})
+        assert result.status_code == 200, result.text
+        assert result.json()["feedback"]["rating"] == rating
+        assert not result.json()["preferences"]
+    history_size = len(LearningStore().events(brief_id=brief["id"]))
+    local.post(endpoint, json={"revision": 1, "rating": "needs_work"})
+    assert len(LearningStore().events(brief_id=brief["id"])) == history_size
+    profile = LearningStore().profile("CLI-001", "2026-11-19")
+    assert "without a specific reason" in instructions(profile)
+    assert "concise summaries" not in instructions(profile)
+
+
+def retrospective_pair():
+    from self_improving_ai.calendar_adapter import normalize_event
+
+    briefs = []
+    for day, focus in (("2026-11-01", "Review current priorities"),
+                       ("2026-11-08", "Prepare retirement projections")):
+        event = get_store("calendar").create_event({"title": focus, "client_id": "CLI-001", "date": day,
+            "start_time": "14:00", "end_time": "15:00", "notes": focus, "type": "general_meeting", "location": ""})
+        brief = generate_meeting_brief(MeetingBriefRequest(client_id="CLI-001", meeting_date=day,
+            meeting_time="14:00", focus=focus))
+        brief["calendar_event"] = normalize_event(event, {"CLI-001": "Garcia Family"})
+        DraftStore().create(brief)
+        briefs.append(brief)
+    return briefs
+
+
+def test_later_meeting_reviews_prior_agenda_then_guides_next_without_rewriting_history(local):
+    from self_improving_ai.agents.briefing.retrospective import review_completed_meetings
+
+    previous, later = retrospective_pair()
+    original = DraftStore().get(previous["id"])
+    assert not review_completed_meetings("2026-11-08T14:30:00-05:00")
+    results = review_completed_meetings("2026-11-08T16:00:00-05:00")
+    assert len(results) == 1 and results[0]["lesson_key"] == "actions_first"
+    assert results[0]["previous_brief_id"] == previous["id"]
+    assert results[0]["later_brief_id"] == later["id"]
+    assert DraftStore().get(previous["id"]) == original
+    assert not LearningStore().profile("CLI-001", "2026-11-08", meeting_time="14:30")["preferences"]
+    profile = LearningStore().profile("CLI-001", "2026-11-09")
+    assert profile["preferences"][0]["key"] == "actions_first"
+    assert any(item["kind"] == "retrospective" for item in profile["history"])
+    assert not review_completed_meetings("2026-11-08T16:00:00-05:00")
+    assert not LearningStore().profile("CLI-002", "2026-11-09")["preferences"]
+    next_brief = asyncio.run(prepare_brief(MeetingBriefRequest(client_id="CLI-001",
+        meeting_date="2026-11-09", meeting_time="14:00", focus="Review current priorities"), as_of="2026-11-09"))
+    assert next_brief["learning"]["applied_preferences"][0]["key"] == "actions_first"
+    assert any(item["kind"] == "retrospective" for item in next_brief["learning"]["previous_feedback"])
+    assert next(s for s in next_brief["sections"] if s["id"] == "priorities")["items"][0]["id"] == "learned-open-action"
+    assert DraftStore().get(previous["id"]) == original
+
+
+def test_retrospective_ignores_changed_calendar_and_already_covered_topics(local):
+    from self_improving_ai.agents.briefing.retrospective import review_completed_meetings
+
+    previous, later = retrospective_pair()
+    get_store("calendar").update_event(later["calendar_event"]["id"], {"notes": "A different meeting purpose"})
+    assert not review_completed_meetings("2026-11-08T16:00:00-05:00")
+    get_store("calendar").update_event(later["calendar_event"]["id"], {"notes": later["focus"]})
+    record = DraftStore().get(previous["id"])
+    original = deepcopy(record["brief"])
+    next(s for s in original["sections"] if s["id"] == "priorities")["items"][0]["title"] = "Retirement projections and college withdrawal timeline"
+    with DraftStore().connect() as db:
+        import json
+        db.execute("UPDATE meeting_drafts SET brief=?,digest=? WHERE id=?", (json.dumps(original), DraftStore.digest(original), previous["id"]))
+    assert not review_completed_meetings("2026-11-08T16:00:00-05:00")
+    assert not LearningStore().profile("CLI-001", "2026-11-09")["preferences"]

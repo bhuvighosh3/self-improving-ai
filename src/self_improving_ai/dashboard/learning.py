@@ -64,7 +64,7 @@ class FeedbackRequest(BaseModel):
     rating: Literal["helpful", "needs_work"]
     reason: Literal["concise", "actions_first", "more_context", "incorrect", "other"] | None = None
     note: str = Field(default="", max_length=1000)
-    follow_up: bool = False
+    follow_up: bool | None = None
 
 
 def state(brief_id):
@@ -142,15 +142,15 @@ async def save_feedback(brief_id: str, body: FeedbackRequest):
         record = await asyncio.to_thread(DraftStore().get, brief_id)
         if body.revision != record["revision"]:
             raise ValueError("The brief changed. Reopen it before giving feedback.")
-        if body.rating == "needs_work" and not body.reason:
-            raise ValueError("Choose what could be improved.")
         brief = record["brief"]
         store = LearningStore()
-        reason = LABELS.get(body.reason, "Check accuracy" if body.reason == "incorrect" else "Other feedback")
-        payload = {**body.model_dump(), "summary": "Helpful" if body.rating == "helpful" else reason}
-        # A retry of the same feedback must not manufacture extra experience.
         previous = next((e for e in store.events(brief_id=brief_id) if e["kind"] == "feedback"), None)
-        if previous and all(previous["payload"].get(k) == v for k, v in body.model_dump().items()):
+        reason = LABELS.get(body.reason, "Check accuracy" if body.reason == "incorrect" else "Needs improvement")
+        payload = {**body.model_dump(), "summary": "Helpful" if body.rating == "helpful" else reason}
+        # A one-click rating does not erase an earlier scheduling request.
+        if body.follow_up is None:
+            payload["follow_up"] = bool(previous and previous["payload"].get("follow_up"))
+        if previous and all(previous["payload"].get(k) == v for k, v in payload.items()):
             return await asyncio.to_thread(state, brief_id)
         event_id = await asyncio.to_thread(store.record, brief, "feedback", record["revision"], payload)
         if body.rating == "needs_work" and body.reason in LABELS:

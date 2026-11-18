@@ -77,3 +77,22 @@ test("saved edits and automatic check results survive reopening", async ({ page,
     await expect(page.getByRole("region", { name: "Learning from your feedback" })).toContainText("Advisor edited");
   } finally { await request.delete(`/api/calendar/events/${event.id}`); }
 });
+
+test("feedback saves in one click without opening a form", async ({ page, request }) => {
+  const event = await preparedFixture(page, request, "one-click feedback");
+  try {
+    await page.getByRole("link", { name: "Give feedback", exact: true }).click();
+    const feedback = page.getByRole("region", { name: "Meeting preparation feedback" });
+    for (const [label, rating] of [["Helpful", "helpful"], ["Needs improvement", "needs_work"]]) {
+      const saved = page.waitForResponse(response => response.url().endsWith("/feedback") && response.request().method() === "POST");
+      await feedback.getByRole("button", { name: label, exact: true }).click();
+      const response = await saved;
+      expect(response.ok()).toBe(true);
+      expect((await response.json()).feedback.rating).toBe(rating);
+      await expect(feedback.getByRole("button", { name: label, exact: true })).toHaveAttribute("aria-pressed", "true");
+      await expect(feedback.getByRole("status")).toHaveText("Feedback saved");
+      await expect(feedback.locator("form, textarea, select")).toHaveCount(0);
+      await expect(feedback.getByRole("button", { name: "Save feedback", exact: true })).toHaveCount(0);
+    }
+  } finally { await request.delete(`/api/calendar/events/${event.id}`); }
+});

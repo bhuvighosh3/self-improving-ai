@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import hashlib
 from datetime import datetime, timezone
 from uuid import uuid4
 from typing import Literal
@@ -161,6 +162,7 @@ async def generate_agent_brief(request, *, trace: list | None = None, model: str
                          "context_revision": metadata.get("context_revision", "fixture-v1")}
     from self_improving_ai.agents.briefing.learning import current_profile, instructions
     task["learning_version"] = current_profile()["version"]
+    task["feedback_fingerprint"] = hashlib.sha256(json.dumps(current_profile()["history"], sort_keys=True).encode()).hexdigest()[:20]
     store = BriefRunStore()
     run_id, saved = store.begin(task, selected_model, metadata["as_of"])
     if saved:
