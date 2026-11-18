@@ -45,14 +45,23 @@ async def run_one(runner, case: dict, timeout_s: float) -> dict:
     user_id, session_id = "golden-eval", f"golden-{case['id']}-{uuid.uuid4().hex[:8]}"
     await runner.session_service.create_session(app_name=runner.app_name, user_id=user_id, session_id=session_id)
     start = time.monotonic()
-    try:
-        with briefing_request_scope(None):
-            result = await asyncio.wait_for(
-                run_copilot(runner=runner, message=case["question"], session_id=session_id, user_id=user_id),
-                timeout=timeout_s)
-        result["error"] = None
-    except Exception as exc:  # a failed run is a result, not a crash
-        result = {"steps": [], "response_parts": [], "error": f"{type(exc).__name__}: {exc}"[:500]}
+    for attempt in (1, 2):
+        try:
+            with briefing_request_scope(None):
+                result = await asyncio.wait_for(
+                    run_copilot(runner=runner, message=case["question"], session_id=session_id, user_id=user_id),
+                    timeout=timeout_s)
+            result["error"] = None
+            break
+        except Exception as exc:  # a failed run is a result, not a crash
+            result = {"steps": [], "response_parts": [], "error": f"{type(exc).__name__}: {exc}"[:500]}
+            transient = any(code in str(exc) for code in ("429", "503", "504", "RESOURCE_EXHAUSTED", "UNAVAILABLE"))
+            if attempt == 2 or not transient:
+                break
+            # Retry once in a fresh session after a provider hiccup; it says nothing about the copilot.
+            session_id = f"{session_id}-retry"
+            await runner.session_service.create_session(app_name=runner.app_name, user_id=user_id, session_id=session_id)
+            await asyncio.sleep(10)
     result["seconds"] = round(time.monotonic() - start, 1)
     return result
 

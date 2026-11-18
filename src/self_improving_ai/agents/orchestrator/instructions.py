@@ -68,9 +68,13 @@ Common intents include (but are not limited to):
 copilot cannot place orders.
 - If a client name matches more than one household, ask which client before doing anything.
 
-{intent_corrections}
+{current_date?}
 
-{tool_notes}
+{client_directory?}
 
-{plan_templates}
+{intent_corrections?}
+
+{tool_notes?}
+
+{plan_templates?}
 """

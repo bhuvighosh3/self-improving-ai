@@ -206,10 +206,18 @@ Every run is scored stage by stage: intent accuracy, step decomposition, tool se
 
 ### Copilot golden set
 
-The live copilot is also checked against a golden set of 20 advisor questions (`src/self_improving_ai/data/orchestrator/golden_copilot.json`). Each question lists the expected plan (which tools or sub-agents, in what order), the facts the answer must contain (checked against the team's Firestore data), and how they were verified. The scorer grades each real `run_copilot` trace by stage: tools, arguments, order, forbidden calls, call budget and facts.
+The live copilot is also checked against a golden set of advisor questions (`src/self_improving_ai/data/orchestrator/golden_copilot.json`). Each question lists the expected plan (which tools or sub-agents, in what order), the facts the answer must contain (checked against the team's Firestore data), and how they were verified. The scorer grades each real `run_copilot` trace by stage: tools, arguments, order, forbidden calls, call budget and facts.
 
 ```bash
 python -m self_improving_ai.evaluation.copilot --include-slow
 ```
 
 Baseline results are in [docs/evaluation/copilot_golden_baseline_2026-11-17.md](docs/evaluation/copilot_golden_baseline_2026-11-17.md).
+
+The set now has 40 cases: 20 dev questions and 20 reworded holdout variants. The improvement loop compares the baseline, hand fixes (today's date and a client directory in the prompt), and learner cycles, where Gemini proposes intent corrections, tool notes and plan templates from dev failures and `harness.gate` adopts them only if they help on holdout:
+
+```bash
+python -m self_improving_ai.evaluation.copilot.improve --repeats 2 --cycles 2
+```
+
+Hand fixes cut tool calls per question from 4.6 to 1.6 (p = 0.001) and raised holdout pass from 86% to 97%. Both learner cycles were rejected by the gate as not significant. Details are in [docs/evaluation/copilot_golden_improvement_2026-11-18.md](docs/evaluation/copilot_golden_improvement_2026-11-18.md).

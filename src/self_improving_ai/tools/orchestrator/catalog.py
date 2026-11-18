@@ -86,6 +86,40 @@ def load_catalog(version: str = "v1") -> Catalog:
     return Catalog(json.loads(path.read_text(encoding="utf-8")))
 
 
+_LIVE_AGENT_TOOLS = [
+    {"name": "portfolio_estimation_agent", "params": [{"name": "request", "type": "string", "description": "Task"}],
+     "description": "Sub-agent for numeric portfolio analysis: risk, projections, drift, tax impact, income, fee drag.",
+     "returns": "Analysis text"},
+    {"name": "meeting_briefing_agent", "params": [{"name": "request", "type": "string", "description": "Task"}],
+     "description": "Sub-agent that prepares and saves a checked meeting brief; returns a compact summary.",
+     "returns": "Brief summary and brief_id"},
+]
+
+
+@lru_cache(maxsize=1)
+def live_catalog() -> Catalog:
+    """The tools the deployed orchestrator really has, so learned notes and templates can name them.
+
+    load_catalog("v1") is the mock catalog used by the offline experiment; its tool names differ
+    from the live copilot's, so lessons about live tools would be dropped against it.
+    """
+    import inspect
+
+    from self_improving_ai.tools.orchestrator import workspace
+
+    tools = []
+    for fn in (workspace.get_upcoming_events, workspace.get_recent_emails, workspace.get_client_info,
+               workspace.get_crm_summary, workspace.get_client_holdings, search_tool_catalog):
+        params = [{"name": p, "type": "string", "description": ""} for p in inspect.signature(fn).parameters]
+        tools.append({"name": fn.__name__, "description": (inspect.getdoc(fn) or "").split("\n")[0],
+                      "params": params, "returns": "dict"})
+    tools += _LIVE_AGENT_TOOLS
+    for t in tools:
+        t["callable_by"] = [ORCHESTRATOR]
+        t["capability"] = t["name"]
+    return Catalog({"version": "live", "tools": tools})
+
+
 def search_tool_catalog(query: str) -> dict:
     """Search the tool catalog for available tools matching a query.
 
