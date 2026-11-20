@@ -556,7 +556,18 @@
             "for whom",
             "which meeting",
             "who's the meeting",
-            "who the meeting"
+            "who the meeting",
+            "please provide",
+            "please specify",
+            "please let me know which",
+            "did not specify",
+            "didn't specify",
+            "not specified",
+            "was not specified",
+            "no client was",
+            "client name",
+            "select one",
+            "which one"
           ],
           "why": "No client given, so it should ask"
         }
@@ -591,7 +602,17 @@
             "do not see",
             "not found",
             "don't have",
-            "no record"
+            "no record",
+            "does not exist",
+            "doesn't exist",
+            "not exist",
+            "no such",
+            "not in our",
+            "not in the client",
+            "not listed",
+            "no household",
+            "isn't in",
+            "is not in"
           ],
           "why": "No Johnson household exists"
         }
@@ -1266,7 +1287,18 @@
             "for whom",
             "which meeting",
             "who's the meeting",
-            "who the meeting"
+            "who the meeting",
+            "please provide",
+            "please specify",
+            "please let me know which",
+            "did not specify",
+            "didn't specify",
+            "not specified",
+            "was not specified",
+            "no client was",
+            "client name",
+            "select one",
+            "which one"
           ],
           "why": "No client given, so it should ask"
         }
@@ -1302,9 +1334,19 @@
             "do not see",
             "not found",
             "don't have",
-            "no record"
+            "no record",
+            "does not exist",
+            "doesn't exist",
+            "not exist",
+            "no such",
+            "not in our",
+            "not in the client",
+            "not listed",
+            "no household",
+            "isn't in",
+            "is not in"
           ],
-          "why": "No Johnson household exists"
+          "why": "No Nguyen household exists"
         }
       ],
       "verification": "Firestore clients has only CLI-001 to CLI-005; no Nguyen household",

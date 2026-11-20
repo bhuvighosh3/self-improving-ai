@@ -30,9 +30,29 @@ Evaluate completeness:
 3. Are there unanswered sub-questions or missing details the advisor asked about?
 4. Did any tool call fail that should be retried or reported?
 
+Count these as complete (they are the right answer, not a gap):
+- The request lacked something the copilot needs (for example which client) and the response asks the advisor for it.
+- The requested client or record does not exist and the response says so.
+- The response declines an action it must not take (for example placing trades) and says what it can do instead.
+If part of the response is marked as omitted, that text was delivered to the advisor; do not treat it as cut off.
+
 Return a JSON object:
 {{"complete": true/false, "confidence": 0.0-1.0, "missing": "what is still unaddressed (empty if complete)", "stop_reason": "why the response is complete (empty if incomplete)"}}
 """
+
+
+_CHECKER_CHARS = 6000
+
+
+def clip_for_checker(text: str, limit: int = _CHECKER_CHARS) -> str:
+    """Keep the start and the end of a long answer so the checker can see it finished.
+
+    A plain prefix cut made complete long answers look truncated, which triggered needless retries.
+    """
+    if len(text) <= limit:
+        return text
+    head, tail = text[: limit * 2 // 3], text[-(limit // 3):]
+    return f"{head}\n[... {len(text) - len(head) - len(tail)} characters omitted here ...]\n{tail}"
 
 
 @dataclass
@@ -63,7 +83,7 @@ async def check_completion(
     prompt = _CHECKER_PROMPT.format(
         user_message=user_message,
         tools_summary=tools_summary,
-        response_text=response_text[:2000],
+        response_text=clip_for_checker(response_text),
     )
 
     try:
