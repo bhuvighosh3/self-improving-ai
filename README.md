@@ -220,4 +220,4 @@ The set now has 40 cases: 20 dev questions and 20 reworded holdout variants. The
 python -m self_improving_ai.evaluation.copilot.improve --repeats 2 --cycles 2
 ```
 
-Hand fixes cut tool calls per question from 4.6 to 1.6 (p = 0.001) and raised holdout pass from 86% to 97%. Both learner cycles were rejected by the gate as not significant. Details are in [docs/evaluation/copilot_golden_improvement_2026-11-18.md](docs/evaluation/copilot_golden_improvement_2026-11-18.md).
+Hand fixes cut tool calls per question from 4.6 to 1.6 (p = 0.001) and raised holdout pass from 86% to 97%. Both learner cycles were rejected by the gate as not significant. A rerun after fixing the completion checker (it read only the first 2,000 characters of an answer, so long answers looked cut off and were retried) removed all retries. Details are in [docs/evaluation/copilot_golden_improvement_2026-11-18.md](docs/evaluation/copilot_golden_improvement_2026-11-18.md).
